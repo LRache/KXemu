@@ -10,7 +10,8 @@ namespace kdb {
     void deinit();
     void deinit_memory();
 
-    void run_kdb();
+    void cmd_init();
+    void run_cmd();
     int run_cpu();
 
     extern Memory *memory;

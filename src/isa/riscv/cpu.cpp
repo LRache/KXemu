@@ -7,6 +7,7 @@ void RV32CPU::init(Memory *memory, int flags, int coreCount) {
     }
     core = new RV32Core();
     core->init(memory, flags);
+    coreCount_ = coreCount;
 }
 
 void RV32CPU::reset() {
@@ -19,6 +20,10 @@ void RV32CPU::step() {
 
 bool RV32CPU::has_break() {
     return core->is_break() || core->is_error();
+}
+
+int RV32CPU::coreCount() {
+    return coreCount_;
 }
 
 Core *RV32CPU::getCore(int coreID) {

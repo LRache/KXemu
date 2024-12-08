@@ -7,6 +7,7 @@
 class RV32CPU : public CPU {
 private:    
     RV32Core *core;
+    int coreCount_;
 
 public:
     void init(Memory *memory, int flags, int coreCount) override;
@@ -14,6 +15,7 @@ public:
     void step() override;
     bool has_break() override;
 
+    int coreCount() override;
     Core *getCore(int coreID) override;
 
     ~RV32CPU() override;

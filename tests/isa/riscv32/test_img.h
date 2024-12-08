@@ -9,15 +9,18 @@
 #define __EBREAK 0x00100073
 #define GOOD_TRAP 0x00000513, __EBREAK,
 
+__attribute__((__used__))
 static uint32_t test_img_ebreak[] = {
     __EBREAK
 };
 
+__attribute__((__used__))
 static uint32_t test_img_illegal_inst[] = {
     0,
     __EBREAK
 };
 
+__attribute__((__used__))
 static uint32_t test_img_athrimatic[] =  {
     0x00a00093, // 00 addi x1, x0, 10
     0x00008133, // 04 add x2, x1, x0
@@ -48,6 +51,7 @@ static uint32_t test_img_athrimatic[] =  {
     GOOD_TRAP 
 };                                       
 
+__attribute__((__used__))
 static uint32_t test_img_branch[] {
     0x00f00513, // 00 addi x10, x0, 15
     0x01b00593, // 04 addi x11, x0, 27
@@ -68,6 +72,7 @@ static uint32_t test_img_branch[] {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_upper[] = {
     0x00123517, // auipc x10, 291
     0x01edf597, // auipc x11, 7903
@@ -77,6 +82,7 @@ static uint32_t test_img_upper[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_jump0[] = {
     0x00000517, // auipc x10, 0
     0x00c500e7, // jalr x1, 12(x10)
@@ -84,6 +90,7 @@ static uint32_t test_img_jump0[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_jump1[] = {
     0x00f00513, // 00 addi x10, x0, 15
     0x01b00593, // 04 addi x11, x0, 27
@@ -94,6 +101,7 @@ static uint32_t test_img_jump1[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_mem1[] = {
     0x020000b7, // lui x1, 0x02000
     0x0000a103, // lw x2, 0(x1)
@@ -132,6 +140,7 @@ static uint32_t test_img_mem1[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_mem2[] = {
     0x00000517, // 00 auipc x10, 0
     0x7ff50513, // 04 addi x10, x10, 2047
@@ -148,6 +157,7 @@ static uint32_t test_img_mem2[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_mrom[] = {
     0x00000517, // 00 auipc x10, 0
     0x01750513, // 04 addi x10, x10, 0x17
@@ -156,6 +166,7 @@ static uint32_t test_img_mrom[] = {
     0x01020304  // 14        
 };
 
+__attribute__((__used__))
 static uint32_t test_img_sram[] = {
     0x0f0000b7, // lui x1, 0x0f000
     0x01b00113, // addi x2, x0, 27
@@ -165,6 +176,7 @@ static uint32_t test_img_sram[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_uart[] = {
     0x100007b7, // lui a5,0x10000
     0x0037c683, // lbu a3,3(a5)
@@ -172,6 +184,7 @@ static uint32_t test_img_uart[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_flash[] ={
     0x30000537, // lui x10, 0x30000
     0x00054583, // lbu x11, 0(x10)
@@ -182,6 +195,7 @@ static uint32_t test_img_flash[] ={
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_spi[] ={
     0x10001537, // lui x10, 0x10001
     0x00a00593, // li x11, 10
@@ -190,6 +204,7 @@ static uint32_t test_img_spi[] ={
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_dummy[] = {
     0x00000413,
     0x00009117,
@@ -205,6 +220,7 @@ static uint32_t test_img_dummy[] = {
     __EBREAK
 };
 
+__attribute__((__used__))
 static uint32_t test_img_csrrw[] = {
     // 0x7ff50513, // 00 addi x10, x10, 2047
     // 0x342515f3, // 04 csrrw x11, mcause, x10
@@ -215,6 +231,7 @@ static uint32_t test_img_csrrw[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_fun[] = {
     0xef002117, // auipc sp,0xef002
     0xffc10113, // addi	sp,sp,-5 # f001fff
@@ -228,6 +245,7 @@ static uint32_t test_img_fun[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_ecall[] = {
     0x00000517, // 00 auipc x10, 0
     0x01850513, // 04 addi x10, x10, 24
@@ -241,6 +259,7 @@ static uint32_t test_img_ecall[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_psram[] = {
     0x800000b7, // 00 lui x1, 0x80000
     0x12300113, // 04 li x2, 0x123
@@ -252,6 +271,7 @@ static uint32_t test_img_psram[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_sdram[] = {
     0xa00000b7, // 00 lui x1, 0xa0000
     // 0xa20001b7, // 04 lui x3, 0xa2000
@@ -266,6 +286,7 @@ static uint32_t test_img_sdram[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_gpio[] = {
     0x100020b7, // 00 lui x1, 0x10002
     // 0x00100113, // 04 addi x2, x0, 1
@@ -273,6 +294,7 @@ static uint32_t test_img_gpio[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_dead_loop[] = {
     // 0x00100093, // addi x1, x0, 1
     // 0x00200113, // addi x2, x0, 2
@@ -287,6 +309,7 @@ static uint32_t test_img_dead_loop[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_pipeline_no_hazard_ivd[] = {
     0,
     0,
@@ -296,6 +319,7 @@ static uint32_t test_img_pipeline_no_hazard_ivd[] = {
     __EBREAK
 };
 
+__attribute__((__used__))
 static uint32_t test_img_no_hazard_addi[] = {
     0x00100093, // 00 addi  x1, x0,  1
     0x00200113, // 04 addi  x2, x0,  2
@@ -315,12 +339,14 @@ static uint32_t test_img_no_hazard_addi[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_simple_data_hazard[] = {
     0x00100093, // addi x1, x0, 1
     0x00208093, // addi x1, x1, 2
     __EBREAK
 };
 
+__attribute__((__used__))
 static uint32_t test_img_data_hazard[] = {
     0x00100093, // addi x1, x0, 1
     0x00208093, // addi x1, x1, 2
@@ -335,6 +361,7 @@ static uint32_t test_img_data_hazard[] = {
     __EBREAK
 };
 
+__attribute__((__used__))
 static uint32_t test_img_simple_mem[] = {
     0xa0000537, // 00 lui x10, 0xa0000
     // 0x123455b7, // 04 lui x11, 0x12345
@@ -346,6 +373,7 @@ static uint32_t test_img_simple_mem[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_simple_mem2[] = {
     0xa0000537, // 00 lui x10, 0xa0000
     0x7bc00293, // 04 addi x5, x0, 0x7bc
@@ -356,6 +384,7 @@ static uint32_t test_img_simple_mem2[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_simple_mem3[] = {
     // 0xa0000237, // 00 lui x4, 0xa0000
     // 0x7bc00293, // 04 addi x5, x0, 0x7bc
@@ -377,6 +406,7 @@ static uint32_t test_img_simple_mem3[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_control_hazard1[] = {
     0x0080016f, // 00 jal x2, 8
     0x00000000, // invalid
@@ -388,6 +418,7 @@ static uint32_t test_img_control_hazard1[] = {
     0x00008067, // jalr x0, 0(x1)
 };
 
+__attribute__((__used__))
 static uint32_t test_img_control_hazard2[] = {
     0x00000093, // 00 li x1, 0
     0x01008193, // 04 addi x3, x1, 16
@@ -396,6 +427,7 @@ static uint32_t test_img_control_hazard2[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_control_hazard3[] = {
     0xa00000b7, // 00 lui x1, 0xa0000
     0x01008193, // 04 addi x3, x1, 16
@@ -407,6 +439,7 @@ static uint32_t test_img_control_hazard3[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_control_hazard4[] = {
     0xa0000537, // 00 lui x10, 0xa0000
     0x00052583, // 04 lw x11, 0(x10)
@@ -423,6 +456,7 @@ static uint32_t test_img_control_hazard4[] = {
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_bootloader[] = {
     0x70001717, // 00 auipc a4, 0x70001
     0xfe070713, // 04 addi a4, a4, -32
@@ -442,6 +476,7 @@ static uint32_t test_img_bootloader[] = {
     GOOD_TRAP   // 3c 40
 };
 
+__attribute__((__used__))
 static uint32_t test_img_temp[] = {
     0x00000793, // 00 li a5, 0
     0x00800613, // 04 li a2, 8
@@ -452,12 +487,14 @@ static uint32_t test_img_temp[] = {
     GOOD_TRAP   // 18 1c
 };
 
+__attribute__((__used__))
 static uint32_t test_img_ivd_load[] = {
     0x500000b7, // lui x1, 0x50000
     0x0000a103, // lw x2, 0(x1)
     GOOD_TRAP
 };
 
+__attribute__((__used__))
 static uint32_t test_img_clint[] = {
     0x00c000ef, // 00 jal x1, 12
     GOOD_TRAP   // 04 08
@@ -468,6 +505,7 @@ static uint32_t test_img_clint[] = {
     0x00008067, // 1c jalr x0, 0(x1)
 };
 
+__attribute__((__used__))
 static uint32_t test_img_btb[] = {
     0x00200093, // 00 addi x1, x0, 2
     0x00000113, // 04 addi x2, x0, 0

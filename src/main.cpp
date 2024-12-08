@@ -2,6 +2,7 @@
 
 int main() {
     kdb::init();
-    kdb::run_cpu();
+    kdb::cmd_init();
+    kdb::run_cmd();
     return 0;
 }

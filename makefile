@@ -1,5 +1,5 @@
 CXX = clang++
-CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -pedantic -O3
+CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -pedantic -O3 -lreadline -Wno-unused-command-line-argument
 ISA ?= RISCV32
 ISA_LOWER = $(shell echo $(ISA) | tr A-Z a-z)
 

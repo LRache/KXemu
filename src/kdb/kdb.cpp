@@ -30,15 +30,15 @@ int kdb::run_cpu() {
 
     Core *core = cpu->getCore(0);
     if (core->is_error()) {
-        INFO(FMT_COLOR_RED "Error" FMT_COLOR_BLUE "at pc=" FMT_WORD, core->trapPC);
+        INFO(FMT_FG_RED "Error" FMT_FG_BLUE "at pc=" FMT_WORD, core->trapPC);
         return 1;
     }
 
     int r = core->trapCode;
     if (r == 0) {
-        INFO(FMT_COLOR_GREEN "HIT GOOD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD, core->trapPC); 
+        INFO(FMT_FG_GREEN "HIT GOOD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->trapPC); 
     } else {
-        INFO(FMT_COLOR_RED "HIT BAD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD, core->trapPC);
+        INFO(FMT_FG_RED "HIT BAD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->trapPC);
     }
     return r;
 }

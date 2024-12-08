@@ -22,6 +22,7 @@ public:
     virtual void step() = 0;
     virtual bool has_break() = 0;
 
+    virtual int coreCount() = 0;
     virtual Core *getCore(int coreID) = 0;
 
     virtual ~CPU() {};
