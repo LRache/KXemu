@@ -2,29 +2,20 @@
 #include "cpu/cpu.h"
 #include "log.h"
 #include "isa/isa.h"
-#include "isa/riscv/cpu.h"
 #include "common.h"
-#include <cstdint>
 
 CPU *kdb::cpu = nullptr;
-bool kdb::config::is64ISA;
 
-void kdb::init(const ISA &isa) {
-    switch (isa) {
-        case RISCV32:
-            cpu = new RV32CPU();
-            kdb::config::is64ISA = false;
-            break;
-        default:
-            PANIC("Unsupported ISA %s", ISA_NAME[isa]);
-    }
-
+void kdb::init() {
     init_memory();
 
+    logFlag = DEBUG | INFO | WARN | PANIC;
+
+    cpu = new ISA_CPU();
     cpu->init(memory, 0, 1);
     cpu->reset();
 
-    INFO("Init %s CPU", ISA_NAME[isa]);
+    INFO("Init %s CPU", ISA_NAME);
 }
 
 void kdb::deinit() {
@@ -39,29 +30,15 @@ int kdb::run_cpu() {
 
     Core *core = cpu->getCore(0);
     if (core->is_error()) {
-        if (config::is64ISA) {
-            INFO(FMT_COLOR_RED "Error" FMT_COLOR_BLUE "at pc=" FMT_WORD_64, core->trapPC);
-        } else {
-            INFO(FMT_COLOR_RED "Error" FMT_COLOR_BLUE "at pc=" FMT_WORD_32, (uint32_t)core->trapPC);
-        }
+        INFO(FMT_COLOR_RED "Error" FMT_COLOR_BLUE "at pc=" FMT_WORD, core->trapPC);
         return 1;
     }
 
     int r = core->trapCode;
     if (r == 0) {
-        if (config::is64ISA) {
-            INFO(FMT_COLOR_GREEN "HIT GOOD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD_64, core->trapPC);
-        }
-        else {
-            INFO(FMT_COLOR_GREEN "HIT GOOD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD_32, (uint32_t)core->trapPC); 
-        }
+        INFO(FMT_COLOR_GREEN "HIT GOOD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD, core->trapPC); 
     } else {
-        if (config::is64ISA) {
-            INFO(FMT_COLOR_RED "HIT BAD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD_64, core->trapPC);
-        } 
-        else {
-            INFO(FMT_COLOR_RED "HIT BAD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD_32, (uint32_t)core->trapPC);
-        }
+        INFO(FMT_COLOR_RED "HIT BAD TRAP " FMT_COLOR_BLUE "at pc=" FMT_WORD, core->trapPC);
     }
     return r;
 }

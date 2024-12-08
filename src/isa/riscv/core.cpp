@@ -1,5 +1,5 @@
-#include "isa/riscv/core.h"
-#include "isa/riscv/riscv.h"
+#include "isa/riscv32/core.h"
+#include "isa/riscv32/riscv.h"
 #include "log.h"
 #include "macro.h"
 #include "common.h"
@@ -21,6 +21,8 @@ void RV32Core::step() {
     if (likely(this->state == RUNNING)) {
         this->execute();
         this->pc = this->npc;
+    } else {
+        WARN("Core is not running, nothing to do.");
     }
 }
 
@@ -30,6 +32,15 @@ void RV32Core::execute() {
     if (!valid) {
         this->do_invalid_inst();
     }
+}
+
+word_t RV32Core::mem_read(word_t addr, int len) {
+    return this->memory->read(addr, len);
+}
+
+int RV32Core::mem_write(word_t addr, word_t data, int len) {
+    this->memory->write(addr, data, len);
+    return 0;
 }
 
 void RV32Core::do_invalid_inst() {

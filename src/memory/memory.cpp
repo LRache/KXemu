@@ -1,8 +1,8 @@
 #include "memory/memory.h"
+#include "common.h"
 #include "log.h"
-#include <cstdint>
 
-bool Memory::add_memory_map(std::string name, uint64_t start, uint64_t length, MemoryMap *map) {
+bool Memory::add_memory_map(std::string name, word_t start, word_t length, MemoryMap *map) {
     // check if overlap
     for (auto &m : memory_maps) {
         if (m.start <= start && start < m.start + m.length) {
@@ -25,18 +25,18 @@ void Memory::free_all() {
     memory_maps.clear();
 }
 
-uint64_t Memory::read(uint64_t addr, int size) const {
-    DEBUG("read addr: 0x%lx, size: %d", addr, size);
+word_t Memory::read(word_t addr, int size) const {
+    // DEBUG("read addr: " FMT_WORD ", size: %d", addr, size);
     for (auto &m : memory_maps) {
         if (m.start <= addr && addr < m.start + m.length) {
             return m.map->read(addr - m.start, size);
         }
     }
-    WARN("read addr: 0x%lx, size: %d, out of range", addr, size);
+    WARN("read addr: " FMT_WORD ", size: %d, out of range", addr, size);
     return 0;
 }
 
-bool Memory::write(uint64_t addr, uint64_t data, int size) {
+bool Memory::write(word_t addr, word_t data, int size) {
     for (auto &m : memory_maps) {
         if (m.start <= addr && addr < m.start + m.length) {
             return m.map->write(addr - m.start, data, size);

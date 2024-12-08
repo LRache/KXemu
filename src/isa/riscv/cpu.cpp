@@ -1,4 +1,4 @@
-#include "isa/riscv/cpu.h"
+#include "isa/riscv32/cpu.h"
 #include "log.h"
 
 void RV32CPU::init(Memory *memory, int flags, int coreCount) {

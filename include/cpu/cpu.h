@@ -2,16 +2,16 @@
 #define __CPU_H__
 
 #include "memory/memory.h"
-#include <cstdint>
+#include "common.h"
 
 class Core {
 public:
     virtual bool is_error() = 0;
     virtual bool is_break() = 0;
     virtual ~Core() = default;
-    uint64_t trapCode;
-    uint64_t trapPC;
-    uint64_t haltPC;
+    word_t trapCode;
+    word_t trapPC;
+    word_t haltPC;
 };
 
 class CPU {

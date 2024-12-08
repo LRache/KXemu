@@ -1,12 +1,12 @@
 #ifndef __MEMORY_MAP_H__
 #define __MEMORY_MAP_H__
 
-#include <cstdint>
+#include "common.h"
 
 class MemoryMap {
 public:
-    virtual uint64_t read(uint64_t offset, int size) const = 0;
-    virtual bool write(uint64_t offset, uint64_t data, int size) = 0;
+    virtual word_t read(word_t offset, int size) const = 0;
+    virtual bool write(word_t offset, word_t data, int size) = 0;
     virtual ~MemoryMap() {};
 };
 
@@ -19,8 +19,8 @@ public:
     StorageMemoryMap(uint64_t length);
     ~StorageMemoryMap();
     
-    uint64_t read(uint64_t addr, int size) const;
-    bool write(uint64_t addr, uint64_t data, int size);
+    word_t read(word_t addr, int size) const;
+    bool write(word_t addr, word_t data, int size);
 
     uint8_t *data;
 };

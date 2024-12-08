@@ -2,7 +2,7 @@
 #define __ISA_RISCV32_CPU_H__
 
 #include "cpu/cpu.h"
-#include "isa/riscv/core.h"
+#include "isa/riscv32/core.h"
 
 class RV32CPU : public CPU {
 private:    

@@ -1,4 +1,5 @@
 #include "memory/map.h"
+#include "common.h"
 #include <cstdint>
 
 StorageMemoryMap::StorageMemoryMap(uint64_t length) {
@@ -10,7 +11,7 @@ StorageMemoryMap::~StorageMemoryMap() {
     delete[] data;
 }
 
-uint64_t StorageMemoryMap::read(uint64_t offset, int size) const {
+word_t StorageMemoryMap::read(word_t offset, int size) const {
     uint64_t ret = 0;
     switch (size) {
         case 1: ret = data[offset]; break;
@@ -22,7 +23,7 @@ uint64_t StorageMemoryMap::read(uint64_t offset, int size) const {
     return ret;
 }
 
-bool StorageMemoryMap::write(uint64_t offset, uint64_t data, int size) {
+bool StorageMemoryMap::write(word_t offset, word_t data, int size) {
     switch (size) {
         case 1: *(uint8_t  *)(this->data + offset) = (uint8_t )data; break;
         case 2: *(uint16_t *)(this->data + offset) = (uint16_t)data; break;

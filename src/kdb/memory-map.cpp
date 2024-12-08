@@ -2,10 +2,10 @@
 #include "kdb/kdb.h"
 #include "memory/map.h"
 #include "memory/memory.h"
-#include "test_img/riscv.h"
+#include "test_img.h"
 #include <cstring>
 
-#define TEST_IMG test_img_addi
+#define TEST_IMG test_img_branch
 
 Memory *kdb::memory = nullptr;
 

@@ -13,14 +13,11 @@
 
 #define PUTLOG(COLOR, TYPE, ...) \
 do { \
+    if (!(logFlag & TYPE)) break; \
     printf(COLOR "[" #TYPE "][%s:%d %s] " FMT_COLOR_RESET, __FILE__, __LINE__, __func__); \
     printf(__VA_ARGS__); \
     printf(FMT_COLOR_RESET "\n"); \
 } while(0);
-
-// #define Log(fmt, ...) do{ 
-//     PutLog(FMT_COLOR_BLUE "[%s:%d %s]" fmt "\n" FMT_COLOR_RESET, __FILE__, __LINE__, __func__, ## __VA_ARGS__); 
-// } while(0);
 
 #define DEBUG(...) \
     PUTLOG(FMT_COLOR_YELLOW, DEBUG, __VA_ARGS__)
@@ -36,5 +33,14 @@ do { \
     PUTLOG(FMT_COLOR_RED, PANIC, __VA_ARGS__); \
     exit(1); \
 } while(0);
+
+enum LogFlag {
+    DEBUG = 1,
+    INFO  = 2,
+    WARN  = 4,
+    PANIC = 8,
+};
+
+extern int logFlag;
 
 #endif

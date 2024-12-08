@@ -1,26 +1,14 @@
 #ifndef __ISA_H__
 #define __ISA_H__
 
-enum ISA {
-    RISCV32,
-    RISCV64,
-    X86,
-    ARM,
-    MIPS,
-    LoongArch,
-};
-
-static const char *ISA_NAME[] = {
-    "RISCV32",
-    "RISCV64",
-    "X86",
-    "ARM",
-    "MIPS",
-    "LoongArch",
-};
-
-static inline const char *isa_name(ISA isa) {
-    return ISA_NAME[isa];
-}
+#ifdef ISA
+    #if ISA == RISCV32
+        #include "isa/riscv32/cpu.h"
+        #define ISA_CPU RV32CPU
+        #define ISA_NAME "riscv32"
+    #endif
+#else
+    #error "ISA not defined"
+#endif
 
 #endif
