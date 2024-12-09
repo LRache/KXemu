@@ -1,39 +1,50 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -pedantic -O3 -lreadline -Wno-unused-command-line-argument
+CXXFLAGS = -Wall -Wextra -Werror -pedantic -O3 -Wno-unused-command-line-argument -Wno-unused-parameter
 ISA ?= RISCV32
 ISA_LOWER = $(shell echo $(ISA) | tr A-Z a-z)
 
-SRC_DIR = $(abspath ./src)
-BUILD_DIR = $(abspath ./build)
-OBJ_DIR = $(abspath ./build/obj)
+SRC_DIR = ./src
+BUILD_DIR = ./build
+OBJ_DIR = ./build/obj
 
-SRCS = $(abspath $(shell find $(SRC_DIR) -name "*.cpp"))
-OBJS = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
+SRCS += $(shell find $(SRC_DIR) -name "*.cpp" -or -name "*.c")
+OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
 INCPATH += $(abspath ./include)
 INCPATH += $(abspath ./tests/isa/$(ISA_LOWER))
-INCFLAGS = $(addprefix -I, $(INCPATH))
+INCFLAGS = $(addprefix -I,$(INCPATH))
+
+LIBS += readline
+LIBFLAGS = $(addprefix -l,$(LIBS))
 
 CXXFLAGS += $(INCFLAGS)
+CXXFLAGS += $(LIBFLAGS)
 CXXFLAGS += -DISA=$(ISA)
+
+# for llvm
+CXXFLAGS += $(shell llvm-config --cxxflags) -fPIE
+CXXFLAGS += $(shell llvm-config --libs)
 
 TARGET = $(BUILD_DIR)/$(ISA_LOWER)-kxemu
 
 $(TARGET): $(OBJS)
-	mkdir -p $(BUILD_DIR)
-	$(CXX) $(OBJS) -o $(TARGET) $(CXXFLAGS)
+	$(info + CXX $@)
+	@ mkdir -p $(BUILD_DIR)
+	@ $(CXX) $(OBJS) -o $(TARGET) $(CXXFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	mkdir -p $(dir $@)
-	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	$(info + CXX $<)
+	@ mkdir -p $(dir $@)
+	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 -include $(DEPS)
 
 kxemu: $(TARGET)
 
 run: $(TARGET)
-	$(TARGET)
+	$(info + Running $(TARGET))
+	@ $(TARGET)
 
 clean:
 	rm -rf $(BUILD_DIR)

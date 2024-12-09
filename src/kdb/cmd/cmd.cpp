@@ -1,6 +1,7 @@
 #include "isa/isa.h"
 #include "kdb/kdb.h"
 #include "log.h"
+#include "utils/disasm.h"
 
 #include <map>
 #include <readline/readline.h>
@@ -49,6 +50,8 @@ void kdb::cmd_init() {
     cmdMap.insert(std::make_pair("quit", cmd_quit));
     cmdMap.insert(std::make_pair("q", cmd_quit));
     cmdMap.insert(std::make_pair("exit", cmd_quit));
+
+    disasm::init("riscv32");
 }
 
 void kdb::run_cmd_mainloop() {
@@ -64,7 +67,6 @@ void kdb::run_cmd_mainloop() {
         
         
         int r = run_command(cmd);
-
         if (r == -1) {
             std::string cmdName = cmd.substr(0, cmd.find(' '));
             std::cout << "Unknown command: " << cmdName << std::endl;
