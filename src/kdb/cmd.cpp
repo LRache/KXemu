@@ -6,6 +6,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <string>
+#include <utility>
 #include <vector>
 #include <sstream>
 #include <iostream>
@@ -18,18 +19,16 @@ static int currentCore = 0;
 
 static bool cmdRunning = false;
 
-static std::vector<std::string> args;
-
-typedef int (*cmd_func_t)();
+typedef int (*cmd_func_t)(std::vector<std::string> &);
 std::map<std::string, cmd_func_t> cmdMap;
 
-static int cmd_help() {
+static int cmd_help(std::vector<std::string> &) {
     std::cout << "Commands:" << std::endl;
     return 0;
 }
 
-static int cmd_quit() {
-    std::cout << "Bye" << std::endl;
+static int cmd_quit(std::vector<std::string> &) {
+    std::cout << "Bye~" << std::endl;
     cmdRunning = false;
     return 0;
 }
@@ -49,31 +48,42 @@ void kdb::cmd_init() {
     cmdMap.insert(std::make_pair("h", cmd_help));
     cmdMap.insert(std::make_pair("quit", cmd_quit));
     cmdMap.insert(std::make_pair("q", cmd_quit));
+    cmdMap.insert(std::make_pair("exit", cmd_quit));
 }
 
-void kdb::run_cmd() {
+void kdb::run_cmd_mainloop() {
     cmdRunning = true;
     while (cmdRunning) {
         char *inputLine = readline(SHELL_BULE ISA_NAME "-kdb> " SHELL_RESET);
         if (inputLine == nullptr) {
             break;
         }
-        
-        args.clear();
-        std::string cmd = inputLine;
-        std::string arg;
-        std::stringstream ss(cmd);
-        while (std::getline(ss, arg, ' ')) {
-            args.push_back(arg);
-        }
 
-        if (cmdMap.find(args[0]) != cmdMap.end()) {
-            cmdMap[args[0]]();
-            add_history(inputLine);
-        } else {
-            std::cout << "Unknown command: " << args[0] << std::endl;
+        std::string cmd = inputLine;
+        if (cmd.empty()) continue;
+        
+        
+        int r = run_command(cmd);
+
+        if (r == -1) {
+            std::string cmdName = cmd.substr(0, cmd.find(' '));
+            std::cout << "Unknown command: " << cmdName << std::endl;
         }
 
         free(inputLine);
     }
+}
+
+int kdb::run_command(std::string cmd) {
+    std::vector<std::string> args;
+    std::string arg;
+    std::stringstream ss(cmd);
+    while (std::getline(ss, arg, ' ')) {
+        args.push_back(arg);
+    }
+
+    if (cmdMap.find(args[0]) != cmdMap.end()) {
+        return cmdMap[args[0]](args);
+    }
+    return -1;
 }

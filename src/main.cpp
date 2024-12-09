@@ -3,6 +3,6 @@
 int main() {
     kdb::init();
     kdb::cmd_init();
-    kdb::run_cmd();
+    kdb::run_cmd_mainloop();
     return 0;
 }

@@ -3,6 +3,7 @@
 
 #include "cpu/cpu.h"
 #include "memory/memory.h"
+#include <string>
 
 namespace kdb {
     void init();
@@ -11,7 +12,8 @@ namespace kdb {
     void deinit_memory();
 
     void cmd_init();
-    void run_cmd();
+    void run_cmd_mainloop();
+    int run_command(std::string cmd);
     int run_cpu();
 
     extern Memory *memory;
