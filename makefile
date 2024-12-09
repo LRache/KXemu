@@ -1,4 +1,4 @@
-CXX = clang++
+CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -Werror -pedantic -O3 -lreadline -Wno-unused-command-line-argument
 ISA ?= RISCV32
 ISA_LOWER = $(shell echo $(ISA) | tr A-Z a-z)
@@ -22,7 +22,7 @@ TARGET = $(BUILD_DIR)/$(ISA_LOWER)-kxemu
 
 $(TARGET): $(OBJS)
 	mkdir -p $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(OBJS) -o $(TARGET)
+	$(CXX) $(OBJS) -o $(TARGET) $(CXXFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	mkdir -p $(dir $@)
