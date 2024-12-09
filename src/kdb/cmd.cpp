@@ -39,7 +39,7 @@ void kdb::cmd_init() {
         PANIC("CPU or memory not initialized");
     }
 
-    coreCount = cpu->coreCount();
+    coreCount = cpu->core_count();
     currentCore = 0;
     if (coreCount != 1) {
         WARN("Multiple cores detected, only core 0 is used");

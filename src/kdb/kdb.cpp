@@ -28,7 +28,7 @@ int kdb::run_cpu() {
         cpu->step();
     }
 
-    Core *core = cpu->getCore(0);
+    Core *core = cpu->get_core(0);
     if (core->is_error()) {
         INFO(FMT_FG_RED "Error" FMT_FG_BLUE "at pc=" FMT_WORD, core->trapPC);
         return 1;

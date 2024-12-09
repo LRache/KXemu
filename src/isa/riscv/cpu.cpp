@@ -5,9 +5,9 @@ void RV32CPU::init(Memory *memory, int flags, int coreCount) {
     if (coreCount != 1) {
         PANIC("RV32CPU does not support multi-core");
     }
-    core = new RV32Core();
-    core->init(memory, flags);
-    coreCount_ = coreCount;
+    this->core = new RV32Core();
+    this->core->init(memory, flags);
+    this->coreCount = coreCount;
 }
 
 void RV32CPU::reset() {
@@ -22,11 +22,11 @@ bool RV32CPU::has_break() {
     return core->is_break() || core->is_error();
 }
 
-int RV32CPU::coreCount() {
-    return coreCount_;
+int RV32CPU::core_count() {
+    return coreCount;
 }
 
-Core *RV32CPU::getCore(int coreID) {
+Core *RV32CPU::get_core(int coreID) {
     if (coreID != 0) {
         PANIC("RV32CPU does not support multi-core");
     }
