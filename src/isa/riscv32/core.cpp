@@ -1,5 +1,5 @@
 #include "isa/riscv32/core.h"
-#include "isa/riscv32/riscv.h"
+#include "isa/riscv32/riscv32.h"
 #include "log.h"
 #include "macro.h"
 #include "common.h"
@@ -46,7 +46,7 @@ int RV32Core::mem_write(word_t addr, word_t data, int len) {
 void RV32Core::do_invalid_inst() {
     this->state = ERROR;
     this->haltPC = this->pc;
-    WARN("Invalid instruction at pc=0x%08x, inst=0x%08x", this->pc, this->inst);
+    WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD, this->pc, this->inst);
 }
 
 void RV32Core::set_gpr(int index, word_t value) {
