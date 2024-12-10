@@ -1,12 +1,17 @@
-#include "common.h"
+/***************************************************************
+ * Project Name: KXemu
+ * File Name: src/kdb/cmd/cmd.cpp
+ * Description: Implement functions for kdb command line interface.
+ ***************************************************************/
+
 #include "cpu/cpu.h"
 #include "isa/isa.h"
-#include "isa/riscv32/riscv.h"
 #include "kdb/kdb.h"
+#include "kdb/cmd.h"
 #include "log.h"
 #include "utils/disasm.h"
 
-#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <ios>
 #include <map>
@@ -22,60 +27,53 @@
 #define SHELL_BULE "\x1b[36m"
 #define SHELL_RESET "\x1b[0m"
 
-static int coreCount = 1;
-static int currentCore = 0;
+std::map<std::string, cmd::func_t> cmdMap = {
+    {"help" , cmd::help  },
+    {"h"    , cmd::help  },
+    {"quit" , cmd::quit  },
+    {"q"    , cmd::quit  },
+    {"exit" , cmd::quit  },
+    {"step" , cmd::step  },
+    {"s"    , cmd::step  },
+    {"reset", cmd::reset },
+    {"log"  , cmd::log   },
+    {"mem"  , cmd::mem   },
+};
 
 static bool cmdRunning = false;
 
-typedef int (*cmd_func_t)(const std::vector<std::string> &);
-std::map<std::string, cmd_func_t> cmdMap;
+Core *cmd::currentCore;
+int cmd::coreCount;
 
-extern int cmd_log(const std::vector<std::string> &args);
-
-static int cmd_help(const std::vector<std::string> &) {
+int cmd::help(const args_t &) {
     std::cout << "Commands:" << std::endl;
     return 0;
 }
 
-static int cmd_quit(const std::vector<std::string> &) {
+int cmd::quit(const args_t &) {
     std::cout << "Bye~" << std::endl;
     cmdRunning = false;
     return 0;
 }
 
-static int cmd_reset(const std::vector<std::string> &) {
-    kdb::cpu->reset();
-    return 0;
-}
-
-static int cmd_step(const std::vector<std::string> &args) {
-    std::string ns = args[1]; // step count
-    unsigned long n = std::stoul(ns);
-
-    Core *core = kdb::cpu->get_core(currentCore);
-    for (unsigned long i = 0; i < n; i++) {
-        if (core->is_break() || core->is_error()) {
-            break;
-        }
-
-        // disassemble
-        word_t pc = core->get_pc();
-        uint8_t *mem = kdb::memory->get_ptr(pc);
-        if (mem != nullptr) {
-            unsigned int instLength;
-            std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
-            std::cout << std::hex << "0x" << pc;
-            for (unsigned int j = 0; j < instLength; j++) {
-                std::cout << " " << std::hex << std::setw(2) << std::setfill('0') << (int)mem[j];
-            }
-            std::cout << inst << std::endl;
-        } else {
-            std::cout << "Unsupport to disassemble at pc =" << std::hex << pc << std::endl;
-        }
-
-        core->step();
+int cmd::find_and_run(const args_t &args, const cmd_map_t &cmdMap, const std::size_t startIndex) {
+    if (args.size() < 1) {
+        return cmd::EmptyArgs;
     }
-    return 0;
+
+    auto iter = cmdMap.find(args[startIndex]);
+    if (iter != cmdMap.end()) {
+        return iter->second(args);
+    }
+    
+    // NOTE: We only output command not found message in this function to avoid the recursion handle.
+    if (startIndex == 0) {
+        std::cout << "Command not found: " << args[startIndex] << std::endl;
+    } else {
+        std::cout << "Sub command not found: " << args[startIndex] << std::endl;
+    }
+    
+    return cmd::CmdNotFound;
 }
 
 void kdb::cmd_init() {
@@ -83,23 +81,13 @@ void kdb::cmd_init() {
         PANIC("CPU or memory not initialized");
     }
 
-    coreCount = cpu->core_count();
-    currentCore = 0;
-    if (coreCount != 1) {
+    cmd::coreCount = cpu->core_count();
+    cmd::currentCore = cpu->get_core(0);
+    if (cmd::coreCount != 1) {
         WARN("Multiple cores detected, only core 0 is used");
     }
 
-    cmdMap.insert(std::make_pair("help", cmd_help));
-    cmdMap.insert(std::make_pair("h", cmd_help));
-    cmdMap.insert(std::make_pair("quit", cmd_quit));
-    cmdMap.insert(std::make_pair("q", cmd_quit));
-    cmdMap.insert(std::make_pair("exit", cmd_quit));
-    cmdMap.insert(std::make_pair("step", cmd_step));
-    cmdMap.insert(std::make_pair("s", cmd_step));
-    cmdMap.insert(std::make_pair("reset", cmd_reset));
-    cmdMap.insert(std::make_pair("log", cmd_log));
-
-    disasm::init("riscv32");
+    disasm::init(ISA_NAME);
 }
 
 void kdb::run_cmd_mainloop() {
@@ -114,26 +102,21 @@ void kdb::run_cmd_mainloop() {
         if (cmd.empty()) continue;
         add_history(inputLine);
         
-        int r = run_command(cmd);
-        if (r == kdb::CmdNotFound) {
-            std::string cmdName = cmd.substr(0, cmd.find(' '));
-            std::cout << "Unknown command: " << cmdName << std::endl;
-        }
+        run_command(cmd);
 
         free(inputLine);
     }
 }
 
 int kdb::run_command(const std::string &cmd) {
-    std::vector<std::string> args;
+    cmd::args_t args;
     std::string arg;
     std::stringstream ss(cmd);
     while (std::getline(ss, arg, ' ')) {
         args.push_back(arg);
     }
 
-    if (cmdMap.find(args[0]) != cmdMap.end()) {
-        return cmdMap[args[0]](args);
-    }
-    return kdb::CmdNotFound;
+    int r = cmd::find_and_run(args, cmdMap);
+
+    return r;
 }

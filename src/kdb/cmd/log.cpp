@@ -1,4 +1,5 @@
 #include "kdb/kdb.h"
+#include "kdb/cmd.h"
 #include "log.h"
 
 #include <iostream>
@@ -17,7 +18,12 @@ static const struct {
     {"panic", PANIC},
 };
 
-int cmd_log_on(const std::string &logLevel) {
+static const cmd::cmd_map_t cmdMap = {
+    {"on" , cmd::log},
+    {"off", cmd::log},
+};
+
+static int cmd_log_on(const std::string &logLevel) {
     if (logLevel.empty()) {
         logFlag = DEBUG | INFO | WARN | PANIC;
         return 0;
@@ -34,7 +40,7 @@ int cmd_log_on(const std::string &logLevel) {
     return 1;
 }
 
-int cmd_log_off(const std::string &logLevel) {
+static int cmd_log_off(const std::string &logLevel) {
     if (logLevel.empty()) {
         logFlag = 0;
         return 0;
@@ -51,7 +57,7 @@ int cmd_log_off(const std::string &logLevel) {
     return 1;
 }
  
-int cmd_log(const std::vector<std::string> &args) {
+int cmd::log(const std::vector<std::string> &args) {
     if (args.size() < 2) {
         std::cout << "Usage: log on|off [DEBUG|INFO|WARN|PANIC]" << std::endl;
         return 1;
@@ -70,7 +76,6 @@ int cmd_log(const std::vector<std::string> &args) {
         return cmd_log_off(arg);
     } else {
         std::cout << "Usage: log on|off [DEBUG|INFO|WARN|PANIC]" << std::endl;
-        return 1;
+        return CmdNotFound;
     }
-    return 1;
 }
