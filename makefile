@@ -24,7 +24,7 @@ CXXFLAGS += $(LIBFLAGS)
 CXXFLAGS += -DISA=$(ISA)
 
 # for llvm
-CXXFLAGS += $(shell llvm-config --cxxflags) -fPIE
+CXXFLAGS += $(shell llvm-config --cxxflags) -fexceptions # for expection handling
 CXXFLAGS += $(shell llvm-config --libs)
 
 TARGET = $(BUILD_DIR)/$(ISA_LOWER)-kxemu
