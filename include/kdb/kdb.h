@@ -20,13 +20,6 @@ namespace kdb {
 
     extern Memory *memory;
     extern CPU *cpu;
-
-    enum CmdErrorCode {
-        CmdNotFound   = -1,
-        Success       = 0,
-        InvalidArgs   = 1,
-        MissingPrevOp = 2,
-    };
 }
 
 #endif
