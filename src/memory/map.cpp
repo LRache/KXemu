@@ -37,3 +37,7 @@ bool StorageMemoryMap::write(word_t offset, word_t data, int size) {
 uint8_t *StorageMemoryMap::get_ptr(word_t offset) {
     return data + offset;
 }
+
+std::string StorageMemoryMap::get_type_str() const {
+    return "storage";
+}
