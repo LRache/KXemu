@@ -38,7 +38,7 @@ public:
     virtual int core_count() = 0;
     virtual Core *get_core(int coreID) = 0;
 
-    virtual ~CPU() {};
+    virtual ~CPU() = default;
 };
 
 #endif
