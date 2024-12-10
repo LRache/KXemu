@@ -4,6 +4,7 @@
 #include "memory/map.h"
 #include "common.h"
 #include <cstdint>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -13,17 +14,19 @@ public:
     bool write(word_t addr, word_t data, int size);
     uint8_t *get_ptr(word_t addr);
 
+    bool load_from_stream(std::istream &stream, word_t addr);
+    bool load_from_elf(std::ifstream &fstream);
+
     bool add_memory_map(std::string name, word_t start, word_t length, MemoryMap *map);
     void free_all();
-
-private:        
+       
     struct MapBlock {
         std::string name;
         word_t start;
         word_t length;
         MemoryMap *map;
     };
-    std::vector<MapBlock *> memory_maps;
+    std::vector<MapBlock *> memoryMaps;
     MapBlock *match_map(word_t addr) const;
 };
 

@@ -4,10 +4,11 @@
 #include "memory/map.h"
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
 
 bool Memory::add_memory_map(std::string name, word_t start, word_t length, MemoryMap *map) {
     // check if overlap
-    for (auto &m : memory_maps) {
+    for (auto &m : memoryMaps) {
         if (m->start <= start && start < m->start + m->length) {
             return false;
         }
@@ -20,17 +21,17 @@ bool Memory::add_memory_map(std::string name, word_t start, word_t length, Memor
     m->start = start;
     m->length = length;
     m->map = map;
-    memory_maps.push_back(m);
+    memoryMaps.push_back(m);
     return true;
 }
 
 void Memory::free_all() {
-    for (auto &m : memory_maps) {
+    for (auto &m : memoryMaps) {
         delete m->map;
         m->map = nullptr;
         delete m;
     }
-    memory_maps.clear();
+    memoryMaps.clear();
 }
 
 word_t Memory::read(word_t addr, int size) const {
@@ -58,10 +59,46 @@ uint8_t *Memory::get_ptr(word_t addr) {
     return nullptr;
 }
 
+bool Memory::load_from_stream(std::istream &stream, word_t addr) {
+    auto map = match_map(addr);
+    if (map == nullptr) {
+        WARN("addr: " FMT_WORD "out of range", addr);
+        return false;
+    }
+    word_t offset = addr - map->start;
+    uint8_t *dest = map->map->get_ptr(offset);
+    if (dest == nullptr) {
+        WARN("Unable to write to destination %s", map->name.c_str());
+        return false;
+    }
+    
+    uint8_t *end  = map->map->get_ptr(0) + map->length;
+    uint8_t byte;
+    while (true) {
+        stream.read(reinterpret_cast<char *>(&byte), 1);
+        if (stream.eof()) {
+            break;
+        } else {
+            *dest = byte;
+            dest ++;
+            if (dest == end) {
+                WARN("load image file to memory size out of range, only write %ld bytes", dest - map->map->get_ptr(offset));
+                break;
+            }
+        }
+    }
+    return true;
+}
+
+bool Memory::load_from_elf(std::ifstream &fstream) {
+    // TODO: load elf file to memory maps
+    return false;
+}
+
 Memory::MapBlock *Memory::match_map(word_t addr) const {
-    for (size_t i = 0; i < memory_maps.size(); i++) {
-        if (memory_maps[i]->start <= addr && addr < memory_maps[i]->start + memory_maps[i]->length) {
-            return memory_maps[i];
+    for (size_t i = 0; i < memoryMaps.size(); i++) {
+        if (memoryMaps[i]->start <= addr && addr < memoryMaps[i]->start + memoryMaps[i]->length) {
+            return memoryMaps[i];
         }
     }
     return nullptr;
