@@ -1,3 +1,4 @@
+#include "cpu/cpu.h"
 #include "isa/isa.h"
 #include "kdb/kdb.h"
 #include "log.h"
@@ -20,17 +21,30 @@ static int currentCore = 0;
 
 static bool cmdRunning = false;
 
-typedef int (*cmd_func_t)(std::vector<std::string> &);
+typedef int (*cmd_func_t)(const std::vector<std::string> &);
 std::map<std::string, cmd_func_t> cmdMap;
 
-static int cmd_help(std::vector<std::string> &) {
+static int cmd_help(const std::vector<std::string> &) {
     std::cout << "Commands:" << std::endl;
     return 0;
 }
 
-static int cmd_quit(std::vector<std::string> &) {
+static int cmd_quit(const std::vector<std::string> &) {
     std::cout << "Bye~" << std::endl;
     cmdRunning = false;
+    return 0;
+}
+
+static int cmd_step(const std::vector<std::string> &args) {
+    std::string ns = args[1]; // step count
+    unsigned long n = std::stoul(ns);
+
+    Core *core = kdb::cpu->get_core(currentCore);
+    for (unsigned long i = 0; i < n; i++) {
+        if (core->is_break() || core->is_error()) {
+            break;
+        }
+    }
     return 0;
 }
 
@@ -50,6 +64,8 @@ void kdb::cmd_init() {
     cmdMap.insert(std::make_pair("quit", cmd_quit));
     cmdMap.insert(std::make_pair("q", cmd_quit));
     cmdMap.insert(std::make_pair("exit", cmd_quit));
+    cmdMap.insert(std::make_pair("step", cmd_step));
+    cmdMap.insert(std::make_pair("s", cmd_step));
 
     disasm::init("riscv32");
 }

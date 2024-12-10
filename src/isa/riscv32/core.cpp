@@ -64,4 +64,28 @@ bool RV32Core::is_break() {
     return this->state == BREAK;
 }
 
+word_t RV32Core::get_pc() {
+    return this->pc;
+}
+
+word_t RV32Core::get_gpr(int idx) {
+    if (idx >= 32 || idx < 0) {
+        WARN("GPR index=%d out of range, return 0 instead.", idx);
+        return 0;
+    }
+    return gpr[idx];
+}
+
+word_t RV32Core::get_trap_pc() {
+    return this->trapPC;
+}
+
+word_t RV32Core::get_trap_code() {
+    return this->trapCode;
+}
+
+word_t RV32Core::get_halt_pc() {
+    return this->haltPC;
+}
+
 RV32Core::~RV32Core() {}

@@ -25,6 +25,10 @@ private:
     word_t gpr[32];
     void set_gpr(int index, word_t value);
 
+    word_t trapCode;
+    word_t trapPC;
+    word_t haltPC;
+
     uint32_t inst;
     word_t npc;
     void execute();
@@ -85,9 +89,16 @@ private:
 public:
     void init(Memory *memory, int flags);
     void reset();
-    void step();
+    void step() override;
     bool is_error() override;
     bool is_break() override;
+
+    word_t get_pc() override;
+    word_t get_gpr(int idx) override;
+
+    word_t get_trap_pc() override;
+    word_t get_trap_code() override;
+    word_t get_halt_pc() override;
 
     ~RV32Core();
 };

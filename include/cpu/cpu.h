@@ -1,3 +1,10 @@
+/***************************************************************
+ * Project Name: KXemu
+ * File Name: include/cpu/cpu.h
+ * Description: Define interface of the cpu and the cpu core for
+                different ISA.
+ ***************************************************************/
+
 #ifndef __CPU_H__
 #define __CPU_H__
 
@@ -9,9 +16,15 @@ public:
     virtual bool is_error() = 0;
     virtual bool is_break() = 0;
     virtual ~Core() = default;
-    word_t trapCode;
-    word_t trapPC;
-    word_t haltPC;
+
+    virtual void step() = 0;
+    
+    virtual word_t get_pc() = 0;
+    virtual word_t get_gpr(int idx) = 0;
+
+    virtual word_t get_trap_code() = 0;
+    virtual word_t get_trap_pc()   = 0;
+    virtual word_t get_halt_pc()   = 0;
 };
 
 class CPU {
