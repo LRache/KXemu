@@ -7,7 +7,8 @@ SRC_DIR = ./src
 BUILD_DIR = ./build
 OBJ_DIR = ./build/obj
 
-SRCS += $(shell find $(SRC_DIR) -name "*.cpp" -or -name "*.c")
+SRCS += $(shell find $(SRC_DIR) -path $(SRC_DIR)/isa -prune -o \( -name "*.cpp" -o -name "*.c" \) -print)
+SRCS += $(shell find $(SRC_DIR)/isa/$(ISA_LOWER) -name "*.cpp" -or -name "*.c" )
 OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
