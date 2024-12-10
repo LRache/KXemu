@@ -33,3 +33,7 @@ bool StorageMemoryMap::write(word_t offset, word_t data, int size) {
     }
     return true;
 }
+
+uint8_t *StorageMemoryMap::get_ptr(word_t offset) {
+    return data + offset;
+}

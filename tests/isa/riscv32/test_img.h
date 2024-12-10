@@ -3,6 +3,7 @@
 #ifndef __TEST_IMG_H__
 #define __TEST_IMG_H__
 
+#include <cstdint>
 #include <stdint.h>
 
 #define NOP 0x00000013
@@ -511,6 +512,12 @@ static uint32_t test_img_btb[] = {
     0x00000113, // 04 addi x2, x0, 0
     0x00110113, // 08 addi x2, x2, 1
     0xfe209ee3, // 0c bne  x1, x2, -4
+    GOOD_TRAP
+};
+
+__attribute__((__used__))
+static uint32_t test_img_c_addi[] = {
+    0x00850089,
     GOOD_TRAP
 };
 

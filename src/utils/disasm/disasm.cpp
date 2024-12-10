@@ -32,6 +32,9 @@ void disasm::init(std::string isaName) {
 
     MCTargetOptions MCOptions;
     gSTI = target->createMCSubtargetInfo(targetTriple, "", "");
+    if (isaName == "riscv32") {
+        gSTI->ApplyFeatureFlag("+c");
+    }
     auto gMII = target->createMCInstrInfo();
     auto gMRI = target->createMCRegInfo(targetTriple);
     auto asmInfo = target->createMCAsmInfo(*gMRI, targetTriple, MCOptions);
@@ -58,6 +61,6 @@ std::string disasm::disassemble(const uint8_t *code, const size_t length, word_t
     gIP->printInst(&inst, pc, "", *gSTI, os);
     
     instLen = dummy_size;
-    std::replace(s.begin(), s.end(), '\t', ' ');
+    // std::replace(s.begin(), s.end(), '\t', ' ');
     return s;
 }

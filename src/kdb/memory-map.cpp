@@ -5,7 +5,7 @@
 #include "test_img.h"
 #include <cstring>
 
-#define TEST_IMG test_img_branch
+#define TEST_IMG test_img_c_addi
 
 Memory *kdb::memory = nullptr;
 

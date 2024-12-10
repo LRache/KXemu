@@ -1,9 +1,14 @@
+#include "common.h"
 #include "cpu/cpu.h"
 #include "isa/isa.h"
+#include "isa/riscv32/riscv.h"
 #include "kdb/kdb.h"
 #include "log.h"
 #include "utils/disasm.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <ios>
 #include <map>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -12,6 +17,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 
 #define SHELL_BULE "\x1b[36m"
 #define SHELL_RESET "\x1b[0m"
@@ -24,6 +30,8 @@ static bool cmdRunning = false;
 typedef int (*cmd_func_t)(const std::vector<std::string> &);
 std::map<std::string, cmd_func_t> cmdMap;
 
+extern int cmd_log(const std::vector<std::string> &args);
+
 static int cmd_help(const std::vector<std::string> &) {
     std::cout << "Commands:" << std::endl;
     return 0;
@@ -32,6 +40,11 @@ static int cmd_help(const std::vector<std::string> &) {
 static int cmd_quit(const std::vector<std::string> &) {
     std::cout << "Bye~" << std::endl;
     cmdRunning = false;
+    return 0;
+}
+
+static int cmd_reset(const std::vector<std::string> &) {
+    kdb::cpu->reset();
     return 0;
 }
 
@@ -44,6 +57,23 @@ static int cmd_step(const std::vector<std::string> &args) {
         if (core->is_break() || core->is_error()) {
             break;
         }
+
+        // disassemble
+        word_t pc = core->get_pc();
+        uint8_t *mem = kdb::memory->get_ptr(pc);
+        if (mem != nullptr) {
+            unsigned int instLength;
+            std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
+            std::cout << std::hex << "0x" << pc;
+            for (unsigned int j = 0; j < instLength; j++) {
+                std::cout << " " << std::hex << std::setw(2) << std::setfill('0') << (int)mem[j];
+            }
+            std::cout << inst << std::endl;
+        } else {
+            std::cout << "Unsupport to disassemble at pc =" << std::hex << pc << std::endl;
+        }
+
+        core->step();
     }
     return 0;
 }
@@ -66,6 +96,8 @@ void kdb::cmd_init() {
     cmdMap.insert(std::make_pair("exit", cmd_quit));
     cmdMap.insert(std::make_pair("step", cmd_step));
     cmdMap.insert(std::make_pair("s", cmd_step));
+    cmdMap.insert(std::make_pair("reset", cmd_reset));
+    cmdMap.insert(std::make_pair("log", cmd_log));
 
     disasm::init("riscv32");
 }
@@ -80,7 +112,7 @@ void kdb::run_cmd_mainloop() {
 
         std::string cmd = inputLine;
         if (cmd.empty()) continue;
-        
+        add_history(inputLine);
         
         int r = run_command(cmd);
         if (r == -1) {
