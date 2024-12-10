@@ -115,7 +115,7 @@ void kdb::run_cmd_mainloop() {
         add_history(inputLine);
         
         int r = run_command(cmd);
-        if (r == -1) {
+        if (r == kdb::CmdNotFound) {
             std::string cmdName = cmd.substr(0, cmd.find(' '));
             std::cout << "Unknown command: " << cmdName << std::endl;
         }
@@ -124,7 +124,7 @@ void kdb::run_cmd_mainloop() {
     }
 }
 
-int kdb::run_command(std::string cmd) {
+int kdb::run_command(const std::string &cmd) {
     std::vector<std::string> args;
     std::string arg;
     std::stringstream ss(cmd);
@@ -135,5 +135,5 @@ int kdb::run_command(std::string cmd) {
     if (cmdMap.find(args[0]) != cmdMap.end()) {
         return cmdMap[args[0]](args);
     }
-    return -1;
+    return kdb::CmdNotFound;
 }
