@@ -11,6 +11,7 @@
 
 CPU *kdb::cpu = nullptr;
 word_t kdb::programEntry;
+int kdb::returnCode = 0;
 
 void kdb::init() {
     init_memory();
@@ -51,9 +52,6 @@ int kdb::run_cpu() {
 }
 
 int kdb::step_core(Core *core) {
-    // if (unlikely(core->is_running())) {
-    //     return 1;
-    // }
     core->step();
     if (core->is_break()) {
         int r = core->get_trap_code();
@@ -62,6 +60,9 @@ int kdb::step_core(Core *core) {
         } else {
             INFO(FMT_FG_RED "HIT BAD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc());
         }
+        kdb::returnCode = r;
+    } else if (core->is_error()) {
+        kdb::returnCode = core->get_trap_code();
     }
     return 0;
 }

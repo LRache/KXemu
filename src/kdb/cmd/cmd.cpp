@@ -27,7 +27,7 @@
 #define SHELL_BULE "\x1b[36m"
 #define SHELL_RESET "\x1b[0m"
 
-std::map<std::string, cmd::func_t> cmdMap = {
+static const std::map<std::string, cmd::func_t> cmdMap = {
     {"help" , cmd::help  },
     {"h"    , cmd::help  },
     {"quit" , cmd::quit  },
@@ -39,10 +39,11 @@ std::map<std::string, cmd::func_t> cmdMap = {
     {"log"  , cmd::log   },
     {"mem"  , cmd::mem   },
     {"symbol", cmd::symbol},
-    {"sym"  , cmd::symbol}
+    {"sym"  , cmd::symbol},
+    {"load" , cmd::load  }
 };
 
-static bool cmdRunning = false;
+static bool cmdRunning = true;
 
 Core *cmd::currentCore;
 int cmd::coreCount;
@@ -102,8 +103,7 @@ void kdb::cmd_init() {
     disasm::init(ISA_NAME);
 }
 
-void kdb::run_cmd_mainloop() {
-    cmdRunning = true;
+int kdb::run_cmd_mainloop() {
     while (cmdRunning) {
         char *inputLine = readline(SHELL_BULE ISA_NAME "-kdb> " SHELL_RESET);
         if (inputLine == nullptr) {
@@ -118,6 +118,8 @@ void kdb::run_cmd_mainloop() {
 
         free(inputLine);
     }
+
+    return kdb::returnCode;
 }
 
 int kdb::run_command(const std::string &cmd) {

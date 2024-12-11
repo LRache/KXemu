@@ -1,5 +1,7 @@
+#include "kdb/cmd.h"
 #include "kdb/kdb.h"
 
+#include <bits/getopt_core.h>
 #include <getopt.h>
 
 void parse_args(int argc, char **argv) {
@@ -16,7 +18,7 @@ void parse_args(int argc, char **argv) {
                 kdb::run_source_file(optarg);
                 break;
             case 'e':
-                kdb::load_elf(optarg);
+                cmd::elfFileName = optarg;
                 break;
             default:
                 break;
@@ -28,6 +30,6 @@ int main(int argc, char **argv) {
     kdb::init();
     kdb::cmd_init();
     parse_args(argc, argv);
-    kdb::run_cmd_mainloop();
-    return 0;
+    int r = kdb::run_cmd_mainloop();
+    return r;
 }

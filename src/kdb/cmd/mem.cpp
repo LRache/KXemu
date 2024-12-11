@@ -40,7 +40,6 @@ static int cmd_mem_create(const std::vector<std::string> &args) {
         return cmd::InvalidArgs;
     }
 
-    // TODO: implement memory map type argument
     std::string name;
     word_t start, size;
     name = args[2];

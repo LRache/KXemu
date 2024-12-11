@@ -27,7 +27,8 @@ namespace cmd {
     int source  (const args_t &);
     int reset   (const args_t &);
     int step    (const args_t &);
-    int symbol  (const args_t &);
+    int symbol  (const args_t &); // print symbol table from ELF
+    int load    (const args_t &); // load image from filename given by args
 
     // do command return code
     enum Code {
@@ -39,8 +40,11 @@ namespace cmd {
         CmdError      = 3
     };
 
+    // load source from args
+    extern std::string elfFileName;
+
     extern Core *currentCore; // command line current cpu core
     extern int coreCount; // core count of cpu
-}
+} // cmd
 
 #endif // __KDB_CMD_H__
