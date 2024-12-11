@@ -3,6 +3,7 @@
 
 #include "cpu/cpu.h"
 #include "cpu/decoder.h"
+#include "isa/riscv32/riscv32.h"
 #include "memory/memory.h"
 
 #include <cstdint>
@@ -88,10 +89,11 @@ private:
 
 public:
     void init(Memory *memory, int flags);
-    void reset();
+    void reset(word_t entry = INIT_PC);
     void step() override;
     bool is_error() override;
     bool is_break() override;
+    bool is_running() override;
 
     word_t get_pc() override;
     word_t get_gpr(int idx) override;

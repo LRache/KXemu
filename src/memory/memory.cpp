@@ -38,7 +38,8 @@ void Memory::free_all() {
 word_t Memory::read(word_t addr, int size) const {
     auto map = match_map(addr);
     if (map != nullptr) {
-        return map->map->read(addr - map->start, size);
+        word_t data = map->map->read(addr - map->start, size);
+        return data;
     }
     WARN("read addr: " FMT_WORD ", size: " FMT_VARU ", out of range", addr, size);
     return 0;
@@ -105,13 +106,14 @@ bool Memory::load_from_stream(std::istream &stream, word_t addr, word_t length) 
     }
     
     word_t leftLength = map->length - offset;
-    if (length < leftLength) {
+    if (length > leftLength) {
         WARN("load image file to memory size out of range, only write " FMT_VARU " bytes", leftLength);
     }
     word_t writen = 0;
     uint8_t byte;
     while (true) {
-        stream.read(reinterpret_cast<char *>(&byte), 1);
+        stream.read(reinterpret_cast<char *>(&byte), 1);\
+        dest[writen] = byte;
         if (writen == length) {
             break;
         }
@@ -138,10 +140,24 @@ bool Memory::load_from_memory(const uint8_t *src, word_t addr, word_t length) {
     }
 
     word_t leftLength = map->length - offset;
-    if (length < leftLength) {
+    if (length > leftLength) {
         WARN("load image file to memory size out of range, only write " FMT_VARU " bytes", leftLength);
     }
     std::memcpy(dest, src, length);
+    return true;
+}
+
+bool Memory::memset(word_t addr, word_t length, uint8_t byte) {
+    auto map = match_map(addr);
+    if (map == nullptr || addr + length > map->start + map->length) {
+        WARN("memset addr=" FMT_WORD " length=" FMT_VARU " out of range", addr, length);
+        return false;
+    }
+
+    word_t offset = addr - map->start;
+    void *dest = map->map->get_ptr(offset);
+    std::memset(dest, byte, length);
+
     return true;
 }
 

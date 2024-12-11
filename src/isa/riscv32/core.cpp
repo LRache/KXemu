@@ -12,8 +12,8 @@ void RV32Core::init(Memory *memory, int flags) {
     this->init_decoder();
 }
 
-void RV32Core::reset() {
-    this->pc = INIT_PC;
+void RV32Core::reset(word_t entry) {
+    this->pc = entry;
     this->state = RUNNING;
 }
 
@@ -62,6 +62,10 @@ bool RV32Core::is_error() {
 
 bool RV32Core::is_break() {
     return this->state == BREAK;
+}
+
+bool RV32Core::is_running() {
+    return this->state == RUNNING;
 }
 
 word_t RV32Core::get_pc() {

@@ -38,6 +38,8 @@ std::map<std::string, cmd::func_t> cmdMap = {
     {"reset", cmd::reset },
     {"log"  , cmd::log   },
     {"mem"  , cmd::mem   },
+    {"symbol", cmd::symbol},
+    {"sym"  , cmd::symbol}
 };
 
 static bool cmdRunning = false;
@@ -54,6 +56,16 @@ int cmd::quit(const args_t &) {
     std::cout << "Bye~" << std::endl;
     cmdRunning = false;
     return 0;
+}
+
+int cmd::source(const args_t &args) {
+    if (args.size() < 2) {
+        std::cout << "Usage: source <filename>";
+        return cmd::EmptyArgs;
+    }
+    std::string filename = args[1];
+    std::cout << "Run source " << filename << std::endl;
+    return kdb::run_source_file(filename);
 }
 
 int cmd::find_and_run(const args_t &args, const cmd_map_t &cmdMap, const std::size_t startIndex) {

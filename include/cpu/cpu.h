@@ -15,6 +15,7 @@ class Core {
 public:
     virtual bool is_error() = 0;
     virtual bool is_break() = 0;
+    virtual bool is_running() = 0;
     virtual ~Core() = default;
 
     virtual void step() = 0;

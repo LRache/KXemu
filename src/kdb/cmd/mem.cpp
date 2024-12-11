@@ -66,12 +66,30 @@ static int cmd_mem_img(const cmd::args_t &) {
     return 0;
 }
 
-static int cmd_mem_elf(const cmd::args_t &) {
-    // TODO: parse args and load local file to memory by calling kdb::mem_load_elf, see kdb docs
-    return 0;
+// load elf to memory and switch the program entry
+static int cmd_mem_elf(const cmd::args_t &args) {
+    if (args.size() < 3) {
+        std::cout << "Missing elf file path" << std::endl;
+        return cmd::InvalidArgs;
+    }
+    std::string filename = args[2];
+    word_t entry = kdb::load_elf(filename);
+    if (entry == 0) {
+        std::cout << "Error when load elf files" << std::endl;
+        return cmd::CmdError;
+    }
+    std::cout << "Load ELF file success." << std::endl;
+    std::cout << "Switch entry to " << FMT_STREAM_WORD(entry) << "." << std::endl;
+    kdb::programEntry = entry;
+    return cmd::Success;
 }
 
 static int cmd_mem_map(const cmd::args_t &) {
+    if (kdb::memory->memoryMaps.empty()) {
+        std::cout << "There is no any memory map." << std::endl;
+        return cmd::Success;
+    }
+
     std::cout << "Memory mapping info" << std::endl;
     std::cout << std::setfill(' ')
     << std::setw(10)  << "name" << " | "
@@ -87,7 +105,7 @@ static int cmd_mem_map(const cmd::args_t &) {
         << FMT_STREAM_WORD(m->length) << " | "
         << std::setw(6) << m->map->get_type_str() << std::endl;
     }
-    return 0;
+    return cmd::Success;
 }
 
 int cmd::mem(const cmd::args_t &args) {

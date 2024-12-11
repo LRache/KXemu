@@ -25,7 +25,7 @@ int cmd::step(const args_t &args) {
 
     Core *core = cmd::currentCore;
     for (unsigned long i = 0; i < n; i++) {
-        if (core->is_break() || core->is_error()) {
+        if (!core->is_running()) {
             break;
         }
 
@@ -45,7 +45,25 @@ int cmd::step(const args_t &args) {
         }
 
         // core step
-        core->step();
+        kdb::step_core(core);
     }
     return 0;
+}
+
+int cmd::symbol(const cmd::args_t &) {
+    if (kdb::symbolTable.empty()) {
+        std::cout << "No symbol found" << std::endl;
+        return cmd::Success;
+    }
+    std::cout << std::setfill(' ')
+    << std::setw(16)  << "name" << " | "
+    << std::setw(WORD_WIDTH + 2) << "addr"
+    << std::endl;
+    for (auto sym : kdb::symbolTable) {
+        std::cout << std::setfill(' ')
+        << std::setw(16) << sym.second << " | "
+        << FMT_STREAM_WORD(sym.first) 
+        << std::endl;
+    }
+    return cmd::Success;
 }

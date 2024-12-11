@@ -45,7 +45,7 @@ kxemu: $(TARGET)
 
 run: $(TARGET)
 	$(info + Running $(TARGET))
-	@ $(TARGET)
+	@ $(TARGET) $(FLAGS)
 
 clean:
 	rm -rf $(BUILD_DIR)

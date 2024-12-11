@@ -20,12 +20,14 @@ namespace cmd {
     int find_and_run(const args_t &args, const cmd_map_t &cmdMap, std::size_t startArgs = 0);
 
     // do command function
-    int log  (const std::vector<std::string> &);
-    int mem  (const std::vector<std::string> &);
-    int help (const std::vector<std::string> &);
-    int quit (const std::vector<std::string> &);
-    int reset(const std::vector<std::string> &);
-    int step (const std::vector<std::string> &);
+    int log     (const args_t &);
+    int mem     (const args_t &);
+    int help    (const args_t &);
+    int quit    (const args_t &);
+    int source  (const args_t &);
+    int reset   (const args_t &);
+    int step    (const args_t &);
+    int symbol  (const args_t &);
 
     // do command return code
     enum Code {

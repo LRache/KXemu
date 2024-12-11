@@ -3,8 +3,14 @@
 #include "log.h"
 #include "isa/isa.h"
 #include "common.h"
+#include "macro.h"
+
+#include <fstream>
+#include <string>
+#include <iostream>
 
 CPU *kdb::cpu = nullptr;
+word_t kdb::programEntry;
 
 void kdb::init() {
     init_memory();
@@ -14,6 +20,7 @@ void kdb::init() {
     cpu = new ISA_CPU();
     cpu->init(memory, 0, 1);
     cpu->reset();
+    programEntry = INIT_PC;
 
     INFO("Init %s CPU", ISA_NAME);
 }
@@ -41,4 +48,36 @@ int kdb::run_cpu() {
         INFO(FMT_FG_RED "HIT BAD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc());
     }
     return r;
+}
+
+int kdb::step_core(Core *core) {
+    // if (unlikely(core->is_running())) {
+    //     return 1;
+    // }
+    core->step();
+    if (core->is_break()) {
+        int r = core->get_trap_code();
+        if (r == 0) {
+            INFO(FMT_FG_GREEN "HIT GOOD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc()); 
+        } else {
+            INFO(FMT_FG_RED "HIT BAD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc());
+        }
+    }
+    return 0;
+}
+
+// run .kdb source file to exec kdb command
+int kdb::run_source_file(const std::string &filename) {
+    std::ifstream f;
+    f.open(filename, std::ios::in);
+    if (!f.is_open()) {
+        std::cout << "FileNotFound: No such file: " << filename << std::endl;
+        return 1;
+    }
+
+    std::string cmdLine;
+    while (std::getline(f, cmdLine)) {
+        run_command(cmdLine);
+    }
+    return 0;
 }

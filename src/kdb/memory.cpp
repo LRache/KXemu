@@ -12,9 +12,9 @@ Memory *kdb::memory = nullptr;
 
 void kdb::init_memory() {
     memory = new Memory();
-    StorageMemoryMap *mem = new StorageMemoryMap(MEM_SIZE);
-    memory->add_memory_map("mem", MEM_BASE, MEM_SIZE, mem);
-    memory->load_from_memory((uint8_t *)test_img_athrimatic, 0x80000000, sizeof(test_img_athrimatic));
+    // StorageMemoryMap *mem = new StorageMemoryMap(MEM_SIZE);
+    // memory->add_memory_map("mem", MEM_BASE, MEM_SIZE, mem);
+    // memory->load_from_memory((uint8_t *)test_img_athrimatic, 0x80000000, sizeof(test_img_athrimatic));
 }
 
 void kdb::deinit_memory() {
