@@ -50,4 +50,8 @@ run: $(TARGET)
 clean:
 	rm -rf $(BUILD_DIR)
 
+count:
+	$(info Counting lines in src and include directories...)
+	@find $(SRC_DIR) ./include -name '*.c' -or -name "*.cpp" -or -name "*.h" | xargs cat | sed '/^\s*$$/d' | wc -l
+
 .PHONY: kxemu run clean
