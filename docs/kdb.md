@@ -26,9 +26,15 @@ KDB是对KXemu的包装，用于用户控制KXemu中的CPU，并且连接CPU和�
 
 - `log off [DEBUG|INFO|WARN|PANIC]` 关闭一项日志等级的输出。
 
+### 加载
+
+加载指令用于加载在命令行参数中指定的文件，如ELF文件。
+
+- `load elf` 加载命令行中由参数`--elf`或`-e`指定的`elf`路径，可以在批处理下设置好内存映射后延迟加载ELF文件。
+
 ### 内存
 
-- `mem map create [name] [addr] [size] [type]` 创建一个名为`name`的、映射到`addr`位置的，长度为`size`的内存映射区域。`type`默认为`storage`，可以为以下值：
+- `mem create [name] [addr] [size] [type]` 创建一个名为`name`的、映射到`addr`位置的，长度为`size`的内存映射区域。`type`默认为`storage`，可以为以下值：
 
     + `storage` 表示用于存储的内存。
 
