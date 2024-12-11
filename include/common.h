@@ -23,6 +23,6 @@
     using word_t = uint32_t;
 #endif // ISA_64
 
-#define FMT_STREAM_WORD(word)  "0x" << std::hex << std::setw(WORD_WIDTH) << std::setfill('0') << word
+#define FMT_STREAM_WORD(word)  "0x" << std::hex << std::setw(WORD_WIDTH) << std::setfill('0') << word << std::dec
 
 #endif // __COMMON_H__
