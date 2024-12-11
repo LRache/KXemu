@@ -3,9 +3,10 @@
 #include "memory/map.h"
 #include "memory/memory.h"
 #include "test_img.h"
+#include <cstdint>
 #include <cstring>
 
-#define TEST_IMG test_img_c_addi
+#define TEST_IMG test_img_athrimatic
 
 Memory *kdb::memory = nullptr;
 
@@ -13,8 +14,7 @@ void kdb::init_memory() {
     memory = new Memory();
     StorageMemoryMap *mem = new StorageMemoryMap(MEM_SIZE);
     memory->add_memory_map("mem", MEM_BASE, MEM_SIZE, mem);
-
-    std::memcpy(mem->data, TEST_IMG, sizeof(TEST_IMG));
+    memory->load_from_memory((uint8_t *)test_img_athrimatic, 0x80000000, sizeof(test_img_athrimatic));
 }
 
 void kdb::deinit_memory() {

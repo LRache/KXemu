@@ -15,7 +15,8 @@ public:
     uint8_t *get_ptr(word_t addr);
 
     bool load_from_stream(std::istream &stream, word_t addr);
-    bool load_from_elf(std::ifstream &fstream);
+    bool load_from_stream(std::istream &stream, word_t addr, word_t length);
+    bool load_from_memory(const uint8_t *src, word_t addr, word_t length);
 
     bool add_memory_map(std::string name, word_t start, word_t length, MemoryMap *map);
     void free_all();

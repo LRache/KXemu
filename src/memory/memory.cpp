@@ -4,6 +4,7 @@
 #include "memory/map.h"
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 
 bool Memory::add_memory_map(std::string name, word_t start, word_t length, MemoryMap *map) {
@@ -39,7 +40,7 @@ word_t Memory::read(word_t addr, int size) const {
     if (map != nullptr) {
         return map->map->read(addr - map->start, size);
     }
-    WARN("read addr: " FMT_WORD ", size: %d, out of range", addr, size);
+    WARN("read addr: " FMT_WORD ", size: " FMT_VARU ", out of range", addr, size);
     return 0;
 }
 
@@ -90,9 +91,58 @@ bool Memory::load_from_stream(std::istream &stream, word_t addr) {
     return true;
 }
 
-bool Memory::load_from_elf(std::ifstream &fstream) {
-    // TODO: load elf file to memory maps
-    return false;
+bool Memory::load_from_stream(std::istream &stream, word_t addr, word_t length) {
+    auto map = match_map(addr);
+    if (map == nullptr) {
+        WARN("addr: " FMT_WORD "out of range", addr);
+        return false;
+    }
+    word_t offset = addr - map->start;
+    uint8_t *dest = map->map->get_ptr(offset);
+    if (dest == nullptr) {
+        WARN("Unable to write to destination %s", map->name.c_str());
+        return false;
+    }
+    
+    word_t leftLength = map->length - offset;
+    if (length < leftLength) {
+        WARN("load image file to memory size out of range, only write " FMT_VARU " bytes", leftLength);
+    }
+    word_t writen = 0;
+    uint8_t byte;
+    while (true) {
+        stream.read(reinterpret_cast<char *>(&byte), 1);
+        if (writen == length) {
+            break;
+        }
+        if (stream.eof()) {
+            WARN("caught stream eof, only write " FMT_VARU " bytes", writen);
+            break;
+        }
+        writen ++;
+    }
+    return true;
+}
+
+bool Memory::load_from_memory(const uint8_t *src, word_t addr, word_t length) {
+    auto map = match_map(addr);
+    if (map == nullptr) {
+        WARN("addr=" FMT_WORD " out of range", addr);
+        return false;
+    }
+    word_t offset = addr - map->start;
+    uint8_t *dest = map->map->get_ptr(offset);
+    if (dest == nullptr) {
+        WARN("Unable to write to destination %s", map->name.c_str());
+        return false;
+    }
+
+    word_t leftLength = map->length - offset;
+    if (length < leftLength) {
+        WARN("load image file to memory size out of range, only write " FMT_VARU " bytes", leftLength);
+    }
+    std::memcpy(dest, src, length);
+    return true;
 }
 
 Memory::MapBlock *Memory::match_map(word_t addr) const {
