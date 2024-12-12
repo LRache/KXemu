@@ -20,7 +20,7 @@ void kdb::init() {
 
     cpu = new ISA_CPU();
     cpu->init(memory, 0, 1);
-    cpu->reset();
+    cpu->reset(INIT_PC);
     programEntry = INIT_PC;
 
     INFO("Init %s CPU", ISA_NAME);
@@ -31,39 +31,38 @@ void kdb::deinit() {
     cpu = nullptr;
 }
 
+int static output_and_set_trap(Core *core) {
+    int r;
+    if (core->is_error()) {
+        std::cout << FMT_FG_RED "Error" FMT_FG_BLUE " at pc=" << FMT_STREAM_WORD(core->get_trap_pc()) << FMT_FG_RESET << std::endl;
+        r = 1;
+        kdb::returnCode = 1;
+    } else if (core->is_break()) {
+        r = core->get_trap_code();
+        if (r == 0) {
+            std::cout << FMT_FG_GREEN "HIT GOOD TRAP" FMT_FG_BLUE " at pc=" << FMT_STREAM_WORD(core->get_trap_pc()) << FMT_FG_RESET << std::endl;
+        } else {
+            std::cout << FMT_FG_RED "HIT BAD TRAP" FMT_FG_BLUE " at pc=" << FMT_STREAM_WORD(core->get_trap_pc()) << FMT_FG_RESET << std::endl;
+        }
+        kdb::returnCode = r;
+    } else {
+        r = 0;
+    }
+    return r;
+};
+
 int kdb::run_cpu() {
-    while (!cpu->has_break()) {
+    while (cpu->is_running()) {
         cpu->step();
     }
 
     Core *core = cpu->get_core(0);
-    if (core->is_error()) {
-        INFO(FMT_FG_RED "Error" FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc());
-        return 1;
-    }
-
-    int r = core->get_trap_code();
-    if (r == 0) {
-        INFO(FMT_FG_GREEN "HIT GOOD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc()); 
-    } else {
-        INFO(FMT_FG_RED "HIT BAD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc());
-    }
-    return r;
+    return output_and_set_trap(core);
 }
 
 int kdb::step_core(Core *core) {
     core->step();
-    if (core->is_break()) {
-        int r = core->get_trap_code();
-        if (r == 0) {
-            INFO(FMT_FG_GREEN "HIT GOOD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc()); 
-        } else {
-            INFO(FMT_FG_RED "HIT BAD TRAP " FMT_FG_BLUE "at pc=" FMT_WORD, core->get_trap_pc());
-        }
-        kdb::returnCode = r;
-    } else if (core->is_error()) {
-        kdb::returnCode = core->get_trap_code();
-    }
+    output_and_set_trap(core);
     return 0;
 }
 

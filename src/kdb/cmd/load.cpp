@@ -20,9 +20,11 @@ static int cmd_load_elf(const cmd::args_t &args) {
         std::cout << "Failed to load ELF file, because file name is empty." << std::endl;
         return cmd::MissingPrevOp;
     }
+    
     word_t entry = kdb::load_elf(cmd::elfFileName);
     if (entry == 0) {
         std::cout << "Failed to load ELF file " << cmd::elfFileName << std::endl;
+        return cmd::CmdError;
     }
     std::cout << "Load ELF file success." << std::endl;
     std::cout << "Switch entry to " << FMT_STREAM_WORD(entry) << "." << std::endl;
@@ -31,5 +33,9 @@ static int cmd_load_elf(const cmd::args_t &args) {
 }
 
 int cmd::load(const cmd::args_t & args) {
-    return cmd::find_and_run(args, cmdMap, 1);
+    int r = cmd::find_and_run(args, cmdMap, 1);
+    if (r == cmd::EmptyArgs) {
+        std::cout << "Usage: load elf" << std::endl;
+    }
+    return r;
 }

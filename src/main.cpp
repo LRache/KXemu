@@ -3,6 +3,7 @@
 
 #include <bits/getopt_core.h>
 #include <getopt.h>
+#include <vector>
 
 void parse_args(int argc, char **argv) {
     static struct option options[] = {
@@ -11,11 +12,13 @@ void parse_args(int argc, char **argv) {
         {0, 0, 0, 0}
     };
 
+    std::vector<std::string> sourceFiles;
+
     int o;
     while((o = getopt_long(argc, argv, "s:", options, NULL)) != -1) {
         switch (o) {
             case 's':
-                kdb::run_source_file(optarg);
+                sourceFiles.push_back(optarg);
                 break;
             case 'e':
                 cmd::elfFileName = optarg;
@@ -23,6 +26,10 @@ void parse_args(int argc, char **argv) {
             default:
                 break;
         }
+    }
+
+    for (auto sourceFileName: sourceFiles) {
+        kdb::run_source_file(sourceFileName);
     }
 }
 

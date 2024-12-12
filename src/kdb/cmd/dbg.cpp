@@ -6,7 +6,7 @@
 #include <iostream>
 
 int cmd::reset(const args_t &) {
-    kdb::cpu->reset();
+    kdb::cpu->reset(kdb::programEntry);
     return 0;
 }
 
@@ -46,6 +46,15 @@ int cmd::step(const args_t &args) {
 
         // core step
         kdb::step_core(core);
+    }
+    return 0;
+}
+
+int cmd::run(const args_t &) {
+    if (!kdb::cpu->is_running()) {
+        std::cout << "CPU is not running." << std::endl;
+    } else {
+        kdb::run_cpu();
     }
     return 0;
 }

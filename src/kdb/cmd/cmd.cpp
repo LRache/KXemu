@@ -24,7 +24,7 @@
 #include <iostream>
 #include <iomanip>
 
-#define SHELL_BULE "\x1b[36m"
+#define SHELL_BULE "\x1b[94m"
 #define SHELL_RESET "\x1b[0m"
 
 static const std::map<std::string, cmd::func_t> cmdMap = {
@@ -35,6 +35,9 @@ static const std::map<std::string, cmd::func_t> cmdMap = {
     {"exit" , cmd::quit  },
     {"step" , cmd::step  },
     {"s"    , cmd::step  },
+    {"run"  , cmd::run   },
+    {"r"    , cmd::run   },
+    {"source", cmd::source},
     {"reset", cmd::reset },
     {"log"  , cmd::log   },
     {"mem"  , cmd::mem   },
@@ -70,7 +73,7 @@ int cmd::source(const args_t &args) {
 }
 
 int cmd::find_and_run(const args_t &args, const cmd_map_t &cmdMap, const std::size_t startIndex) {
-    if (args.size() < 1) {
+    if (args.size() <= startIndex) {
         return cmd::EmptyArgs;
     }
 
@@ -89,6 +92,13 @@ int cmd::find_and_run(const args_t &args, const cmd_map_t &cmdMap, const std::si
     return cmd::CmdNotFound;
 }
 
+static const char *logo = \
+"  _  __  ____    ____  \n" \
+" | |/ / |  _ \\  | __ ) \n" \
+" | ' /  | | | | |  _ \\ \n" \
+" | . \\  | |_| | | |_) | \n" \
+" |_|\\_\\ |____/  |____/ \n";
+
 void kdb::cmd_init() {
     if (kdb::cpu == nullptr || kdb::memory == nullptr) {
         PANIC("CPU or memory not initialized");
@@ -101,6 +111,8 @@ void kdb::cmd_init() {
     }
 
     disasm::init(ISA_NAME);
+
+    std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
 }
 
 int kdb::run_cmd_mainloop() {

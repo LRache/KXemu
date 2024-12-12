@@ -1,6 +1,7 @@
 #include "common.h"
 #include "kdb/kdb.h"
 #include "isa/isa.h"
+#include "log.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -76,6 +77,8 @@ static bool load_program(const Elf_Phdr &phdr, std::fstream &f) {
     word_t start  = phdr.p_vaddr;
     word_t filesz = phdr.p_filesz;
     word_t memsze = phdr.p_memsz;
+
+    DEBUG("Load ELF: load program to " FMT_WORD " size=" FMT_VARU, start, memsze);
     if (memsze == 0) return true;
 
     f.seekg(phdr.p_offset, std::ios::beg);
@@ -141,6 +144,7 @@ word_t kdb::load_elf(const std::string &filename) {
         CHECK_READ_SUCCESS(sizeof(phdr));
         phdrArray.push_back(phdr);
     }
+    DEBUG("Load ELF: find %d programs", ehdr.e_phnum);
 
     for (auto phdr: phdrArray) {
         load_program(phdr, f);
