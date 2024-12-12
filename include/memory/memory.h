@@ -31,6 +31,8 @@ public:
     };
     std::vector<MapBlock *> memoryMaps;
     MapBlock *match_map(word_t addr) const;
+
+    ~Memory();
 };
 
 #endif

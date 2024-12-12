@@ -169,3 +169,10 @@ Memory::MapBlock *Memory::match_map(word_t addr) const {
     }
     return nullptr;
 }
+
+Memory::~Memory() {
+    for (auto &m : memoryMaps) {
+        delete m;
+    }
+    memoryMaps.clear();
+}
