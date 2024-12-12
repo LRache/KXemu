@@ -32,9 +32,9 @@ class CPU {
 public:
     // flags for extension features
     virtual void init(Memory *memory, int flags, int coreCount) = 0;
-    virtual void reset() = 0;
+    virtual void reset(word_t pc) = 0;
     virtual void step() = 0;
-    virtual bool has_break() = 0;
+    virtual bool is_running() = 0;
 
     virtual int core_count() = 0;
     virtual Core *get_core(int coreID) = 0;

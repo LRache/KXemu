@@ -1,4 +1,5 @@
 #include "isa/riscv32/cpu.h"
+#include "common.h"
 #include "log.h"
 
 void RV32CPU::init(Memory *memory, int flags, int coreCount) {
@@ -10,16 +11,16 @@ void RV32CPU::init(Memory *memory, int flags, int coreCount) {
     this->coreCount = coreCount;
 }
 
-void RV32CPU::reset() {
-    core->reset();
+void RV32CPU::reset(word_t pc) {
+    core->reset(pc);
 }
 
 void RV32CPU::step() {
     core->step();
 }
 
-bool RV32CPU::has_break() {
-    return core->is_break() || core->is_error();
+bool RV32CPU::is_running() {
+    return core->is_running();
 }
 
 int RV32CPU::core_count() {
