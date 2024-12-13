@@ -11,16 +11,20 @@ int cmd::reset(const args_t &) {
 }
 
 int cmd::step(const args_t &args) {
-    std::string ns = args[1]; // step count
-    unsigned long n;
-    try {
-        n = std::stoul(ns);
-    } catch (std::invalid_argument &) {
-        std::cout << "Invalid step count: " << ns << std::endl;
-        return cmd::InvalidArgs;
-    } catch (std::out_of_range &) {
-        std::cout << "Step count out of range: " << ns << std::endl;
-        return cmd::InvalidArgs;
+    unsigned long n; // step count
+    if (args.size() == 1) {
+        n = 1;
+    } else {
+        std::string ns = args[1];
+        try {
+            n = std::stoul(ns);
+        } catch (std::invalid_argument &) {
+            std::cout << "Invalid step count: " << ns << std::endl;
+            return cmd::InvalidArgs;
+        } catch (std::out_of_range &) {
+            std::cout << "Step count out of range: " << ns << std::endl;
+            return cmd::InvalidArgs;
+        }
     }
 
     Core *core = cmd::currentCore;
@@ -29,9 +33,17 @@ int cmd::step(const args_t &args) {
             break;
         }
 
-        // disassemble
         word_t pc = core->get_pc();
+
+        // core step
+        kdb::step_core(core);
+
+        // disassemble
         uint8_t *mem = kdb::memory->get_ptr(pc);
+        auto symbol = kdb::symbolTable.find(pc);
+        if (symbol != kdb::symbolTable.end()) {
+            std::cout << symbol->second << ":" << std::endl;
+        }
         if (mem != nullptr) {
             unsigned int instLength;
             std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
@@ -43,9 +55,6 @@ int cmd::step(const args_t &args) {
         } else {
             std::cout << "Unsupport to disassemble at pc =" << FMT_STREAM_WORD(pc) << std::endl;
         }
-
-        // core step
-        kdb::step_core(core);
     }
     return 0;
 }

@@ -54,4 +54,7 @@ count:
 	$(info Counting lines in src and include directories...)
 	@find $(SRC_DIR) ./include -name '*.c' -or -name "*.cpp" -or -name "*.h" | xargs cat | sed '/^\s*$$/d' | wc -l
 
+tidy:
+	clang-tidy $(SRCS)
+
 .PHONY: kxemu run clean
