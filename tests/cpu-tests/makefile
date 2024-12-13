@@ -1,9 +1,33 @@
-NAME ?= dummy
-ISA ?= riscv32
+.PHONY: all run clean $(ALL)
 
-BUILD_DIR = build
-TARGET = $(BUILD_DIR)/$(ISA)-$(NAME)
+RESULT = .result
+$(shell > $(RESULT))
 
-SRC += tests/dummy.c
+COLOR_RED   = \033[1;31m
+COLOR_GREEN = \033[1;32m
+COLOR_NONE  = \033[0m
 
-include ../abstract-machine/makefile
+ALL = $(basename $(notdir $(shell find tests/. -name "*.c")))
+
+all: $(addprefix Makefile., $(ALL))
+	@echo "test list [$(words $(ALL)) item(s)]:" $(ALL)
+
+$(ALL): %: Makefile.%
+
+Makefile.%: tests/%.c latest
+	@/bin/echo -e "INC_PATH += $(abspath ./include)\nSRC = $<\nTARGET = build/$(ISA)-$*\ninclude ../abstract-machine/makefile" > $@
+	@if make -s -f $@ ISA=$(ISA) $(MAKECMDGOALS); then \
+		printf "[%14s] $(COLOR_GREEN)PASS$(COLOR_NONE)\n" $* >> $(RESULT); \
+	else \
+		printf "[%14s] $(COLOR_RED)***FAIL***$(COLOR_NONE)\n" $* >> $(RESULT); \
+	fi
+	-@rm -f Makefile.$*
+
+run: all
+	@cat $(RESULT)
+	@rm $(RESULT)
+
+clean:
+	rm -rf Makefile.* build/
+
+latest:
