@@ -1,7 +1,7 @@
 #ifndef __UTILS_UTILS_H__
 #define __UTILS_UTILS_H__
 
-#include "common.h"
+#include "isa/word.h"
 
 #include <string>
 

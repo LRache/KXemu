@@ -1,5 +1,4 @@
 #include "memory/map.h"
-#include "common.h"
 #include <cstdint>
 
 StorageMemoryMap::StorageMemoryMap(uint64_t length) {

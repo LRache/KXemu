@@ -37,11 +37,11 @@ BitPat::BitPat(BitPat &&other) {
     this->length = other.length;
 }
 
-int BitPat::get_length() {
+int BitPat::get_length() const {
     return this->length;
 }
 
-bool BitPat::match(uint64_t data) {
+bool BitPat::match(uint64_t data) const {
     // INFO("data: 0x%lx, bits: 0x%lx, mask: 0x%lx", data, this->bits, this->mask);
     return (data & this->mask) == this->bits;
 }

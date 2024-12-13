@@ -1,5 +1,4 @@
 #include "utils/utils.h"
-#include "common.h"
 
 word_t utils::string_to_word(const std::string &s) {
     word_t result;

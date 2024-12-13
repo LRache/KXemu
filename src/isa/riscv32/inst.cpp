@@ -6,7 +6,7 @@
 #define RD  int rd  = get_rd (this->inst);
 #define RS1 int rs1 = get_rs1(this->inst);
 #define RS2 int rs2 = get_rs2(this->inst); 
-#define IMM_I int32_t imm = (int32_t)sign_extend(sub_bits(this->inst, 31, 20), 11);
+#define IMM_I int32_t imm = (int32_t)sign_extend(sub_bits(this->inst, 31, 20), 12);
 #define IMM_IU uint32_t imm = sub_bits(this->inst, 31, 12);
 #define IMM_S int32_t imm = (int32_t)sign_extend(sub_bits(this->inst, 31, 25) << 5 | sub_bits(this->inst, 11, 7), 11);
 #define IMM_B int32_t imm = (int32_t)sign_extend(sub_bits(this->inst, 31, 31) << 12 | sub_bits(this->inst, 30, 25) << 5 | sub_bits(this->inst, 11, 8) << 1 | sub_bits(this->inst, 7, 7) << 11, 12);

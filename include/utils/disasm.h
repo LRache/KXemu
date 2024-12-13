@@ -1,7 +1,7 @@
 #ifndef __UTILS_DISASM_H__
 #define __UTILS_DISASM_H__
 
-#include "common.h"
+#include "isa/isa.h"
 #include <string>
 
 namespace disasm {

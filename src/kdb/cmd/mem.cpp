@@ -1,4 +1,3 @@
-#include "common.h"
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
 #include "memory/map.h"

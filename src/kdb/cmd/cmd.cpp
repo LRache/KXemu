@@ -43,7 +43,8 @@ static const std::map<std::string, cmd::func_t> cmdMap = {
     {"mem"  , cmd::mem   },
     {"symbol", cmd::symbol},
     {"sym"  , cmd::symbol},
-    {"load" , cmd::load  }
+    {"load" , cmd::load  },
+    {"info" , cmd::info }
 };
 
 static bool cmdRunning = true;

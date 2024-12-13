@@ -1,5 +1,4 @@
 #include "utils/disasm.h"
-#include "common.h"
 #include "log.h"
 
 #include "llvm/MC/MCAsmInfo.h"

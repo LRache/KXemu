@@ -1,6 +1,7 @@
 #ifndef __CPU_DECODER_H__
 #define __CPU_DECODER_H__
 
+#include "macro.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -14,8 +15,8 @@ public:
     BitPat(std::string s);
     BitPat(BitPat &other);
     BitPat(BitPat &&other);
-    int get_length();
-    bool match(uint64_t data);
+    int get_length() const;
+    bool match(uint64_t data) const;
 };
 
 template<typename T>
@@ -34,9 +35,9 @@ public:
         actions.push_back(action);
     }
 
-    bool decode_and_exec(uint64_t bits) {
+    bool decode_and_exec(uint64_t bits) const {
         for (size_t i = 0; i < patterns.size(); i++) {
-            if (patterns[i].match(bits)) {
+            if (unlikely(patterns[i].match(bits))) {
                 (this->obj->*actions[i])();
                 return true;
             }

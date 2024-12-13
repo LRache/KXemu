@@ -1,8 +1,6 @@
 #include "isa/riscv32/core.h"
-#include "isa/riscv32/riscv32.h"
 #include "log.h"
 #include "macro.h"
-#include "common.h"
 
 void RV32Core::init(Memory *memory, int flags) {
     this->memory = memory;
