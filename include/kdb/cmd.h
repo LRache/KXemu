@@ -30,6 +30,7 @@ namespace cmd {
     int run     (const args_t &);
     int symbol  (const args_t &); // print symbol table from ELF
     int load    (const args_t &); // load image from filename given by args
+    int info    (const args_t &); // print info of cpu
 
     // do command return code
     enum Code {

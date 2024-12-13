@@ -1,4 +1,4 @@
 mem create mem 0x80000000 0x1000000
+log off DEBUG
 load elf
 reset
-run

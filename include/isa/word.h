@@ -1,5 +1,14 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
+#ifndef __ISA_WORD_H__
+#define __ISA_WORD_H__
+
+#ifdef ISA
+    #if ISA == RISCV32
+    #else
+        #error "Unsupport ISA"
+    #endif
+#else
+    #error "ISA not defined"
+#endif
 
 #include <cinttypes>
 #include <iomanip>
@@ -25,4 +34,4 @@
 
 #define FMT_STREAM_WORD(word)  "0x" << std::hex << std::setw(WORD_WIDTH) << std::setfill('0') << word << std::dec
 
-#endif // __COMMON_H__
+#endif

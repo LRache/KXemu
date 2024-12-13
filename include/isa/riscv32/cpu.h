@@ -1,7 +1,6 @@
 #ifndef __ISA_RISCV32_CPU_H__
 #define __ISA_RISCV32_CPU_H__
 
-#include "common.h"
 #include "cpu/cpu.h"
 #include "isa/riscv32/core.h"
 

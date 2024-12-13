@@ -81,6 +81,16 @@ void RV32Core::init_decoder() {
     INSTPAT("??????? ????? ????? ??? ????? 00101 11", auipc);
     INSTPAT("??????? ????? ????? ??? ????? 01101 11", lui);
 
+    // M extension
+    INSTPAT("0000001 ????? ????? 000 ????? 01100 11", mul);
+    INSTPAT("0000001 ????? ????? 001 ????? 01100 11", mulh);
+    INSTPAT("0000001 ????? ????? 010 ????? 01100 11", mulhsu);
+    INSTPAT("0000001 ????? ????? 011 ????? 01100 11", mulhu);
+    INSTPAT("0000001 ????? ????? 100 ????? 01100 11", div);
+    INSTPAT("0000001 ????? ????? 101 ????? 01100 11", divu);
+    INSTPAT("0000001 ????? ????? 110 ????? 01100 11", rem);
+    INSTPAT("0000001 ????? ????? 111 ????? 01100 11", remu);
+
     INSTPAT("0000000 00001 00000 000 00000 11100 11", ebreak);
 }
 
@@ -321,6 +331,73 @@ void RV32Core::do_lui() {
 void RV32Core::do_auipc() {
     RD; IMM_U;
     this->set_gpr(rd, this->pc + imm);
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_mul() {
+    RD; RS1; RS2;
+    this->set_gpr(rd, this->gpr[rs1] * this->gpr[rs2]);
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_mulh() {
+    RD; RS1; RS2;
+    int64_t res = (int64_t)(int32_t)this->gpr[rs1] * (int64_t)(int32_t)this->gpr[rs2];
+    this->set_gpr(rd, (int32_t)(res >> 32));
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_mulhsu() {
+    RD; RS1; RS2;
+    int64_t res = (int64_t)(int32_t)this->gpr[rs1] * (int64_t)this->gpr[rs2];
+    this->set_gpr(rd, (int32_t)(res >> 32));
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_mulhu() {
+    RD; RS1; RS2;
+    uint64_t res = (uint64_t)this->gpr[rs1] * (uint64_t)this->gpr[rs2];
+    this->set_gpr(rd, (uint32_t)(res >> 32));
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_div() {
+    RD; RS1; RS2;
+    if (this->gpr[rs2] == 0) {
+        this->set_gpr(rd, 0);
+    } else {
+        this->set_gpr(rd, (int32_t)this->gpr[rs1] / (int32_t)this->gpr[rs2]);
+    }
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_divu() {
+    RD; RS1; RS2;
+    if (this->gpr[rs2] == 0) {
+        this->set_gpr(rd, 0);
+    } else {
+        this->set_gpr(rd, this->gpr[rs1] / this->gpr[rs2]);
+    }
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_rem() {
+    RD; RS1; RS2;
+    if (this->gpr[rs2] == 0) {
+        this->set_gpr(rd, 0);
+    } else {
+        this->set_gpr(rd, (int32_t)this->gpr[rs1] % (int32_t)this->gpr[rs2]);
+    }
+    this->npc = this->pc + 4;
+}
+
+void RV32Core::do_remu() {
+    RD; RS1; RS2;
+    if (this->gpr[rs2] == 0) {
+        this->set_gpr(rd, 0);
+    } else {
+        this->set_gpr(rd, this->gpr[rs1] % this->gpr[rs2]);
+    }
     this->npc = this->pc + 4;
 }
 

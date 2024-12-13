@@ -44,7 +44,10 @@ CXX = $(CROSS_COMPILE)-g++
 AS  = $(CROSS_COMPILE)-gcc
 LD  = $(CROSS_COMPILE)-ld
 
+INC_PATH += $(AM_DIR)/include
+
 CFLAGS += -nostdlib -fno-stack-protector
+CFLAGS += $(addprefix -I, $(INC_PATH))
 
 $(AM_OBJ_DIR)/%.o: $(AM_SRC_DIR)/%.c
 	$(info + CC $<)

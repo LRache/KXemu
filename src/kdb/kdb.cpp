@@ -2,7 +2,7 @@
 #include "cpu/cpu.h"
 #include "log.h"
 #include "isa/isa.h"
-#include "common.h"
+#include "isa/word.h"
 #include "macro.h"
 
 #include <fstream>

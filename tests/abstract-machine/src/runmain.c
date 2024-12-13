@@ -6,7 +6,10 @@
 
 extern int main(const char *mainargs);
 
-int __init() {
+__attribute__((noreturn))
+extern void halt(int code);
+
+void __run_main() {
     int r = main(mainargs);
-    return r;
+    halt(r);
 }

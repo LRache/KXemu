@@ -1,7 +1,7 @@
 #ifndef __MEMORY_MAP_H__
 #define __MEMORY_MAP_H__
 
-#include "common.h"
+#include "isa/word.h"
 #include <cstdint>
 #include <string>
 

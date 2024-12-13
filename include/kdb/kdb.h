@@ -1,7 +1,7 @@
 #ifndef __KDB_H__
 #define __KDB_H__
 
-#include "common.h"
+#include "isa/word.h"
 #include "cpu/cpu.h"
 #include "memory/memory.h"
 

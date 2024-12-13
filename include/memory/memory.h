@@ -2,7 +2,7 @@
 #define __MEMORY_H__
 
 #include "memory/map.h"
-#include "common.h"
+#include "isa/word.h"
 #include <cstdint>
 #include <fstream>
 #include <string>

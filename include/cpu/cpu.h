@@ -9,7 +9,6 @@
 #define __CPU_H__
 
 #include "memory/memory.h"
-#include "common.h"
 
 class Core {
 public:

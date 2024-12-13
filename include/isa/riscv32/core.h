@@ -3,7 +3,7 @@
 
 #include "cpu/cpu.h"
 #include "cpu/decoder.h"
-#include "isa/riscv32/riscv32.h"
+#include "isa/riscv32/isa.h"
 #include "memory/memory.h"
 
 #include <cstdint>
@@ -81,6 +81,15 @@ private:
 
     void do_lui();
     void do_auipc();
+
+    void do_mul();
+    void do_mulh();
+    void do_mulhsu();
+    void do_mulhu();
+    void do_div();
+    void do_divu();
+    void do_rem();
+    void do_remu();
     
     void do_ebreak();
     void do_invalid_inst();

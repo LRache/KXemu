@@ -4,7 +4,7 @@
 #ifdef ISA
     #if ISA == RISCV32
         #include "isa/riscv32/cpu.h"
-        #include "isa/riscv32/riscv32.h"
+        #include "isa/riscv32/isa.h"
         #define ISA_CPU RV32CPU
         #define ISA_NAME "riscv32"
     #else
