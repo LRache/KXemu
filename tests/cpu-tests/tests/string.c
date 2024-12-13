@@ -1,4 +1,4 @@
-#include "trap.h"
+#include "test.h"
 
 char *s[] = {
 	"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
