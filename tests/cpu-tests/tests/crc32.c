@@ -1,6 +1,7 @@
 /* from http://rosettacode.org/wiki/CRC-32#C */
 
-#include <klib-macros.h>
+#include <stdint.h>
+#include <stddef.h>
 #include "test.h"
 
 #define STR "The quick brown fox jumps over the lazy dog"
