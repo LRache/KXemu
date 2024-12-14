@@ -1,12 +1,16 @@
 #include "memory/memory.h"
+#include "isa/word.h"
 #include "log.h"
 #include "memory/map.h"
-#include <cstddef>
+
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <fstream>
+#include <ios>
 
-bool Memory::add_memory_map(std::string name, word_t start, word_t length, MemoryMap *map) {
+#define BUFFER_SIZE 1024U
+
+bool Memory::add_memory_map(const std::string &name, word_t start, word_t length, MemoryMap *map) {
     // check if overlap
     for (auto &m : memoryMaps) {
         if (m->start <= start && start < m->start + m->length) {
@@ -52,7 +56,7 @@ bool Memory::write(word_t addr, word_t data, int size) {
     return false;
 }
 
-uint8_t *Memory::get_ptr(word_t addr) {
+uint8_t *Memory::get_ptr(word_t addr) const{
     auto map = match_map(addr);
     if (map != nullptr) {
         return map->map->get_ptr(addr - map->start);
@@ -72,21 +76,23 @@ bool Memory::load_from_stream(std::istream &stream, word_t addr) {
         WARN("Unable to write to destination %s", map->name.c_str());
         return false;
     }
-    
-    uint8_t *end  = map->map->get_ptr(0) + map->length;
-    uint8_t byte;
-    while (true) {
-        stream.read(reinterpret_cast<char *>(&byte), 1);
-        if (stream.eof()) {
+
+    uint8_t buffer[BUFFER_SIZE];
+    word_t writen = 0;
+    word_t maxLength = map->length - offset; 
+    std::streamsize count = BUFFER_SIZE;
+    while (count == BUFFER_SIZE) {
+        stream.read((char *)buffer, BUFFER_SIZE);
+        count = stream.gcount();
+        if (writen + count >= maxLength) {
+            auto left = maxLength - writen;
+            std::memcpy(dest, buffer, left);
+            WARN("load image file to memory size out of range, only write %ld bytes", dest - map->map->get_ptr(offset));
             break;
-        } else {
-            *dest = byte;
-            dest ++;
-            if (dest == end) {
-                WARN("load image file to memory size out of range, only write %ld bytes", dest - map->map->get_ptr(offset));
-                break;
-            }
         }
+        std::memcpy(dest, buffer, count);
+        dest += count;
+        writen += count;
     }
     return true;
 }
@@ -108,19 +114,23 @@ bool Memory::load_from_stream(std::istream &stream, word_t addr, word_t length) 
     if (length > leftLength) {
         WARN("load image file to memory size out of range, only write " FMT_VARU " bytes", leftLength);
     }
+
+    uint8_t buffer[BUFFER_SIZE];
     word_t writen = 0;
-    uint8_t byte;
     while (true) {
-        stream.read(reinterpret_cast<char *>(&byte), 1);\
-        dest[writen] = byte;
-        if (writen == length) {
-            break;
-        }
-        if (stream.eof()) {
+        word_t readLength = std::min(BUFFER_SIZE, length - writen);
+        stream.read((char *)buffer, readLength);
+        std::streamsize count = stream.gcount();
+        if (count != readLength) {
             WARN("caught stream eof, only write " FMT_VARU " bytes", writen);
             break;
         }
-        writen ++;
+        std::memcpy(dest, buffer, count);
+        dest += count;
+        writen += count;
+        if (writen == length) {
+            break;
+        }
     }
     return true;
 }
@@ -157,6 +167,29 @@ bool Memory::memset(word_t addr, word_t length, uint8_t byte) {
     void *dest = map->map->get_ptr(offset);
     std::memset(dest, byte, length);
 
+    return true;
+}
+
+bool Memory::dump(std::ostream &stream, word_t addr, word_t length) const {
+    auto map = match_map(addr);
+    if (map == nullptr || addr + length > map->start + map->length) {
+        WARN("dump addr=" FMT_WORD " length=" FMT_VARU " out of range", addr, length);
+        return false;
+    }
+
+    word_t offset = addr - map->start;
+    const uint8_t *src = map->map->get_ptr(offset);
+    if (src == nullptr) {
+        WARN("Unable to read from source %s", map->name.c_str());
+        return false;
+    }
+
+    word_t leftLength = map->length - offset;
+    if (length > leftLength) {
+        WARN("dump memory size out of range, only dump " FMT_VARU " bytes", leftLength);
+    }
+
+    stream.write((const char *)src, length);
     return true;
 }
 
