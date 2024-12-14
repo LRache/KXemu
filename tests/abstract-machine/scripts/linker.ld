@@ -3,13 +3,19 @@ ENTRY(_start)
 SECTIONS {
     . = 0x80000000;
     .text : {
+        *(entry)
         *(.text)
+    }
+    .rodata : {
+        *(.rodata*)
     }
     .data : {
         *(.data)
     }
     .bss : {
-        *(.bss)
+        *(.bss*)
+        *(.sbss*)
+        *(.scommon)
     }
 
     _stack_top = ALIGN(0x1000);
