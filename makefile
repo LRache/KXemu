@@ -32,7 +32,7 @@ TARGET = $(BUILD_DIR)/$(ISA_LOWER)-kxemu
 $(TARGET): $(OBJS)
 	$(info + CXX $@)
 	@ mkdir -p $(BUILD_DIR)
-	@ $(CXX) $(OBJS) -o $(TARGET) $(CXXFLAGS)
+	@ $(CXX) $(OBJS) -o $(TARGET) $(LDFLAGS) $(CXXFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(info + CXX $<)
