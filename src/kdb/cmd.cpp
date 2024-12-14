@@ -12,17 +12,14 @@
 #include "utils/disasm.h"
 
 #include <cstddef>
-#include <cstdint>
-#include <ios>
+#include <cstdio>
 #include <map>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <string>
 #include <utility>
-#include <vector>
 #include <sstream>
 #include <iostream>
-#include <iomanip>
 
 #define SHELL_BULE "\x1b[94m"
 #define SHELL_RESET "\x1b[0m"
@@ -44,7 +41,8 @@ static const std::map<std::string, cmd::func_t> cmdMap = {
     {"symbol", cmd::symbol},
     {"sym"  , cmd::symbol},
     {"load" , cmd::load  },
-    {"info" , cmd::info }
+    {"info" , cmd::info },
+    {"break", cmd::breakpoint}
 };
 
 static bool cmdRunning = true;
@@ -112,6 +110,7 @@ void kdb::cmd_init() {
     }
 
     disasm::init(ISA_NAME);
+    cmd::init_completion();
 
     std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
 }

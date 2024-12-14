@@ -1,13 +1,35 @@
+#include "isa/word.h"
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
-#include "isa/isa.h"
 #include "utils/disasm.h"
+#include "utils/utils.h"
 
+#include <exception>
 #include <iostream>
 
 int cmd::reset(const args_t &) {
-    kdb::cpu->reset(kdb::programEntry);
+    kdb::reset_cpu();
     return 0;
+}
+
+static void output_disassemble(word_t pc) {
+    uint8_t *mem = kdb::memory->get_ptr(pc);
+    auto symbol = kdb::symbolTable.find(pc);
+    if (symbol != kdb::symbolTable.end()) {
+        std::cout << symbol->second << ":" << std::endl;
+    }
+    if (mem == nullptr) {
+        std::cout << "Unsupport to disassemble at pc =" << FMT_STREAM_WORD(pc) << std::endl;
+        return;
+    } else {
+        unsigned int instLength;
+        std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
+        std::cout << FMT_STREAM_WORD(pc) << ":";
+        for (unsigned int j = 0; j < instLength; j++) {
+            std::cout << " " << std::hex << std::setw(2) << std::setfill('0') << (int)mem[j];
+        }
+        std::cout << inst << std::endl;
+    }
 }
 
 int cmd::step(const args_t &args) {
@@ -28,6 +50,7 @@ int cmd::step(const args_t &args) {
     }
 
     Core *core = cmd::currentCore;
+    kdb::brkTriggered = false;
     for (unsigned long i = 0; i < n; i++) {
         if (!core->is_running()) {
             break;
@@ -39,21 +62,11 @@ int cmd::step(const args_t &args) {
         kdb::step_core(core);
 
         // disassemble
-        uint8_t *mem = kdb::memory->get_ptr(pc);
-        auto symbol = kdb::symbolTable.find(pc);
-        if (symbol != kdb::symbolTable.end()) {
-            std::cout << symbol->second << ":" << std::endl;
-        }
-        if (mem != nullptr) {
-            unsigned int instLength;
-            std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
-            std::cout << FMT_STREAM_WORD(pc) << ":";
-            for (unsigned int j = 0; j < instLength; j++) {
-                std::cout << " " << std::hex << std::setw(2) << std::setfill('0') << (int)mem[j];
-            }
-            std::cout << inst << std::endl;
-        } else {
-            std::cout << "Unsupport to disassemble at pc =" << FMT_STREAM_WORD(pc) << std::endl;
+        output_disassemble(pc);
+
+        if (kdb::brkTriggered) {
+            std::cout << "Breakpoint at " << FMT_STREAM_WORD(pc) << " triggered."<< std::endl;
+            break;
         }
     }
     return 0;
@@ -83,5 +96,25 @@ int cmd::symbol(const cmd::args_t &) {
         << FMT_STREAM_WORD(sym.first) 
         << std::endl;
     }
+    return cmd::Success;
+}
+
+int cmd::breakpoint(const cmd::args_t &args) {
+    if (args.size() < 2) {
+        std::cout << "Usage: breakpoint <addr>" << std::endl;
+        return cmd::EmptyArgs;
+    }
+    std::string addrStr = args[1];
+    word_t addr;
+    try {
+        addr = utils::string_to_word(addrStr);
+    } catch (const std::exception &) {
+        std::cout << "Invalid argument: " << addrStr << std::endl;
+        return cmd::InvalidArgs;
+    }
+    
+    kdb::add_breakpoint(addr);
+    std::cout << "Set breakpoint at " << FMT_STREAM_WORD(addr) << std::endl;
+    
     return cmd::Success;
 }

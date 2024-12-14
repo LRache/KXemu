@@ -3,8 +3,9 @@
 #include "memory/map.h"
 #include "utils/utils.h"
 
-#include <algorithm>
+#include <cstdint>
 #include <exception>
+#include <fstream>
 #include <iomanip>
 #include <ostream>
 #include <string>
@@ -15,12 +16,14 @@ static int cmd_mem_create(const cmd::args_t &);
 static int cmd_mem_img   (const cmd::args_t &);
 static int cmd_mem_elf   (const cmd::args_t &);
 static int cmd_mem_map   (const cmd::args_t &);
+static int cmd_mem_save  (const cmd::args_t &);
 
 static const cmd::cmd_map_t cmdMap = {
     {"create"   , cmd_mem_create},
     {"img"      , cmd_mem_img   },
     {"elf"      , cmd_mem_elf   },
-    {"map"      , cmd_mem_map   }
+    {"map"      , cmd_mem_map   },
+    {"save"     , cmd_mem_save  },
 };
 
 static bool check_memory_initialized() {
@@ -59,9 +62,20 @@ static int cmd_mem_create(const std::vector<std::string> &args) {
     }
 }
 
-static int cmd_mem_img(const cmd::args_t &) {
-    // TODO: parse args and load local file to memory by calling kdb::mem_load_img, see kdb docs
-    return 0;
+static int cmd_mem_img(const cmd::args_t &args) {
+    const std::string filename = args[2];
+    if (!check_memory_initialized()) return cmd::MissingPrevOp;
+
+    std::ifstream f;
+    f.open(filename, std::ios::in | std::ios::binary);
+    if (!f.is_open()) {
+        std::cout << "FileNotFound: No such file: " << filename << std::endl;
+        return cmd::CmdError;
+    }
+
+    kdb::memory->load_from_stream(f, 0x80000000);
+
+    return cmd::Success;
 }
 
 // load elf to memory and switch the program entry
@@ -70,7 +84,7 @@ static int cmd_mem_elf(const cmd::args_t &args) {
         std::cout << "Missing elf file path" << std::endl;
         return cmd::InvalidArgs;
     }
-    std::string filename = args[2];
+    const std::string filename = args[2];
     word_t entry = kdb::load_elf(filename);
     if (entry == 0) {
         std::cout << "Error when load elf files" << std::endl;
@@ -102,6 +116,40 @@ static int cmd_mem_map(const cmd::args_t &) {
         << FMT_STREAM_WORD(m->start)  << " | "
         << FMT_STREAM_WORD(m->length) << " | "
         << std::setw(6) << m->map->get_type_str() << std::endl;
+    }
+    return cmd::Success;
+}
+
+static int cmd_mem_save(const cmd::args_t &args) {
+    if (args.size() < 3) {
+        std::cout << "Usage: mem save <start> <length> <filename>" << std::endl;
+        return cmd::InvalidArgs;
+    }
+
+    word_t start, length;
+    std::string filename;
+    try {
+        start = utils::string_to_word(args[2]);
+        length = utils::string_to_word(args[3]);
+        filename = args[4];
+    } catch (std::exception &) {
+        std::cout << "Usage: mem save <start> <length> <filename>" << std::endl;
+        return cmd::InvalidArgs;
+    }
+
+    std::ofstream f;
+    f.open(filename, std::ios::out | std::ios::binary);
+    if (!f.is_open()) {
+        std::cout << "Error open file " << filename << std::endl;
+        return cmd::CmdError;
+    }
+    
+    if (kdb::memory->dump(f, start, length)) {
+        std::cout << "Save memory from " << FMT_STREAM_WORD(start) << " to " << FMT_STREAM_WORD(start + length) << " to " << filename << std::endl;
+    } else {
+        std::cout << "Error save memory to file " << filename << std::endl;
+        f.close();
+        return cmd::CmdError;
     }
     return cmd::Success;
 }

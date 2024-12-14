@@ -1,8 +1,6 @@
 #include "kdb/kdb.h"
-#include "isa/isa.h"
 #include "log.h"
 
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <elf.h>
@@ -77,13 +75,12 @@ static bool load_program(const Elf_Phdr &phdr, std::fstream &f) {
     word_t filesz = phdr.p_filesz;
     word_t memsze = phdr.p_memsz;
 
-    DEBUG("Load ELF: load program to " FMT_WORD " size=" FMT_VARU, start, memsze);
+    DEBUG("Load ELF: load program to " FMT_WORD " memsize=" FMT_VARU ", filesize=" FMT_VARU, start, memsze, filesz);
     if (memsze == 0) return true;
 
     f.seekg(phdr.p_offset, std::ios::beg);
     kdb::memory->memset(start, memsze, 0); // clear memory
     kdb::memory->load_from_stream(f, start, filesz); // copy ELF file to memory
-    std::cout << "Load ELF: load program to " << FMT_STREAM_WORD(start) << " size=" << memsze << std::endl;
     
     return true;
 }
