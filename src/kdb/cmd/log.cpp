@@ -78,3 +78,5 @@ int cmd::log(const std::vector<std::string> &args) {
         return CmdNotFound;
     }
 }
+
+

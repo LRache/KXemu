@@ -14,7 +14,9 @@
 #define __KDB_CMD_H__
 
 #include "cpu/cpu.h"
+
 #include <cstddef>
+#include <unordered_map>
 #include <vector>
 #include <map>
 #include <string>
@@ -22,9 +24,8 @@
 namespace cmd {
     using args_t = std::vector<std::string>;
     using func_t = int (*)(const args_t &);
-    using cmd_map_t = std::map<std::string, func_t>;
+    using cmd_map_t = std::unordered_map<std::string, func_t>;
     int find_and_run(const args_t &args, const cmd_map_t &cmdMap, std::size_t startArgs = 0);
-    void init_completion();
 
     // do command function
     int log     (const args_t &);
@@ -56,6 +57,12 @@ namespace cmd {
 
     extern Core *currentCore; // command line current cpu core
     extern int coreCount; // core count of cpu
+
+    using completion_func_t = std::vector<std::string> (*)(); // return possible list
+    void init_completion();
+    namespace completion {
+        std::vector<std::string> log_off();
+    };
 } // cmd
 
 #endif // __KDB_CMD_H__

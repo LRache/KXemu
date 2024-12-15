@@ -24,7 +24,7 @@
 #define SHELL_BULE "\x1b[94m"
 #define SHELL_RESET "\x1b[0m"
 
-static const std::map<std::string, cmd::func_t> cmdMap = {
+static const cmd::cmd_map_t cmdMap = {
     {"help" , cmd::help  },
     {"h"    , cmd::help  },
     {"quit" , cmd::quit  },
