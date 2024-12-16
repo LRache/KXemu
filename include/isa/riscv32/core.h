@@ -10,7 +10,6 @@
 
 class RV32Core : public Core {
 private:
-    Memory *memory;
     int flags;
     enum state_t {
         IDLE,
@@ -18,24 +17,32 @@ private:
         ERROR,
         BREAK,
     } state;
-    Decoder<RV32Core> decoder;
 
     using word_t = uint32_t;
     using sword_t = int32_t;
-    word_t pc;
-    word_t gpr[32];
-    void set_gpr(int index, word_t value);
 
     word_t trapCode;
     word_t trapPC;
     word_t haltPC;
 
-    uint32_t inst;
-    word_t npc;
-    void execute();
-
+    Memory *memory;
     word_t mem_read(word_t addr, int len);
     int mem_write(word_t addr, word_t data, int len);
+
+    // decoder
+    Decoder<RV32Core> decoder;
+    Decoder<RV32Core> cdecoder; // for compressed instructions
+    void init_decoder();
+    void init_c_decoder();
+
+    // running
+    uint32_t inst;
+    word_t pc;
+    word_t npc;
+    void execute();
+    
+    word_t gpr[32];
+    void set_gpr(int index, word_t value);
 
     // do instructions
     void do_add();
@@ -94,7 +101,39 @@ private:
     void do_ebreak();
     void do_invalid_inst();
 
-    void init_decoder();
+    // compressed instructions
+    void do_c_lwsp();
+    void do_c_swsp();
+    
+    void do_c_lw();
+    void do_c_sw();
+
+    void do_c_j();
+    void do_c_jal();
+    void do_c_jr();
+    void do_c_jalr();
+
+    void do_c_beqz();
+    void do_c_bnez();
+
+    void do_c_li();
+    void do_c_lui();
+
+    void do_c_addi();
+    void do_c_addi16sp();
+    void do_c_addi4spn();
+
+    void do_c_slli();
+    void do_c_srli();
+    void do_c_srai();
+    void do_c_andi();
+
+    void do_c_mv();
+    void do_c_add();
+    void do_c_sub();
+    void do_c_xor();
+    void do_c_or();
+    void do_c_and();
 
 public:
     void init(Memory *memory, int flags);

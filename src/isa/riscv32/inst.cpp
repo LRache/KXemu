@@ -95,173 +95,144 @@ void RV32Core::init_decoder() {
 void RV32Core::do_add() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] + this->gpr[rs2]);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sub() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] - this->gpr[rs2]);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_and() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] & this->gpr[rs2]);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_or() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] | this->gpr[rs2]);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_xor() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] ^ this->gpr[rs2]);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sll() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] << (this->gpr[rs2] & 0x1F));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_srl() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] >> (this->gpr[rs2] & 0x1F));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sra() {
     RD; RS1; RS2;
     this->set_gpr(rd, (sword_t)this->gpr[rs1] >> (this->gpr[rs2] & 0x1F));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_slt() {
     RD; RS1; RS2;
     this->set_gpr(rd, (sword_t)this->gpr[rs1] < (sword_t)this->gpr[rs2] ? 1 : 0);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sltu() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] < this->gpr[rs2] ? 1 : 0);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_addi() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->gpr[rs1] + imm);        
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_andi() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->gpr[rs1] & imm);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_ori() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->gpr[rs1] | imm);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_xori() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->gpr[rs1] ^ imm);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_slli() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->gpr[rs1] << (imm & 0x1F));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_srli() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->gpr[rs1] >> (imm & 0x1F));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_srai() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, (sword_t)this->gpr[rs1] >> (imm & 0x1F));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_slti() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, (sword_t)this->gpr[rs1] < (sword_t)imm ? 1 : 0);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sltiu() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->gpr[rs1] < (word_t)imm ? 1 : 0);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_lb() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, (int8_t)this->memory->read(this->gpr[rs1] + imm, 1));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_lbu() {
     RD; RS1; IMM_I;
     word_t data = this->memory->read(this->gpr[rs1] + imm, 1);
     this->set_gpr(rd, data);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_lh() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, (int16_t)this->memory->read(this->gpr[rs1] + imm, 2));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_lhu() {
     RD; RS1; IMM_I;
     word_t data = this->memory->read(this->gpr[rs1] + imm, 2);
     this->set_gpr(rd, data);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_lw() {
     RD; RS1; IMM_I;
     this->set_gpr(rd, this->memory->read(this->gpr[rs1] + imm, 4));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sb() {
     RS1; RS2; IMM_S;
     this->memory->write(this->gpr[rs1] + imm, this->gpr[rs2], 1);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sh() {
     RS1; RS2; IMM_S;
     this->memory->write(this->gpr[rs1] + imm, this->gpr[rs2], 2);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_sw() {
     RS1; RS2; IMM_S;
     this->memory->write(this->gpr[rs1] + imm, this->gpr[rs2], 4);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_beq() {
     RS1; RS2; IMM_B;
     if (this->gpr[rs1] == this->gpr[rs2]) {
         this->npc = this->pc + imm;
-    } else {
-        this->npc = this->pc + 4;
     }
 }
 
@@ -269,8 +240,6 @@ void RV32Core::do_bge() {
     RS1; RS2; IMM_B;
     if ((sword_t)this->gpr[rs1] >= (sword_t)this->gpr[rs2]) {
         this->npc = this->pc + imm;
-    } else {
-        this->npc = this->pc + 4;
     }
 }
 
@@ -278,8 +247,6 @@ void RV32Core::do_bgeu() {
     RS1; RS2; IMM_B;
     if (this->gpr[rs1] >= this->gpr[rs2]) {
         this->npc = this->pc + imm;
-    } else {
-        this->npc = this->pc + 4;
     }
 }
 
@@ -287,8 +254,6 @@ void RV32Core::do_blt() {
     RS1; RS2; IMM_B;
     if ((sword_t)this->gpr[rs1] < (sword_t)this->gpr[rs2]) {
         this->npc = this->pc + imm;
-    } else {
-        this->npc = this->pc + 4;
     }
 }
 
@@ -296,8 +261,6 @@ void RV32Core::do_bltu() {
     RS1; RS2; IMM_B;
     if (this->gpr[rs1] < this->gpr[rs2]) {
         this->npc = this->pc + imm;
-    } else {
-        this->npc = this->pc + 4;
     }
 }
 
@@ -305,8 +268,6 @@ void RV32Core::do_bne() {
     RS1; RS2; IMM_B;
     if (this->gpr[rs1] != this->gpr[rs2]) {
         this->npc = this->pc + imm;
-    } else {
-        this->npc = this->pc + 4;
     }
 }
 
@@ -314,6 +275,7 @@ void RV32Core::do_jal() {
     RD; IMM_J;
     this->set_gpr(rd, this->pc + 4);
     this->npc = this->pc + imm;
+    INFO("JAL: pc=0x%08x, npc=0x%08x", this->pc, this->npc);
 }
 
 void RV32Core::do_jalr() {
@@ -325,40 +287,35 @@ void RV32Core::do_jalr() {
 void RV32Core::do_lui() {
     RD; IMM_U;
     this->set_gpr(rd, imm);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_auipc() {
     RD; IMM_U;
+    DEBUG("AUIPC: pc=0x%08x, imm=0x%08x", this->pc, imm);
     this->set_gpr(rd, this->pc + imm);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_mul() {
     RD; RS1; RS2;
     this->set_gpr(rd, this->gpr[rs1] * this->gpr[rs2]);
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_mulh() {
     RD; RS1; RS2;
     int64_t res = (int64_t)(int32_t)this->gpr[rs1] * (int64_t)(int32_t)this->gpr[rs2];
     this->set_gpr(rd, (int32_t)(res >> 32));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_mulhsu() {
     RD; RS1; RS2;
     int64_t res = (int64_t)this->gpr[rs1] * (int64_t)this->gpr[rs2];
     this->set_gpr(rd, (int32_t)(res >> 32));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_mulhu() {
     RD; RS1; RS2;
     uint64_t res = (uint64_t)this->gpr[rs1] * (uint64_t)this->gpr[rs2];
     this->set_gpr(rd, (uint32_t)(res >> 32));
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_div() {
@@ -368,7 +325,6 @@ void RV32Core::do_div() {
     } else {
         this->set_gpr(rd, (sword_t)this->gpr[rs1] / (sword_t)this->gpr[rs2]);
     }
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_divu() {
@@ -378,7 +334,6 @@ void RV32Core::do_divu() {
     } else {
         this->set_gpr(rd, this->gpr[rs1] / this->gpr[rs2]);
     }
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_rem() {
@@ -388,7 +343,6 @@ void RV32Core::do_rem() {
     } else {
         this->set_gpr(rd, (int32_t)this->gpr[rs1] % (int32_t)this->gpr[rs2]);
     }
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_remu() {
@@ -398,7 +352,6 @@ void RV32Core::do_remu() {
     } else {
         this->set_gpr(rd, this->gpr[rs1] % this->gpr[rs2]);
     }
-    this->npc = this->pc + 4;
 }
 
 void RV32Core::do_ebreak() {
@@ -406,5 +359,4 @@ void RV32Core::do_ebreak() {
     this->state = BREAK;
     this->trapCode = this->gpr[10];
     this->trapPC = this->pc;
-    this->npc = this->pc + 4;
 }

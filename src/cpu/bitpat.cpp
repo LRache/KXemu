@@ -1,5 +1,6 @@
 #include "cpu/decoder.h"
 #include "log.h"
+#include <cstddef>
 #include <cstdint>
 
 BitPat::BitPat(std::string s) {
@@ -20,6 +21,11 @@ BitPat::BitPat(std::string s) {
     if (length > 64) {
         PANIC("BitPat length %d is too long", length);
     }
+    
+    for (std::size_t i = length; i < 64; i++) {
+        mask |= 1UL << i;
+    }
+
     this->bits = bits;
     this->mask = ~mask; // mask is 0 for match any bit
     this->length = length;

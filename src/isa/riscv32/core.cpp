@@ -8,6 +8,7 @@ void RV32Core::init(Memory *memory, int flags) {
     this->state = IDLE;
 
     this->init_decoder();
+    this->init_c_decoder();
 }
 
 void RV32Core::reset(word_t entry) {
@@ -26,9 +27,19 @@ void RV32Core::step() {
 
 void RV32Core::execute() {
     this->inst = this->memory->read(this->pc, 4);
+    
+    // try decode and execute the full instruction
+    this->npc = this->pc + 4;
     bool valid = this->decoder.decode_and_exec(this->inst);
-    if (!valid) {
-        this->do_invalid_inst();
+    DEBUG("%d", valid);
+    if (unlikely(!valid)) {
+        // try decode and execute the compressed instruction
+        INFO("Try to decode compressed instruction");
+        this->npc = this->pc + 2;
+        valid = this->cdecoder.decode_and_exec(this->inst);
+        if (unlikely(!valid)) {
+            this->do_invalid_inst();
+        }
     }
 }
 
