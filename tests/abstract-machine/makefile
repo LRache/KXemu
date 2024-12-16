@@ -63,8 +63,6 @@ $(ARCHIVE): $(OBJS)
 	$(info + AR $@)
 	@ $(AR) rcs $@ $(OBJS)
 
-$(info $(AM_DIR))
-
 elf: $(ELF)
 archive: $(ARCHIVE)
 
