@@ -10,6 +10,7 @@
 #include "kdb/cmd.h"
 #include "log.h"
 #include "utils/disasm.h"
+#include "utils/utils.h"
 
 #include <cstddef>
 #include <cstdio>
@@ -135,13 +136,7 @@ int kdb::run_cmd_mainloop() {
 }
 
 int kdb::run_command(const std::string &cmd) {
-    cmd::args_t args;
-    std::string arg;
-    std::stringstream ss(cmd);
-    while (std::getline(ss, arg, ' ')) {
-        args.push_back(arg);
-    }
-
+    cmd::args_t args = utils::string_split(cmd, ' ');
     int r = cmd::find_and_run(args, cmdMap);
 
     return r;
