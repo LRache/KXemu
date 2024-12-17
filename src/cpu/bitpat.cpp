@@ -43,7 +43,7 @@ BitPat::BitPat(BitPat &&other) {
     this->length = other.length;
 }
 
-int BitPat::get_length() const {
+unsigned int BitPat::get_length() const {
     return this->length;
 }
 

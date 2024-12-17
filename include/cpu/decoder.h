@@ -1,6 +1,7 @@
 #ifndef __CPU_DECODER_H__
 #define __CPU_DECODER_H__
 
+#include "log.h"
 #include "macro.h"
 #include <cstdint>
 #include <string>
@@ -10,12 +11,12 @@ class BitPat {
 private:
     uint64_t bits;
     uint64_t mask;
-    int length;
+    unsigned int length;
 public:
     BitPat(const std::string &s);
     BitPat(BitPat &other);
     BitPat(BitPat &&other);
-    int get_length() const;
+    unsigned int get_length() const;
     bool match(uint64_t data) const;
 };
 
@@ -26,11 +27,20 @@ private:
     std::vector<void (T::*)()> actions;
     T *obj;
 public:
+    unsigned int fixedLength = 0;
+    
     void init(T *obj) {
         this->obj = obj;
     }
 
     void add(std::string pattern, void (T::*action)()) {
+        if (patterns.empty()) {
+            fixedLength = BitPat(pattern).get_length();
+        } else {
+            if (fixedLength != BitPat(pattern).get_length()) {
+                PANIC("Pattern length mismatch");
+            }
+        }
         patterns.push_back(BitPat(pattern));
         actions.push_back(action);
     }
