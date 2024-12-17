@@ -1,6 +1,7 @@
 #include "isa/word.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
+#include "utils/disasm.h"
 #include "utils/utils.h"
 
 #include <bitset>
@@ -9,6 +10,8 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <iterator>
+#include <vector>
 
 /*
     arg: /<n/f/c> addr
@@ -128,6 +131,35 @@ static void show_float(uint8_t *mem, unsigned int size) {
     std::cout << std::endl;
 }
 
+static void show_inst(unsigned int count, unsigned int size, word_t addr) {
+    uint8_t *mem = kdb::memory->get_ptr(addr);
+    word_t memSize = kdb::memory->get_ptr_length(addr);
+
+    for (unsigned int i = 0; i < count; i++) {
+        std::cout << FMT_STREAM_WORD(addr) << ": ";
+        if (memSize == 0) {
+            std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+        }
+
+        unsigned int instLen;
+        auto disasmStr = disasm::disassemble(mem, memSize, addr, instLen);
+
+        if (instLen == 0) {
+            std::cout << "Unsupport to disassemble at " << FMT_STREAM_WORD(addr) << std::endl;
+            break;
+        }
+
+        std::cout << std::hex;
+        for (unsigned int j = 0; j < instLen; j++) {
+            std::cout << std::setw(2) << std::setfill('0') << (uint64_t)mem[j] << ' ';
+        }
+        std::cout << disasmStr << std::endl;
+        memSize -= instLen;
+        mem += instLen;
+        addr += instLen;
+    }
+}
+
 int cmd::show_mem(const args_t &args) {
     const std::string arg = args[1];
     std::string addrArg;
@@ -184,6 +216,7 @@ int cmd::show_mem(const args_t &args) {
         case BIN: show_mem_value_helper(count, size, addr, show_bin); break;
         case CHAR: show_mem_value_helper(count, 1, addr, show_char); break;
         case FLOAT: show_mem_value_helper(count, size, addr, show_float); break;
+        case INST: show_inst(count, size, addr); break;
     }
 
     return cmd::Success; 
