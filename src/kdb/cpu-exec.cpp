@@ -1,3 +1,4 @@
+#include "isa/word.h"
 #include "kdb/kdb.h"
 #include "log.h"
 
@@ -41,9 +42,15 @@ int kdb::step_core(Core *core) {
     return 0;
 }
 
+// NOTE: This function only support single core CPU
 int kdb::run_cpu() {
     while (cpu->is_running()) {
+        word_t pc = cpu->get_core(0)->get_pc();
         cpu->step();
+        if (breakpointSet.find(pc) != breakpointSet.end()) {
+            brkTriggered = true;
+            break;
+        }
     }
 
     Core *core = cpu->get_core(0);
