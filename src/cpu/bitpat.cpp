@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-BitPat::BitPat(std::string s) {
+BitPat::BitPat(const std::string &s) {
     uint64_t bits = 0;
     uint64_t mask = 0;
     int length = 0;

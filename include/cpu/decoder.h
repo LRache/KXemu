@@ -12,7 +12,7 @@ private:
     uint64_t mask;
     int length;
 public:
-    BitPat(std::string s);
+    BitPat(const std::string &s);
     BitPat(BitPat &other);
     BitPat(BitPat &&other);
     int get_length() const;
