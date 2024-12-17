@@ -139,6 +139,7 @@ static void show_inst(unsigned int count, unsigned int size, word_t addr) {
         std::cout << FMT_STREAM_WORD(addr) << ": ";
         if (memSize == 0) {
             std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+            break;
         }
 
         unsigned int instLen;
