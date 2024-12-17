@@ -43,7 +43,8 @@ static const cmd::cmd_map_t cmdMap = {
     {"sym"  , cmd::symbol},
     {"load" , cmd::load  },
     {"info" , cmd::info },
-    {"break", cmd::breakpoint}
+    {"break", cmd::breakpoint},
+    {"x"    , cmd::show_mem}
 };
 
 static bool cmdRunning = true;

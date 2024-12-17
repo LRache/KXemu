@@ -19,7 +19,7 @@ static void output_disassemble(word_t pc) {
         std::cout << symbol->second << ":" << std::endl;
     }
     if (mem == nullptr) {
-        std::cout << "Unsupport to disassemble at pc =" << FMT_STREAM_WORD(pc) << std::endl;
+        std::cout << "Unsupport to disassemble at pc=" << FMT_STREAM_WORD(pc) << std::endl;
         return;
     } else {
         unsigned int instLength;

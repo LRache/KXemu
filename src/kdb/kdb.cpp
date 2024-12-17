@@ -3,7 +3,9 @@
 #include "log.h"
 #include "isa/isa.h"
 #include "isa/word.h"
+#include "utils/utils.h"
 
+#include <exception>
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -44,4 +46,22 @@ int kdb::run_source_file(const std::string &filename) {
         run_command(cmdLine);
     }
     return 0;
+}
+
+word_t kdb::string_to_addr(const std::string &s, bool &success) {
+    success = false;
+    word_t addr = -1;
+    try {
+        addr = utils::string_to_word(s);
+        success = true;
+        return addr;
+    } catch (std::exception &) {}
+    
+    for (auto iter : kdb::symbolTable) {
+        if (iter.second == s) {
+            addr = iter.first;
+            success = true;
+        }
+    }
+    return addr;
 }

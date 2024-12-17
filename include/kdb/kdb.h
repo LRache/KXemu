@@ -51,6 +51,8 @@ namespace kdb {
     word_t load_elf(const std::string &filename);
     extern std::map<word_t, std::string> symbolTable;
     extern word_t programEntry;
+
+    word_t string_to_addr(const std::string &s, bool &success);
     
 } // kdb
 

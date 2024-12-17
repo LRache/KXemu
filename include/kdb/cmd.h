@@ -41,6 +41,7 @@ namespace cmd {
     int info    (const args_t &); // print info of cpu
     int uart    (const args_t &); // uart command
     int breakpoint(const args_t &); // set breakpoint
+    int show_mem(const args_t &);
 
     // do command return code
     enum Code {

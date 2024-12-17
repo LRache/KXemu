@@ -1,4 +1,5 @@
 #include "utils/utils.h"
+#include <string>
 #include <vector>
 
 word_t utils::string_to_word(const std::string &s) {
@@ -16,6 +17,7 @@ std::vector<std::string> utils::string_split(const std::string &s, const char de
     std::vector<std::string> result;
     std::string t;
     while (std::getline(ss, t, ' ')) {
+        if (t.empty() || t.find_first_not_of(' ') == std::string::npos) continue;
         result.push_back(t);
     }
     return result;
