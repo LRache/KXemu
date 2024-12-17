@@ -16,6 +16,7 @@
 #define PUTLOG(FG, TYPE, ...) \
 do { \
     if (!(logFlag & TYPE)) break; \
+    logTriggerFlag |= TYPE; \
     printf(FG "[" #TYPE "][%s:%d %s] " FMT_FG_RESET, __FILE__, __LINE__, __func__); \
     printf(__VA_ARGS__); \
     printf(FMT_FG_RESET "\n"); \
@@ -44,5 +45,6 @@ enum LogFlag {
 };
 
 extern int logFlag;
+extern int logTriggerFlag;
 
 #endif
