@@ -13,6 +13,7 @@ public:
     word_t read(word_t addr, int size) const;
     bool write(word_t addr, word_t data, int size);
     uint8_t *get_ptr(word_t addr) const;
+    word_t   get_ptr_length(word_t addr) const;
 
     bool load_from_stream(std::istream &stream, word_t addr);
     bool load_from_stream(std::istream &stream, word_t addr, word_t length);

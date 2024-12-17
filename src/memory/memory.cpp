@@ -58,10 +58,19 @@ bool Memory::write(word_t addr, word_t data, int size) {
 
 uint8_t *Memory::get_ptr(word_t addr) const{
     auto map = match_map(addr);
-    if (map != nullptr) {
-        return map->map->get_ptr(addr - map->start);
+    if (map == nullptr) {
+        return nullptr;
     }
-    return nullptr;
+    return map->map->get_ptr(addr - map->start);
+}
+
+word_t Memory::get_ptr_length(word_t addr) const {
+    auto map = match_map(addr);
+    if (map == nullptr) {
+        return 0;
+    }
+    word_t offset = addr - map->start;
+    return map->length - offset;
 }
 
 bool Memory::load_from_stream(std::istream &stream, word_t addr) {
