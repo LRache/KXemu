@@ -1,4 +1,5 @@
 #include "memory/map.h"
+#include "log.h"
 #include <cstdint>
 
 StorageMemoryMap::StorageMemoryMap(uint64_t length) {
@@ -19,7 +20,7 @@ word_t StorageMemoryMap::read(word_t offset, int size) {
         #ifdef ISA_64
         case 8: ret = *(uint64_t *)(data + offset); break;
         #endif
-        default: break;
+        default: PANIC("Invalid size=%d", size); return -1;
     }
     return ret;
 }
@@ -32,7 +33,7 @@ bool StorageMemoryMap::write(word_t offset, word_t data, int size) {
         #ifdef ISA_64
         case 8: *(uint64_t *)(this->data + offset) = (uint64_t)data; break;
         #endif
-        default: return false;
+        default: PANIC("Invalid size=%d", size); return false;
     }
     return true;
 }
