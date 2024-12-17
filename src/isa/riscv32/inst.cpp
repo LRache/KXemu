@@ -275,7 +275,6 @@ void RV32Core::do_jal() {
     RD; IMM_J;
     this->set_gpr(rd, this->pc + 4);
     this->npc = this->pc + imm;
-    INFO("JAL: pc=0x%08x, npc=0x%08x", this->pc, this->npc);
 }
 
 void RV32Core::do_jalr() {

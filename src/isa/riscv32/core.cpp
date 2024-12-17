@@ -31,10 +31,10 @@ void RV32Core::execute() {
     // try decode and execute the full instruction
     this->npc = this->pc + 4;
     bool valid = this->decoder.decode_and_exec(this->inst);
-    DEBUG("Exec to pc=" FMT_WORD, this->pc);
+    // DEBUG("Exec to pc=" FMT_WORD, this->pc);
     if (unlikely(!valid)) {
         // try decode and execute the compressed instruction
-        INFO("Try to decode compressed instruction");
+        // INFO("Try to decode compressed instruction");
         this->npc = this->pc + 2;
         valid = this->cdecoder.decode_and_exec(this->inst);
         if (unlikely(!valid)) {
