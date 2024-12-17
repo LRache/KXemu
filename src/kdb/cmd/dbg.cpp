@@ -77,6 +77,9 @@ int cmd::run(const args_t &) {
         std::cout << "CPU is not running." << std::endl;
     } else {
         kdb::run_cpu();
+        if (kdb::brkTriggered) {
+            std::cout << "Breakpoint triggered."<< std::endl;
+        }
     }
     return 0;
 }
