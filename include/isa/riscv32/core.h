@@ -4,9 +4,11 @@
 #include "cpu/cpu.h"
 #include "cpu/decoder.h"
 #include "isa/riscv32/isa.h"
+#include "isa/word.h"
 #include "memory/memory.h"
 
 #include <cstdint>
+#include <unordered_map>
 
 class RV32Core : public Core {
 private:
@@ -134,6 +136,8 @@ private:
     void do_c_xor();
     void do_c_or();
     void do_c_and();
+
+    // Zicsr exntension
 
 public:
     void init(Memory *memory, int flags);
