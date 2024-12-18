@@ -294,65 +294,6 @@ void RV32Core::do_auipc() {
     this->set_gpr(rd, this->pc + imm);
 }
 
-void RV32Core::do_mul() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] * this->gpr[rs2]);
-}
-
-void RV32Core::do_mulh() {
-    RD; RS1; RS2;
-    int64_t res = (int64_t)(int32_t)this->gpr[rs1] * (int64_t)(int32_t)this->gpr[rs2];
-    this->set_gpr(rd, (int32_t)(res >> 32));
-}
-
-void RV32Core::do_mulhsu() {
-    RD; RS1; RS2;
-    int64_t res = (int64_t)this->gpr[rs1] * (int64_t)this->gpr[rs2];
-    this->set_gpr(rd, (int32_t)(res >> 32));
-}
-
-void RV32Core::do_mulhu() {
-    RD; RS1; RS2;
-    uint64_t res = (uint64_t)this->gpr[rs1] * (uint64_t)this->gpr[rs2];
-    this->set_gpr(rd, (uint32_t)(res >> 32));
-}
-
-void RV32Core::do_div() {
-    RD; RS1; RS2;
-    if (this->gpr[rs2] == 0) {
-        this->set_gpr(rd, -1);
-    } else {
-        this->set_gpr(rd, (sword_t)this->gpr[rs1] / (sword_t)this->gpr[rs2]);
-    }
-}
-
-void RV32Core::do_divu() {
-    RD; RS1; RS2;
-    if (this->gpr[rs2] == 0) {
-        this->set_gpr(rd, -1);
-    } else {
-        this->set_gpr(rd, this->gpr[rs1] / this->gpr[rs2]);
-    }
-}
-
-void RV32Core::do_rem() {
-    RD; RS1; RS2;
-    if (this->gpr[rs2] == 0) {
-        this->set_gpr(rd, rs1);
-    } else {
-        this->set_gpr(rd, (int32_t)this->gpr[rs1] % (int32_t)this->gpr[rs2]);
-    }
-}
-
-void RV32Core::do_remu() {
-    RD; RS1; RS2;
-    if (this->gpr[rs2] == 0) {
-        this->set_gpr(rd, rs2);
-    } else {
-        this->set_gpr(rd, this->gpr[rs1] % this->gpr[rs2]);
-    }
-}
-
 void RV32Core::do_ebreak() {
     INFO("EBREAK at pc=0x%08x", this->pc);
     this->state = BREAK;
