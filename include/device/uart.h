@@ -16,7 +16,7 @@ public:
     uint8_t *get_ptr(word_t offset);
     std::string get_type_str() const;
 
-    bool input_data(uint8_t data);
+    bool putch(uint8_t data);
     void set_output_stream(std::ostream &os);    // send data to stream
     void open_socket(const std::string &ip, int port); // open socket to send and receive data
 

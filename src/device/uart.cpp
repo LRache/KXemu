@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <iostream>
 
+#define LSR_RX_READY (1 << 0)
+#define LSR_TX_READY (1 << 5)
+
 #define BUFFER_SIZE 1024
 
 word_t Uart16650::read(word_t offset, int size) {
@@ -21,8 +24,11 @@ word_t Uart16650::read(word_t offset, int size) {
             if (queue.empty()) {
                 return 0;
             }
-            char c = queue.front();
+            uint8_t c = queue.front();
             queue.pop();
+            if (queue.empty()) {
+                lsr &= ~LSR_RX_READY;
+            }
             return c;
         }
     } else if (offset == 1) {
@@ -89,11 +95,12 @@ bool Uart16650::write(word_t offset, word_t data, int size) {
     }
 }
 
-bool Uart16650::input_data(uint8_t data) {
+bool Uart16650::putch(uint8_t data) {
     if (queue.size() >= BUFFER_SIZE) {
         return false;
     }
     queue.push(data);
+    lsr |= LSR_RX_READY;
     return true;
 }
 
@@ -103,6 +110,8 @@ void Uart16650::set_output_stream(std::ostream &os) {
     } 
     mode = Mode::STREAM;
     stream = &os;
+    // for now, we assume that the stream is always ready to write
+    lsr |= LSR_TX_READY;
 }
 
 void Uart16650::open_socket(const std::string &ip, int port) {
@@ -111,6 +120,7 @@ void Uart16650::open_socket(const std::string &ip, int port) {
     }
     mode = Mode::SOCKET;
     // TODO: open socket
+    lsr &= ~LSR_TX_READY;
 }
 
 void Uart16650::send_byte(uint8_t c) {
@@ -118,8 +128,10 @@ void Uart16650::send_byte(uint8_t c) {
         if (stream == nullptr) {
             WARN("uart stream is not set, output to stdout.");
             std::cout << c;
+            std::cout.flush();
         } else {
             *stream << c;
+            stream->flush();
         } 
     } else if (mode == Mode::SOCKET) {
         // TODO: send data to socket

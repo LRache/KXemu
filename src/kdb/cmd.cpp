@@ -44,7 +44,8 @@ static const cmd::cmd_map_t cmdMap = {
     {"load" , cmd::load  },
     {"info" , cmd::info },
     {"break", cmd::breakpoint},
-    {"x"    , cmd::show_mem}
+    {"x"    , cmd::show_mem},
+    {"uart" , cmd::uart}
 };
 
 static bool cmdRunning = true;

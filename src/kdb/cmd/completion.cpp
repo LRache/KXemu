@@ -48,6 +48,9 @@ static const Node *tree = new Node({
     {"symbol", nullptr},
     {"breakpoint", nullptr},
     {"reset", nullptr},
+    {"uart", new Node({
+        {"add", nullptr}
+    })}
 });
 
 static char *command_completion_generator(const char *, int state) {

@@ -3,6 +3,7 @@
 
 #include "cpu/cpu.h"
 #include "cpu/decoder.h"
+#include "isa/riscv32/csr.h"
 #include "isa/riscv32/isa.h"
 #include "isa/word.h"
 #include "memory/memory.h"
@@ -34,8 +35,6 @@ private:
     // decoder
     Decoder<RV32Core> decoder;
     Decoder<RV32Core> cdecoder; // for compressed instructions
-    void init_decoder();
-    void init_c_decoder();
 
     // running
     uint32_t inst;
@@ -47,6 +46,8 @@ private:
     void set_gpr(int index, word_t value);
 
     // do instructions
+    void init_decoder();
+
     void do_add();
     void do_sub();
     void do_and();
@@ -103,7 +104,9 @@ private:
     void do_ebreak();
     void do_invalid_inst();
 
-    // compressed instructions
+    // Compressed extension
+    void init_c_extension();
+
     void do_c_lwsp();
     void do_c_swsp();
     
@@ -138,6 +141,18 @@ private:
     void do_c_and();
 
     // Zicsr exntension
+    void init_zicsr_extension();
+
+    void do_csrrw();
+    void do_csrrs();
+    void do_csrrc();
+    void do_csrrwi();
+    void do_csrrsi();
+    void do_csrrci();
+
+    RV32CSR csr;
+    word_t get_csr(unsigned int addr, bool &success);
+    void   set_csr(unsigned int addr, word_t value, bool &success);
 
 public:
     void init(Memory *memory, int flags);

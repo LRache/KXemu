@@ -18,8 +18,8 @@ static inline int32_t sign_extend(uint32_t bits, int from) {
     return (int32_t)(bits << shift) >> shift;
 }
 
-// NOTE: Pay attention to the order of the instructions in the init_c_decoder function
-void RV32Core::init_c_decoder() {
+// NOTE: Pay attention to the order of the instructions in the init_c_extension function
+void RV32Core::init_c_extension() {
     this->cdecoder.init(this);
 
     INSTPAT("0000 0000 0000 0000", invalid_inst);

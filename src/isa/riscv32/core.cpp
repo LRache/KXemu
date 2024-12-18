@@ -8,7 +8,8 @@ void RV32Core::init(Memory *memory, int flags) {
     this->state = IDLE;
 
     this->init_decoder();
-    this->init_c_decoder();
+    this->init_c_extension();
+    this->init_zicsr_extension();
 }
 
 void RV32Core::reset(word_t entry) {

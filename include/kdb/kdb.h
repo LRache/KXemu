@@ -6,6 +6,7 @@
 #include "cpu/cpu.h"
 #include "memory/memory.h"
 
+#include <cstddef>
 #include <ostream>
 #include <string>
 #include <map>
@@ -39,6 +40,7 @@ namespace kdb {
         extern std::vector<Uart16650 *> list;
         bool add(word_t base, std::ostream &os);
         bool add(word_t base, const std::string &ip, int port);
+        bool puts(std::size_t index, const std::string &s);
     };
 
     // Breakpoint

@@ -1,5 +1,8 @@
-#ifndef __ISA_RISCV32_CSR_H__
-#define __ISA_RISCV32_CSR_H__
+#ifndef __ISA_RISCV32_CSR_DEF_H__
+#define __ISA_RISCV32_CSR_DEF_H__
+
+#define CSR_READ_ONLY  0b110000000000
+#define IS_CSR_READ_ONLY(addr) ((addr & CSR_READ_ONLY) == CSR_READ_ONLY)
 
 #define MISA_A (1 <<  0) // Atomic Extension
 #define MISA_B (1 <<  1) // B Extesnion
@@ -14,5 +17,10 @@
 #define MISA_S (1 << 18) // Supervisor mode Implemented
 #define MISA_U (1 << 20) // User mode Implemented
 #define MISA_V (1 << 21) // Vector Extension
+
+#define MSTATUS_SIE  (1 << 1)
+#define MSTATUS_MIE  (1 << 3)
+#define MSTATUS_MPIE (1 << 7)
+#define MSTATUS_MPRV (1 << 17)
 
 #endif

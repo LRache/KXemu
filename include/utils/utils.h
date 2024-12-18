@@ -8,6 +8,7 @@
 
 namespace utils {
     word_t string_to_word(const std::string &s);
+    word_t string_to_word(const std::string &s, bool &success);
     std::vector<std::string> string_split(const std::string &s, const char delim);
 }
 
