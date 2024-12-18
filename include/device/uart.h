@@ -3,10 +3,12 @@
 
 #include "memory/map.h"
 #include "utils/tcp-server.h"
+#include <atomic>
 #include <cstdint>
 #include <ostream>
 #include <queue>
 #include <thread>
+#include <mutex>
 
 #define UART_LENGTH 8
 
@@ -19,7 +21,7 @@ public:
 
     bool putch(uint8_t data);
     void set_output_stream(std::ostream &os);    // send data to stream
-    void open_socket(const std::string &ip, int port); // open socket to send and receive data
+    bool open_socket(const std::string &ip, int port); // open socket to send and receive data
 
     enum Mode {
         NONE,
@@ -33,13 +35,16 @@ private:
     int mode = Mode::NONE;
     std::ostream *stream = nullptr;
     
-    bool tcpServerRunning;
-    TCPServer *tcpServer = nullptr;
-    std::thread *tcpServerThread = nullptr;
+    int sendSocket = -1;
+    int recvSocket = -1;
 
-    void server_thread_loop();
+    std::atomic<bool> uartSocketRunning;
+    std::thread *recvThread;
+    void recv_thread_loop();
 
+    std::mutex mtx;
     std::queue<uint8_t> queue; // FIFO buffer
+    
     void send_byte(uint8_t c);
 
     // Divisor Latch Register

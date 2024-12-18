@@ -26,10 +26,13 @@ bool kdb::uart::add(word_t base, std::ostream &os) {
 
 bool kdb::uart::add(word_t base, const std::string &ip, int port) {
     Uart16650 *uart = new Uart16650();
+    if (!uart->open_socket(ip, port)) {
+        delete uart;
+        return false;
+    }
     if (!add_uart_map(base, uart)) {
         return false;
     }
-    uart->open_socket(ip, port);
     return true;
 }
 

@@ -5,11 +5,34 @@
 
 #include <cstdint>
 #include <iostream>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define LSR_RX_READY (1 << 0)
 #define LSR_TX_READY (1 << 5)
 
 #define BUFFER_SIZE 1024
+
+static int open_socket_client(const std::string &ip, int port) {
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        WARN("Failed to create socket.");
+        return -1;
+    }
+    struct sockaddr_in serv_addr;
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(port);
+    if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0) {
+        WARN("Invalid address.");
+        return -1;
+    }
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        WARN("Connection failed.");
+        return -1;
+    }
+    return sockfd;
+}
 
 word_t Uart16650::read(word_t offset, int size) {
     if (size != 1) {
@@ -22,6 +45,7 @@ word_t Uart16650::read(word_t offset, int size) {
             return lsb;
         } else {
             // RBR: Receiver Buffer Register
+            mtx.lock();
             if (queue.empty()) {
                 return 0;
             }
@@ -30,6 +54,7 @@ word_t Uart16650::read(word_t offset, int size) {
             if (queue.empty()) {
                 lsr &= ~LSR_RX_READY;
             }
+            mtx.unlock();
             return c;
         }
     } else if (offset == 1) {
@@ -97,17 +122,19 @@ bool Uart16650::write(word_t offset, word_t data, int size) {
 }
 
 bool Uart16650::putch(uint8_t data) {
+    mtx.lock();
     if (queue.size() >= BUFFER_SIZE) {
         return false;
     }
     queue.push(data);
     lsr |= LSR_RX_READY;
+    mtx.unlock();
     return true;
 }
 
 void Uart16650::set_output_stream(std::ostream &os) {
     if (mode == Mode::SOCKET) {
-        WARN("Cannot change to use stream.");
+        PANIC("Cannot change to use stream.");
     } 
     mode = Mode::STREAM;
     stream = &os;
@@ -115,16 +142,22 @@ void Uart16650::set_output_stream(std::ostream &os) {
     lsr |= LSR_TX_READY;
 }
 
-void Uart16650::open_socket(const std::string &ip, int port) {
-    this->tcpServer = new TCPServer;
-    bool success = this->tcpServer->start(ip, port);
-    if (!success) {
-        WARN("Unable to open tcp server.")
-        delete this->tcpServer;
-    } else {
-        mode = Mode::SOCKET;
-        lsr &= ~LSR_TX_READY;
+bool Uart16650::open_socket(const std::string &ip, int port) {
+    if (mode != Mode::NONE) {
+        PANIC("Cannot change to use socket.");
+        return false;
     }
+    recvSocket = open_socket_client(ip, port);
+    sendSocket = open_socket_client(ip, port + 1);
+    if ((sendSocket < 0)) {
+        WARN("Failed to open socket.");
+        return false;
+    }
+    uartSocketRunning = true;
+    recvThread = new std::thread(&Uart16650::recv_thread_loop, this);
+    mode = Mode::SOCKET;
+    lsr |= LSR_TX_READY;
+    return true;
 }
 
 void Uart16650::send_byte(uint8_t c) {
@@ -138,7 +171,10 @@ void Uart16650::send_byte(uint8_t c) {
             stream->flush();
         } 
     } else if (mode == Mode::SOCKET) {
-        
+        ssize_t n = send(sendSocket, &c, 1, 0);
+        if (n <= 0) {
+            WARN("Failed to send data to socket.");
+        }
     }
 }
 
@@ -150,14 +186,52 @@ std::string Uart16650::get_type_str() const {
     return "uart16650";
 }
 
-void Uart16650::server_thread_loop() {
+void Uart16650::recv_thread_loop() {
+    struct timeval timeout;
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
+
+    fd_set read_fds;
     
+    uint8_t buffer[64];
+    while (uartSocketRunning) {
+        FD_ZERO(&read_fds);
+        FD_SET(recvSocket, &read_fds);
+
+        int r = select(recvSocket + 1, &read_fds, NULL, NULL, &timeout);
+
+        if (r == -1) {
+            WARN("Failed to select socket.");
+            break;
+        }
+        if (r == 0) {
+            continue;
+        }
+
+        ssize_t n = ::read(recvSocket, buffer, sizeof(buffer));
+        if (n <= 0) {
+            WARN("Failed to receive data from socket.");
+            break;
+        }
+
+        mtx.lock();
+        for (int i = 0; i < n; i++) {
+            queue.push(buffer[i]);
+        }
+        lsr |= LSR_RX_READY;
+        mtx.unlock();
+    }
+    // close socket
+    close(recvSocket);
+    close(sendSocket);
+    mode = Mode::NONE;
 }
 
 Uart16650::~Uart16650() {
-    if (this->tcpServerThread != nullptr) {
-        this->tcpServerThread->join();
+    uartSocketRunning = false;
+    if (recvThread != nullptr) {
+        recvThread->join();
+        delete recvThread;
     }
-    delete this->tcpServerThread;
-    delete this->tcpServer;
+    close(sendSocket);
 }

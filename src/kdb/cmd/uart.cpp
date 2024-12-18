@@ -1,3 +1,4 @@
+#include "isa/word.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "utils/utils.h"
@@ -39,10 +40,11 @@ static int cmd_uart_add(const cmd::args_t &args) {
             std::cout << "Invalid port: " << args[3] << std::endl;
             return cmd::InvalidArgs;
         }
-        if (kdb::uart::add(base, "localhost", port)) {
-            std::cout << "UART added at base " << std::hex << base << std::dec << " port " << port << std::endl;
+        if (kdb::uart::add(base, "127.0.0.1", port)) {
+            std::cout << "UART added at base " << FMT_STREAM_WORD(base) << " port " << port << std::endl;
             return cmd::Success;
         } else {
+            std::cout << "Failed to add UART." << std::endl;
             return cmd::CmdError;
         }
     }

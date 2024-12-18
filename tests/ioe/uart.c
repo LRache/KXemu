@@ -33,10 +33,28 @@ int main() {
     for (int i = 0; str[i]; i++) {
         __uart_tx(str[i]);
     }
+    
+    char buffer[256];
+    unsigned int i = 0;
+    __uart_tx('k');
+    __uart_tx('d');
+    __uart_tx('b');
+    __uart_tx('>');
     while (1) {
         uint8_t ch = __uart_rx();
         if (ch != 0xff) {
+            buffer[i++] = ch;
             __uart_tx(ch);
+            if (ch == '\n') {
+                for (unsigned int j = 0; j < i; j++) {
+                    __uart_tx(buffer[j]);
+                }
+                i = 0;
+                __uart_tx('k');
+                __uart_tx('d');
+                __uart_tx('b');
+                __uart_tx('>');
+            }
         }
     }
     return 0;
