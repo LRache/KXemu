@@ -1,6 +1,7 @@
 #include "device/uart.h"
 #include "isa/word.h"
 #include "log.h"
+#include "utils/tcp-server.h"
 
 #include <cstdint>
 #include <iostream>
@@ -106,7 +107,7 @@ bool Uart16650::putch(uint8_t data) {
 
 void Uart16650::set_output_stream(std::ostream &os) {
     if (mode == Mode::SOCKET) {
-        // TODO: close socket and free socket resources
+        WARN("Cannot change to use stream.");
     } 
     mode = Mode::STREAM;
     stream = &os;
@@ -115,12 +116,15 @@ void Uart16650::set_output_stream(std::ostream &os) {
 }
 
 void Uart16650::open_socket(const std::string &ip, int port) {
-    if (mode == Mode::STREAM) {
-        stream = nullptr;
+    this->tcpServer = new TCPServer;
+    bool success = this->tcpServer->start(ip, port);
+    if (!success) {
+        WARN("Unable to open tcp server.")
+        delete this->tcpServer;
+    } else {
+        mode = Mode::SOCKET;
+        lsr &= ~LSR_TX_READY;
     }
-    mode = Mode::SOCKET;
-    // TODO: open socket
-    lsr &= ~LSR_TX_READY;
 }
 
 void Uart16650::send_byte(uint8_t c) {
@@ -134,7 +138,7 @@ void Uart16650::send_byte(uint8_t c) {
             stream->flush();
         } 
     } else if (mode == Mode::SOCKET) {
-        // TODO: send data to socket
+        
     }
 }
 
@@ -144,4 +148,16 @@ uint8_t *Uart16650::get_ptr(word_t offset) {
 
 std::string Uart16650::get_type_str() const {
     return "uart16650";
+}
+
+void Uart16650::server_thread_loop() {
+    
+}
+
+Uart16650::~Uart16650() {
+    if (this->tcpServerThread != nullptr) {
+        this->tcpServerThread->join();
+    }
+    delete this->tcpServerThread;
+    delete this->tcpServer;
 }

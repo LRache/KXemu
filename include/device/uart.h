@@ -2,10 +2,11 @@
 #define __DEVICE_UART_H__
 
 #include "memory/map.h"
+#include "utils/tcp-server.h"
 #include <cstdint>
 #include <ostream>
 #include <queue>
-#include <sys/types.h>
+#include <thread>
 
 #define UART_LENGTH 8
 
@@ -26,11 +27,17 @@ public:
         SOCKET,
     };
     
-    ~Uart16650() = default;
+    ~Uart16650();
 
 private:
     int mode = Mode::NONE;
     std::ostream *stream = nullptr;
+    
+    bool tcpServerRunning;
+    TCPServer *tcpServer = nullptr;
+    std::thread *tcpServerThread = nullptr;
+
+    void server_thread_loop();
 
     std::queue<uint8_t> queue; // FIFO buffer
     void send_byte(uint8_t c);
