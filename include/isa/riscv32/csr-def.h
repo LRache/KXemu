@@ -4,6 +4,11 @@
 #define CSR_READ_ONLY  0b110000000000
 #define IS_CSR_READ_ONLY(addr) ((addr & CSR_READ_ONLY) == CSR_READ_ONLY)
 
+#define CSR_MISA   0xF10
+#define CSR_MTVEC  0x305
+#define CSR_MEPC   0x341
+#define CSR_MCAUSE 0x342
+
 #define MISA_A (1 <<  0) // Atomic Extension
 #define MISA_B (1 <<  1) // B Extesnion
 #define MISA_C (1 <<  2) // Compressed Extension
