@@ -18,75 +18,33 @@ static inline int32_t sign_extend(uint32_t bits, int from) {
     return (int32_t)(bits << shift) >> shift;
 }
 
-// NOTE: Pay attention to the order of the instructions in the init_c_extension function
-void RV32Core::init_c_extension() {
-    this->cdecoder.init(this);
-
-    INSTPAT("0000 0000 0000 0000", invalid_inst);
-    INSTPAT("100 1 00000 00000 10", ebreak); // same as do_ebreak
-
-    INSTPAT("010 ? ????? ????? 10", c_lwsp);
-    INSTPAT("110 ? ????? ????? 10", c_swsp);
-    
-    INSTPAT("010 ??? ??? ?? ??? 00", c_lw);
-    INSTPAT("110 ??? ??? ?? ??? 00", c_sw);
-
-    INSTPAT("101 ??????????? 01", c_j);
-    INSTPAT("001 ??????????? 01", c_jal);
-    INSTPAT("100 0 ????? 00000 10", c_jr);
-    INSTPAT("100 1 ????? 00000 10", c_jalr);
-
-    INSTPAT("110 ??? ??? ?? ??? 01", c_beqz);
-    INSTPAT("111 ??? ??? ?? ??? 01", c_bnez);
-
-    INSTPAT("000 ? ????? ????? 01", c_addi);
-    INSTPAT("011 ? 00010 ????? 01", c_addi16sp);
-    INSTPAT("000 ???????? ??? 00", c_addi4spn);
-
-    INSTPAT("010 ? ????? ????? 01", c_li);
-    INSTPAT("011 ? ????? ????? 01", c_lui);
-
-    INSTPAT("000 ? ????? ????? 10", c_slli);
-    INSTPAT("100 ? 00 ??? ????? 01", c_srli);
-    INSTPAT("100 ? 01 ??? ????? 01", c_srai);
-    INSTPAT("100 ? 10 ??? ????? 01", c_andi);
-
-    INSTPAT("100 0 ????? ????? 10", c_mv);
-    INSTPAT("100 1 ????? ????? 10", c_add);
-
-    INSTPAT("100 0 11 ??? 00 ??? 01", c_sub);
-    INSTPAT("100 0 11 ??? 01 ??? 01", c_xor);
-    INSTPAT("100 0 11 ??? 10 ??? 01", c_or);
-    INSTPAT("100 0 11 ??? 11 ??? 01", c_and);
-}
-
 void RV32Core::do_c_lwsp() {
     int rd = BITS(11, 7);
     uint32_t imm = BITS(12, 12) << 5 | BITS(3, 2) << 6 | BITS(6, 4) << 2;
 
     REQUIRE_NOT_ZERO(rd);
 
-    this->set_gpr(rd, this->memory->read(this->gpr[2] + imm, 4));
+    this->set_gpr(rd, this->memory_read(this->gpr[2] + imm, 4));
 }
 
 void RV32Core::do_c_swsp() {
     int rs2 = BITS(6, 2);
     uint32_t imm = BITS(8, 7) << 6 | BITS(12, 9) << 2;
-    this->memory->write(this->gpr[2] + imm, this->gpr[rs2], 4);
+    this->memory_write(this->gpr[2] + imm, this->gpr[rs2], 4);
 }
 
 void RV32Core::do_c_lw() {
     int rd  = BITS(4, 2) + 8;
     int rs1 = BITS(9, 7) + 8;
     int32_t imm = BITS(5, 5) << 6 | BITS(12, 10) << 3 | BITS(6, 6) << 2;
-    this->set_gpr(rd, this->memory->read(this->gpr[rs1] + imm, 4));
+    this->set_gpr(rd, this->memory_read(this->gpr[rs1] + imm, 4));
 }
 
 void RV32Core::do_c_sw() {
     int rs1 = BITS(9, 7) + 8;
     int rs2 = BITS(4, 2) + 8;
     int32_t imm = BITS(5, 5) << 6 | BITS(12, 10) << 3 | BITS(6, 6) << 2;
-    this->memory->write(this->gpr[rs1] + imm, this->gpr[rs2], 4);
+    this->memory_write(this->gpr[rs1] + imm, this->gpr[rs2], 4);
 }
 
 void RV32Core::do_c_j() {
