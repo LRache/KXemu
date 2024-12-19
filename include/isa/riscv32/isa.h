@@ -9,10 +9,11 @@
 #define GPR_COUNT 32
 
 enum RVFlag {
-    RV64  = 1,
-    RV128 = 2,
-    E     = 4,
-    C     = 8,
+    E = 1,
+    C = 2,
+    M = 4,
+    Zicsr = 8,
+    Priv  = 16
 };
 
 std::string get_gpr_name(int idx);
