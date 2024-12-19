@@ -8,6 +8,7 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
+#include "isa/word.h"
 #include "memory/memory.h"
 
 class Core {
@@ -22,9 +23,8 @@ public:
     virtual word_t get_pc() = 0;
     virtual word_t get_gpr(int idx) = 0;
 
-    virtual word_t get_trap_code() = 0;
-    virtual word_t get_trap_pc()   = 0;
     virtual word_t get_halt_pc()   = 0;
+    virtual word_t get_halt_code() = 0;
 };
 
 class CPU {
