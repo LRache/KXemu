@@ -1,5 +1,6 @@
 #include "kdb/kdb.h"
 #include "cpu/cpu.h"
+#include "isa/riscv32/isa.h"
 #include "log.h"
 #include "isa/isa.h"
 #include "isa/word.h"
@@ -20,7 +21,7 @@ void kdb::init() {
     logFlag = DEBUG | INFO | WARN | PANIC;
 
     cpu = new ISA_CPU();
-    cpu->init(memory, 0, 1);
+    cpu->init(memory, RVFlag::C | RVFlag::M | RVFlag::Zicsr | RVFlag::Priv, 1);
     cpu->reset(INIT_PC);
     programEntry = INIT_PC;
 
