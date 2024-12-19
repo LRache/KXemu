@@ -8,12 +8,17 @@
 #include "isa/word.h"
 #include "memory/memory.h"
 
+#include <chrono>
 #include <cstdint>
+#include <ratio>
 #include <unordered_map>
 
 class RV32Core : public Core {
 private:
     int flags;
+    using word_t = uint32_t;
+    using sword_t = int32_t;
+
     enum state_t {
         IDLE,
         RUNNING,
@@ -21,16 +26,12 @@ private:
         BREAK,
     } state;
 
-    using word_t = uint32_t;
-    using sword_t = int32_t;
-
-    word_t trapCode;
-    word_t trapPC;
+    word_t haltCode;
     word_t haltPC;
 
     Memory *memory;
-    word_t mem_read(word_t addr, int len);
-    int mem_write(word_t addr, word_t data, int len);
+    word_t memory_read(word_t addr, int len);
+    int memory_write(word_t addr, word_t data, int len);
 
     // decoder
     Decoder<RV32Core> decoder;
@@ -41,6 +42,9 @@ private:
     word_t pc;
     word_t npc;
     void execute();
+
+    // Trap
+    void trap(word_t code);
     
     word_t gpr[32];
     void set_gpr(int index, word_t value);
@@ -101,12 +105,9 @@ private:
     void do_rem();
     void do_remu();
     
-    void do_ebreak();
     void do_invalid_inst();
 
     // Compressed extension
-    void init_c_extension();
-
     void do_c_lwsp();
     void do_c_swsp();
     
@@ -140,9 +141,13 @@ private:
     void do_c_or();
     void do_c_and();
 
-    // Zicsr exntension
-    void init_zicsr_extension();
+    // Privileged mode
+    void do_ecall();
+    void do_mret();
+    void do_sret();
+    void do_ebreak();
 
+    // Zicsr exntension
     void do_csrrw();
     void do_csrrs();
     void do_csrrc();
@@ -151,8 +156,18 @@ private:
     void do_csrrci();
 
     RV32CSR csr;
+    void init_csr();
     word_t get_csr(unsigned int addr, bool &success);
     void   set_csr(unsigned int addr, word_t value, bool &success);
+
+    // CSR reference
+    word_t *mcause;
+    word_t *mepc;
+    const word_t *mtvec;
+
+    // timer
+    uint64_t mtime;
+    std::chrono::duration<uint64_t, std::nano> uptime;
 
 public:
     void init(Memory *memory, int flags);
@@ -165,9 +180,8 @@ public:
     word_t get_pc() override;
     word_t get_gpr(int idx) override;
 
-    word_t get_trap_pc() override;
-    word_t get_trap_code() override;
     word_t get_halt_pc() override;
+    word_t get_halt_code() override;
 
     ~RV32Core();
 };

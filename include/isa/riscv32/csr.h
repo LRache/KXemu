@@ -23,6 +23,9 @@ public:
     word_t get_csr(unsigned int addr, bool &success);
     void   set_csr(unsigned int addr, word_t value, bool &success);
 
+    word_t *get_csr_ptr(unsigned int addr);
+    const word_t *get_csr_ptr_readonly(unsigned int addr) const;
+
     // misa
     word_t read_misa(word_t addr, word_t value);
     word_t write_misa(word_t addr, word_t value, bool &valid);
