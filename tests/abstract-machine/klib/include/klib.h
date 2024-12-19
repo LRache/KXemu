@@ -3,6 +3,13 @@
 
 #include <stddef.h>
 #include <stdarg.h>
+#include <stdint.h>
+
+#include "klib-macros.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // stdio.h
 int printf      (const char *fmt, ...);
@@ -11,6 +18,7 @@ int snprintf    (char *out, size_t n, const char *fmt, ...);
 int vsprintf    (char *str, const char *format, va_list ap);
 int vsnprintf   (char *out, size_t n, const char *fmt, va_list ap);
 
+int puts(const char *s);
 
 // ctype.h
 int isalpha (int c);
@@ -27,5 +35,9 @@ void  *memset   (void *s, int c, size_t n);
 void  *memmove  (void *dst, const void *src, size_t n);
 void  *memcpy   (void *dst, const void *src, size_t n);
 int    memcmp   (const void *s1, const void *s2, size_t n);
+
+#ifdef __cplusplus
+};
+#endif
 
 #endif
