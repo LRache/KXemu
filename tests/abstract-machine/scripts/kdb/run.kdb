@@ -1,2 +1,4 @@
 load elf
 reset
+run
+exit
