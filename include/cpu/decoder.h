@@ -17,14 +17,19 @@ public:
     BitPat(BitPat &other);
     BitPat(BitPat &&other);
     unsigned int get_length() const;
-    bool match(uint64_t data) const;
+    bool match(uint64_t data) const { // To inline this function
+        return (data & this->mask) == this->bits;
+    }
 };
 
 template<typename T>
 class Decoder {
 private:
-    std::vector<BitPat> patterns;
-    std::vector<void (T::*)()> actions;
+    struct Entry {
+        BitPat pattern;
+        void (T::*action)();
+    };
+    std::vector<Entry> patterns;
     T *obj;
 public:
     unsigned int fixedLength = 0;
@@ -33,7 +38,7 @@ public:
         this->obj = obj;
     }
 
-    void add(std::string pattern, void (T::*action)()) {
+    void add(const std::string &pattern, void (T::*action)()) {
         if (patterns.empty()) {
             fixedLength = BitPat(pattern).get_length();
         } else {
@@ -41,14 +46,13 @@ public:
                 PANIC("Pattern length mismatch");
             }
         }
-        patterns.push_back(BitPat(pattern));
-        actions.push_back(action);
+        patterns.push_back({BitPat(pattern), action});
     }
 
     bool decode_and_exec(uint64_t bits) const {
-        for (size_t i = 0; i < patterns.size(); i++) {
-            if (unlikely(patterns[i].match(bits))) {
-                (this->obj->*actions[i])();
+        for (const Entry &p : patterns) {
+            if (unlikely(p.pattern.match(bits))) {
+                (this->obj->*(p.action))();
                 return true;
             }
         }
