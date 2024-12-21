@@ -15,7 +15,7 @@ all: $(addprefix Makefile., $(ALL))
 $(ALL): %: Makefile.%
 
 Makefile.%: tests/%.c latest
-	@/bin/echo -e "INC_PATH += $(abspath ./include)\nSRCS += $<\nSRC_DIR = tests\nELF = build/$*-$(ISA).elf\ninclude ../abstract-machine/makefile" > $@
+	@/bin/echo -e "INC_PATH += $(abspath ./include)\nSRCS += $<\nNAME=$*\ninclude ../abstract-machine/makefile" > $@
 	@if make -s -f $@ ISA=$(ISA) $(MAKECMDGOALS); then \
 		printf "[%14s] $(COLOR_GREEN)PASS$(COLOR_NONE)\n" $* >> $(RESULT); \
 	else \
@@ -24,6 +24,10 @@ Makefile.%: tests/%.c latest
 	-@rm -f Makefile.$*
 
 run: all
+	@cat $(RESULT)
+	@rm $(RESULT)
+
+debug: all
 	@cat $(RESULT)
 	@rm $(RESULT)
 

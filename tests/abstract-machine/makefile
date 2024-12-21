@@ -1,12 +1,14 @@
-AM_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+AM_DIR   := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+WORK_DIR := $(shell pwd)
 
-BUILD_DIR = $(abspath ./build)/$(ISA)
-OBJ_DIR   = $(BUILD_DIR)/obj
+BUILD_DIR := build
+OBJ_DIR   := build/$(ISA)
 
-OBJS += $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(filter $(SRC_DIR)/%.c, $(SRCS))) \
-        $(patsubst $(SRC_DIR)/%.S, $(OBJ_DIR)/%.o, $(filter $(SRC_DIR)/%.S, $(SRCS))) \
-		$(patsubst $(SRC_DIR)/%.cc, $(OBJ_DIR)/%.o, $(filter $(SRC_DIR)/%.cc, $(SRCS)))
+OBJS += $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
 DEPS = $(OBJS:.o=.d)
+
+ELF     = $(BUILD_DIR)/$(ISA)-$(NAME).elf
+ARCHIVE = $(BUILD_DIR)/$(ISA)-$(NAME).a
 
 -include $(DEPS)
 
@@ -83,11 +85,15 @@ archive: $(ARCHIVE)
 
 run: $(ELF)
 	$(info + RUNNING KXEMU)
-	$(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/run.kdb
+	@ $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/run.kdb
 
 debug: $(ELF)
 	$(info + DEBUGGING KXEMU)
-	$(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/debug.kdb
+	@ $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/debug.kdb
+
+perf: $(ELF)
+	$(info + PROFILING KXEMU)
+	perf record  -F 100 -g $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/run.kdb
 
 clean:
 	rm -rf $(BUILD_DIR)
