@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -Wextra -Werror -pedantic -O3 -Wno-unused-command-line-argument -Wno-unused-parameter
+CXXFLAGS = -Wall -Wextra -Werror -pedantic -O3 -Wno-unused-command-line-argument -Wno-unused-parameter -flto=4
 ISA ?= RISCV32
 ISA_LOWER = $(shell echo $(ISA) | tr A-Z a-z)
 
