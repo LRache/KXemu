@@ -46,7 +46,3 @@ BitPat::BitPat(BitPat &&other) {
 unsigned int BitPat::get_length() const {
     return this->length;
 }
-
-bool BitPat::match(uint64_t data) const {
-    return (data & this->mask) == this->bits;
-}
