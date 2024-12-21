@@ -23,7 +23,7 @@ extern char __mem_end;
 
 static void __trm_init() {
     heap.start = &__heap_start;
-    heap.end = heap.start + 0x800000;
+    heap.end = heap.start + 0x8000000;
 }
 
 void __run_main() {

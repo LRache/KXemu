@@ -23,4 +23,15 @@ typedef struct Context {
 
 #define IRQ_TIMER 0x80000007 // timer interrupt
 
+uint32_t csrr_mstatus();
+void csrw_mstatus(uint32_t value);
+uint32_t csrr_mcause();
+void csrw_mcause(uint32_t value);
+uint32_t csrr_mepc();
+void csrw_mepc(uint32_t value);
+void mret();
+
+void csrw_sepc(uint32_t value);
+void sret();
+
 #endif
