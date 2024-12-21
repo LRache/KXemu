@@ -82,6 +82,7 @@ void RV32Core::init_decoder() {
     // Privileged mode
     if (this->flags & RVFlag::Priv) {
         INSTPAT("0011000 00010 00000 000 00000 11100 11", mret);
+        INSTPAT("0001000 00010 00000 000 00000 11100 11", sret);
     }
 
     // C extension

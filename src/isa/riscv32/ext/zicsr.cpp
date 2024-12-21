@@ -1,7 +1,6 @@
 #include "isa/riscv32/core.h"
 #include "isa/riscv32/csr-def.h"
 #include "isa/word.h"
-#include "log.h"
 
 #define INSTPAT(pat, name) this->decoder.add(pat, &RV32Core::do_##name)
 #define BITS(hi, lo) sub_bits(this->inst, hi, lo)
@@ -19,9 +18,21 @@ static inline uint32_t sub_bits(uint64_t bits, int hi, int lo) {
 
 void RV32Core::init_csr() {
     this->csr.init(0);
-    this->mepc  = this->csr.get_csr_ptr(CSR_MEPC);
-    this->mtvec = this->csr.get_csr_ptr_readonly(CSR_MTVEC);
-    this->mcause = this->csr.get_csr_ptr(CSR_MCAUSE);
+    this->mepc    = this->csr.get_csr_ptr(CSR_MEPC);
+    this->mtvec   = this->csr.get_csr_ptr_readonly(CSR_MTVEC);
+    this->mcause  = this->csr.get_csr_ptr(CSR_MCAUSE);
+    this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
+    this->mtval   = this->csr.get_csr_ptr(CSR_MTVAL);
+    this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
+    this->medelegh= this->csr.get_csr_ptr_readonly(CSR_MEDELEGH);
+    this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
+    this->mie     = this->csr.get_csr_ptr_readonly(CSR_MIE);
+    this->mip     = this->csr.get_csr_ptr(CSR_MIP);
+
+    this->sepc    = this->csr.get_csr_ptr(CSR_SEPC);
+    this->stvec   = this->csr.get_csr_ptr_readonly(CSR_STVEC);
+    this->scause  = this->csr.get_csr_ptr(CSR_SCAUSE);
+    this->stval   = this->csr.get_csr_ptr(CSR_STVAL);
 }
 
 word_t RV32Core::get_csr(unsigned int addr, bool &success) {

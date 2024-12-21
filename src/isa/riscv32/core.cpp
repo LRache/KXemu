@@ -3,12 +3,13 @@
 #include "isa/word.h"
 #include "log.h"
 #include "macro.h"
-#include <cstdint>
 
 void RV32Core::init(Memory *memory, int flags) {
     this->memory = memory;
     this->flags = flags;
     this->state = IDLE;
+
+    this->privMode = PrivMode::MACHINE;
 
     this->init_decoder();
     this->init_csr();
@@ -31,20 +32,24 @@ void RV32Core::step() {
 void RV32Core::execute() {
     auto start = std::chrono::high_resolution_clock::now();
 
-    this->inst = this->memory->read(this->pc, 4);
+    if (unlikely(this->pc & 0x1)) {
+        this->trap(0); // instruction address misaligned
+        return;
+    }
+    this->inst = this->memory_read(this->pc, 4);
     
     // try decode and execute the full instruction
-    this->npc = this->pc + 4;
-    bool valid = this->decoder.decode_and_exec(this->inst);
-    // DEBUG("Exec to pc=" FMT_WORD, this->pc);
-    if (unlikely(!valid)) {
-        // try decode and execute the compressed instruction
-        // INFO("Try to decode compressed instruction");
+    bool valid;
+    if (likely((this->inst & 0x3) == 0x3)) {
+        this->npc = this->pc + 4;
+        valid = this->decoder.decode_and_exec(this->inst);
+    } else {
         this->npc = this->pc + 2;
         valid = this->cdecoder.decode_and_exec(this->inst);
-        if (unlikely(!valid)) {
-            this->do_invalid_inst();
-        }
+    }
+
+    if (unlikely(!valid)) {
+        this->do_invalid_inst();
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -76,6 +81,9 @@ void RV32Core::do_invalid_inst() {
     this->state = ERROR;
     this->haltPC = this->pc;
     WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD, this->pc, this->inst);
+
+    // illegal instruction trap
+    this->trap(2, this->inst);
 }
 
 void RV32Core::set_gpr(int index, word_t value) {

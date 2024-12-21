@@ -5,13 +5,9 @@
 #include "cpu/decoder.h"
 #include "isa/riscv32/csr.h"
 #include "isa/riscv32/isa.h"
-#include "isa/word.h"
 #include "memory/memory.h"
 
 #include <chrono>
-#include <cstdint>
-#include <ratio>
-#include <unordered_map>
 
 class RV32Core : public Core {
 private:
@@ -44,7 +40,11 @@ private:
     void execute();
 
     // Trap
-    void trap(word_t code);
+    void trap(word_t code, word_t value = 0);
+    void interrupt(word_t code);
+    void scan_interrupt();
+    void interrupt_m(word_t code);
+    void interrupt_s(word_t code);
     
     word_t gpr[32];
     void set_gpr(int index, word_t value);
@@ -142,6 +142,7 @@ private:
     void do_c_and();
 
     // Privileged mode
+    int privMode;
     void do_ecall();
     void do_mret();
     void do_sret();
@@ -164,6 +165,19 @@ private:
     word_t *mcause;
     word_t *mepc;
     const word_t *mtvec;
+    word_t *mstatus;
+    word_t *mtval;
+    const word_t *mie;
+    word_t *mip;
+    const word_t *medeleg;
+    const word_t *medelegh;
+    const word_t *mideleg;
+
+    word_t *scause;
+    word_t *sepc;
+    const word_t *stvec;
+    word_t *stval;
+    const word_t *sie;
 
     // timer
     uint64_t mtime;

@@ -7,4 +7,10 @@
 #define CAUSE_INTERRUPT 0x80000000
 #define CAUSE_IS_INTERRUPT(cause) ((cause) & 0x80000000)
 
+enum PrivMode {
+    MACHINE = 3,
+    SUPERVISOR = 1,
+    USER = 0,
+};
+
 #endif

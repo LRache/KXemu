@@ -27,8 +27,16 @@ public:
     const word_t *get_csr_ptr_readonly(unsigned int addr) const;
 
     // misa
-    word_t read_misa(word_t addr, word_t value);
-    word_t write_misa(word_t addr, word_t value, bool &valid);
+    word_t read_misa (unsigned int addr, word_t value);
+    word_t write_misa(unsigned int addr, word_t value, bool &valid);
+
+    // sip
+    word_t read_sip (unsigned int addr, word_t value);
+    word_t write_sip(unsigned int addr, word_t value, bool &valid);
+
+    // sstatus
+    word_t read_sstatus (unsigned int addr, word_t value);
+    word_t write_sstatus(unsigned int addr, word_t value, bool &valid);
 };
 
 #endif
