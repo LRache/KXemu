@@ -1,5 +1,5 @@
-#ifndef __DEBUG_H__
-#define __DEBUG_H__
+#ifndef __LOG_H__
+#define __LOG_H__
 
 #include <cstdio>
 
