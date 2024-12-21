@@ -2,7 +2,6 @@
 #define __DEVICE_UART_H__
 
 #include "memory/map.h"
-#include "utils/tcp-server.h"
 #include <atomic>
 #include <cstdint>
 #include <ostream>

@@ -1,5 +1,4 @@
 #include "isa/riscv32/core.h"
-#include "log.h"
 
 #define INSTPAT(pat, name) this->decoder.add(pat, &RV32Core::do_##name)
 #define RD  int rd  = get_rd (this->inst);
