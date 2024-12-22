@@ -7,8 +7,10 @@ OBJ_DIR   := build/$(ISA)
 OBJS += $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(basename $(SRCS))))
 DEPS = $(OBJS:.o=.d)
 
-ELF     = $(BUILD_DIR)/$(ISA)-$(NAME).elf
-ARCHIVE = $(BUILD_DIR)/$(ISA)-$(NAME).a
+ISA_NAME = $(ISA)-$(NAME)
+ELF     = $(BUILD_DIR)/$(ISA_NAME).elf
+ARCHIVE = $(BUILD_DIR)/$(ISA_NAME).a
+ASM     = $(BUILD_DIR)/$(ISA_NAME).txt
 
 -include $(DEPS)
 
@@ -29,7 +31,8 @@ CC  = $(CROSS_COMPILE)-gcc
 CXX = $(CROSS_COMPILE)-g++
 AS  = $(CROSS_COMPILE)-gcc
 LD  = $(CROSS_COMPILE)-ld
-AR  = $(CROSS_COMPILE)-ar	
+AR  = $(CROSS_COMPILE)-ar
+OBJDUMP = $(CROSS_COMPILE)-objdump
 
 INC_PATH += $(foreach name, $(LIBS), $(AM_DIR)/$(name)/include)
 
@@ -72,6 +75,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cc
 $(ELF): $(OBJS) $(LIBS)
 	$(info + LD $@)
 	@ $(LD) $(OBJS) $(LIBS_ARCHIVE) -o $@ $(LDFLAGS)
+	@ $(OBJDUMP) -d $@ > $(ASM)
 
 $(LIBS): %:
 	@ $(MAKE) -s -C $(AM_DIR)/$* ISA=$(ISA) archive

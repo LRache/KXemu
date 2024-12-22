@@ -13,7 +13,7 @@
 // up to x, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode y
 // into privilege mode x, xPIE is set to the value of xIE; xIE is set to 0; and xPP is set to y.
 void RV32Core::trap(word_t code, word_t value) {
-    word_t deleg;
+    bool deleg;
     if (code >= 32) {
         deleg = *this->medelegh & (1 << (code - 32));
     } else {

@@ -1,6 +1,5 @@
 ISA=riscv32
-
-SRCS += $(shell find $(NAME) -name '*.c')
+SRCS += $(shell find $(NAME) -name '*.S')
 
 KDB_FILE = $(NAME).kdb
 
