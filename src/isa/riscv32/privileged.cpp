@@ -55,7 +55,7 @@ void RV32Core::trap(word_t code, word_t value) {
 }
 
 void RV32Core::interrupt(word_t code) {
-    NOT_IMPLEMENTED();
+    *this->mip |= 1 << code;
 }
 
 void RV32Core::interrupt_m(word_t code) {
@@ -104,9 +104,9 @@ void RV32Core::interrupt_s(word_t code) {
     }
 }
 
-void RV32Core::scan_interrupt() {
-    if (likely(this->privMode == PrivMode::MACHINE    && *this->mstatus & MSTATUS_MIE_MASK)) return;
-    if (likely(this->privMode == PrivMode::SUPERVISOR && *this->mstatus & MSTATUS_SIE_MASK)) return;
+bool RV32Core::scan_interrupt() {
+    if (likely(this->privMode == PrivMode::MACHINE    && !(*this->mstatus & MSTATUS_MIE_MASK))) return false;
+    if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & MSTATUS_SIE_MASK))) return false;
     
     int si = -1;
     for (int i = 0; i < 32; i++) {
@@ -118,12 +118,15 @@ void RV32Core::scan_interrupt() {
                 }
             } else if (*this->mie & mask) {
                 this->interrupt_m(i);
-                return;
+                return true;
             }
         }
     }
     if (si != -1) {
         this->interrupt_s(si);
+        return true;
+    } else {
+        return false;
     }
 }
 

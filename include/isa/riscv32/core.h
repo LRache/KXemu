@@ -42,7 +42,7 @@ private:
     // Trap
     void trap(word_t code, word_t value = 0);
     void interrupt(word_t code);
-    void scan_interrupt();
+    bool scan_interrupt();
     void interrupt_m(word_t code);
     void interrupt_s(word_t code);
     
@@ -181,7 +181,10 @@ private:
 
     // timer
     uint64_t mtime;
+    uint64_t mtimecmp;
     std::chrono::duration<uint64_t, std::nano> uptime;
+    std::chrono::duration<uint64_t, std::nano> uptimecmp;
+    bool timecmpNotTriggered;
 
 public:
     void init(Memory *memory, int flags);

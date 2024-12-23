@@ -3,6 +3,9 @@
 #include "isa/word.h"
 #include "log.h"
 #include "macro.h"
+#include <chrono>
+#include <cstdint>
+#include <ratio>
 
 void RV32Core::init(Memory *memory, int flags) {
     this->memory = memory;
@@ -10,6 +13,7 @@ void RV32Core::init(Memory *memory, int flags) {
     this->state = IDLE;
 
     this->privMode = PrivMode::MACHINE;
+    this->timecmpNotTriggered = false;
 
     this->init_decoder();
     this->init_csr();
@@ -32,6 +36,15 @@ void RV32Core::step() {
 void RV32Core::execute() {
     auto start = std::chrono::high_resolution_clock::now();
 
+    if (unlikely(this->timecmpNotTriggered && this->uptime >= this->uptimecmp)) {
+        INFO("Timer interrupt triggered");
+        this->interrupt(7);
+        this->timecmpNotTriggered = false;
+    }
+    if (unlikely(this->scan_interrupt())) {
+        return ;
+    }
+    
     if (unlikely(this->pc & 0x1)) {
         this->trap(0); // instruction address misaligned
         return;
@@ -67,12 +80,34 @@ word_t RV32Core::memory_read(word_t addr, int len) {
             return mtime >> 32;
         }
         return 0;
+    } else if (unlikely(addr - MTIMECMP_ADDR < 8)) {
+        word_t offset = addr - MTIMECMP_ADDR;
+        if (offset == 0) {
+            return mtimecmp & 0xffffffff;
+        } else if (offset == 4) {
+            return mtimecmp >> 32;
+        }
+        return -1;
     }
 
     return this->memory->read(addr, len);
 }
 
 int RV32Core::memory_write(word_t addr, word_t data, int len) {
+    if (unlikely(addr - MTIMECMP_ADDR < 8)) {
+        word_t offset = addr - MTIMECMP_ADDR;
+        if (offset == 0) {
+            this->mtimecmp &= ~0xffffffffUL;
+            this->mtimecmp |= data;
+        } else if (offset == 4) {
+            this->mtimecmp &= 0xffffffffUL;
+            this->mtimecmp |= (uint64_t)data << 32;
+            this->uptimecmp = std::chrono::duration<uint64_t, std::nano>(this->mtimecmp);
+            INFO("set timecmp=%lx", this->mtimecmp);
+            this->timecmpNotTriggered = true;
+        }
+        return -1;
+    }
     this->memory->write(addr, data, len);
     return 0;
 }

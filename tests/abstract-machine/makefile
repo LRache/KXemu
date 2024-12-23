@@ -36,9 +36,11 @@ OBJDUMP = $(CROSS_COMPILE)-objdump
 
 INC_PATH += $(foreach name, $(LIBS), $(AM_DIR)/$(name)/include)
 
-CFLAGS += -nostdlib -fno-stack-protector -O2 -fno-builtin -fno-asynchronous-unwind-tables
+CFLAGS += -nostdlib -fno-stack-protector -O2 -fno-builtin -fno-asynchronous-unwind-tables -falign-functions=2
 CFLAGS += $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(CFLAGS) -fno-exceptions
+
+ASFLAGS += -falign-functions=2
 
 all: elf archive
 
@@ -55,7 +57,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(OBJ_DIR)/%.o: %.S
 	$(info + AS $<)
 	@ mkdir -p $(dir $@)
-	@ $(AS) $(COMPILE_FLAGS) -c $< -o $@
+	@ $(AS) $(ASFLAGS) $(COMPILE_FLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
 	$(info + AS $<)
