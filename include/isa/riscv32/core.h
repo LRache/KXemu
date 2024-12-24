@@ -8,6 +8,7 @@
 #include "memory/memory.h"
 
 #include <chrono>
+#include <ratio>
 
 class RV32Core : public Core {
 private:
@@ -179,12 +180,12 @@ private:
     word_t *stval;
     const word_t *sie;
 
-    // timer
+    // timer interrupt
     uint64_t mtime;
     uint64_t mtimecmp;
     std::chrono::duration<uint64_t, std::nano> uptime;
     std::chrono::duration<uint64_t, std::nano> uptimecmp;
-    bool timecmpNotTriggered;
+    bool timerIntrruptNotTriggered;
 
 public:
     void init(Memory *memory, int flags);

@@ -9,16 +9,17 @@ main:
     csrw mtvec, t0
 
     li t1, MTIMECMP_BASE
-    li t0, 1000000000
+    li t0, 10000000
     sw t0, 0(t1)
-    li t0, 0
-    sw t0, 4(t1)
+    sw zero, 4(t1)
 
     li t0, MSTATUS_MIE_MASK
     csrs mstatus, t0
 
     li t0, (1 << 7)
     csrs mie, t0
+
+    li s0, 0
 
     j .
 
@@ -30,6 +31,17 @@ m_mode_handle:
 
     la a0, str1
     call puts
+    addi s0, s0, 1
+    la a0, str2
+    mv a1, s0
+    call printf
+
+    li t1, MTIMECMP_BASE
+    lw t0, 0(t1)
+    li t2, 10000000
+    add t0, t0, t2
+    sw t0, 0(t1)
+    sw zero, 4(t1)
     mret
 
 .fail:
@@ -44,3 +56,5 @@ str0:
     .string "Should not reach here."
 str1:
     .string "Machine Timer interrupt."
+str2:
+    .string "%ds\n"

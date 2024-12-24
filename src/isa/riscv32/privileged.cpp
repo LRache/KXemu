@@ -166,7 +166,6 @@ void RV32Core::do_mret() {
     *this->mstatus = mstatus;
     
     this->npc = *this->mepc;
-    INFO("Switch to mode %d", this->privMode);
 }
 
 void RV32Core::do_sret() {    

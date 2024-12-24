@@ -13,7 +13,7 @@ void RV32Core::init(Memory *memory, int flags) {
     this->state = IDLE;
 
     this->privMode = PrivMode::MACHINE;
-    this->timecmpNotTriggered = false;
+    this->timerIntrruptNotTriggered = false;
 
     this->init_decoder();
     this->init_csr();
@@ -36,10 +36,9 @@ void RV32Core::step() {
 void RV32Core::execute() {
     auto start = std::chrono::high_resolution_clock::now();
 
-    if (unlikely(this->timecmpNotTriggered && this->uptime >= this->uptimecmp)) {
-        INFO("Timer interrupt triggered");
+    if (unlikely(this->timerIntrruptNotTriggered && this->uptime >= this->uptimecmp)) {
         this->interrupt(7);
-        this->timecmpNotTriggered = false;
+        this->timerIntrruptNotTriggered = false;
     }
     if (unlikely(this->scan_interrupt())) {
         return ;
@@ -74,7 +73,7 @@ word_t RV32Core::memory_read(word_t addr, int len) {
     if (unlikely(addr - MTIME_ADDR < 8)) {
         word_t offset = addr - MTIME_ADDR;
         if (offset == 0) {
-            mtime = std::chrono::duration_cast<std::chrono::nanoseconds>(this->uptime).count();
+            mtime = std::chrono::duration_cast<std::chrono::nanoseconds>(this->uptime).count() / 100;
             return mtime & 0xffffffff;
         } else if (offset == 4) {
             return mtime >> 32;
@@ -102,9 +101,8 @@ int RV32Core::memory_write(word_t addr, word_t data, int len) {
         } else if (offset == 4) {
             this->mtimecmp &= 0xffffffffUL;
             this->mtimecmp |= (uint64_t)data << 32;
-            this->uptimecmp = std::chrono::duration<uint64_t, std::nano>(this->mtimecmp);
-            INFO("set timecmp=%lx", this->mtimecmp);
-            this->timecmpNotTriggered = true;
+            this->uptimecmp = std::chrono::duration<uint64_t, std::nano>(this->mtimecmp * 100);
+            this->timerIntrruptNotTriggered = true;
         }
         return -1;
     }
