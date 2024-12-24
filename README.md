@@ -50,6 +50,12 @@ Currently, KXemu only supports the `riscv32` instruction set, so all compile and
 
 As this is an open-source learning project and we are still students, we highly value your suggestions or contributions to improve the codebase. You can fork our repository and submit a PR after making changes; we will respond within 1-2 days. If you are a student at Hangzhou Dianzi University, feel free to contact the **HDU-CSKX**, and we can explore ideas together. The purpose of this project is to continue learning and address the challenges of directly modifying NEMU.
 
+### 联系我们 Contact Us
+
+邮箱：ziyou@hdu.edu.cn (预计会在1周之内回复，如果你是校内的同学直接找计科协的系统组应该会更快。)
+
+Email: ziyou@hdu.edu.cn (We will respond within one week. If you are a student at Hangzhou Dianzi University, contacting the Systems Group of the Computer Science Association directly might be faster.)
+
 ---
 
 ## 我们目前的计划 Our Current Plans
@@ -60,4 +66,16 @@ As this is an open-source learning project and we are still students, we highly 
 
 3. 提供一套合理且完整的将KXemu用作difftest的方案。Provide a comprehensive solution to use KXemu for DIFFTEST.
 
-4. 对LoongArch和x86指令集进行支持。Add support for LoongArch and x86 instruction sets. 
+4. 对LoongArch和x86指令集进行支持。Add support for LoongArch and x86 instruction sets.
+
+---
+
+## 声明 Disclaimer
+
+如果你需要将本项目用于比赛或者商业盈利性活动，那么你**必须在显著位置**标明本项目的主要贡献者(如果我们更新了)和开源链接。
+
+If you wish to use this project for competitions or commercial profit-driven activities, you **must prominently credit** the main contributors of this project (if updated) and include the open-source link.
+
+---
+
+## 主要贡献者 Main Contributors

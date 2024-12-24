@@ -29,7 +29,7 @@ void RV32Core::trap(word_t code, word_t value) {
         vec = *this->stvec;
 
         word_t mstatus = *this->mstatus;
-        mstatus = (mstatus & ~MSTATUS_SPP_MASK) | (this->privMode << MSTATUS_SPP_OFF);
+        mstatus = (mstatus & ~MSTATUS_SPP_MASK) | ((this->privMode != PrivMode::USER) << MSTATUS_SPP_OFF);
         mstatus = (mstatus & ~MSTATUS_SPIE_MASK) | ((mstatus & MSTATUS_SIE_MASK) << (MSTATUS_SPIE_OFF - MSTATUS_SIE_OFF));
         mstatus = (mstatus & ~MSTATUS_SIE_MASK);
         *this->mstatus = mstatus;
@@ -106,7 +106,9 @@ void RV32Core::interrupt_s(word_t code) {
 
 bool RV32Core::scan_interrupt() {
     if (likely(this->privMode == PrivMode::MACHINE    && !(*this->mstatus & MSTATUS_MIE_MASK))) return false;
-    if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & MSTATUS_SIE_MASK))) return false;
+    // When the hart is running in user-mode, the value in SIE is ignored.
+    if (likely(this->privMode != PrivMode::USER))
+        if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & MSTATUS_SIE_MASK))) return false;
     
     int si = -1;
     for (int i = 0; i < 32; i++) {
