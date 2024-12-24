@@ -8,8 +8,6 @@ KXemu is an educational CPU simulator for various ISAs, similar to the renowned 
 
 We are a group of students from Hangzhou Dianzi University who are passionate about computer architecture and operating systems. We warmly welcome anyone with similar interests to join us in developing and maintaining the KXemu project.
 
----
-
 ## 使用方法 Usage
 
 在项目的目录下运行`make ISA=[isa]`即可编译`kxemu`，同样，使用`make run`可以直接运行`kdb`，当然，里面没有任何自带的镜像文件，你需要自己加载。在`test`目录下，有许多已经写好的测试程序，包括了简单的CPU测试和特权级指令测试。在`docs`文件夹下面，有详细的`kdb`命令教程。
@@ -20,15 +18,11 @@ To compile `kxemu`, run `make ISA=[isa]` in the project directory. Similarly, yo
 
 Theoretically, except for the UART sockets, where we used Unix sockets, the rest of the code is decoupled from the running platform. To run this project on Windows, you only need to comment out parts of the code in `include/device/uart.h` and `include/device/uart.cpp`.
 
----
-
 ## 功能支持 Features
 
 现在的KXemu只支持riscv32一种指令集，所以所有编译运行选项的ISA只能指定为`riscv32`。已经实现的具体细节可以在`docs`目录下的文档中查看。
 
 Currently, KXemu only supports the `riscv32` instruction set, so all compile and run options for ISA must be set to `riscv32`. Specific details of the implementation can be found in the documents under the `docs` directory.
-
----
 
 ## 文件结构 File Structure
 
@@ -42,8 +36,6 @@ Currently, KXemu only supports the `riscv32` instruction set, so all compile and
 
 - `utils` 辅助KXemu的工具，但是没有这些工具KXemu同样可以正常运行。Tools to assist KXemu, though KXemu can run normally without them.
 
----
-
 ## 贡献
 
 因为这是一个开源的学习项目，而我们也只是学生，所以我们非常期待你能够对我们的代码提出建议或者完善一些功能。你可以直接fork我们的仓库，在修改后提出PR，我们会在1到2天内回复。如果你是杭州电子科技大学的学生，你可以直接联系杭州电子科技大学 **计算机科学与技术协会(计科协)**，我们可以共同探讨。我们创立这个项目的初衷，一是想继续学习，二是在NEMU上直接修改过于麻烦。
@@ -56,8 +48,6 @@ As this is an open-source learning project and we are still students, we highly 
 
 Email: ziyou@hdu.edu.cn (We will respond within one week. If you are a student at Hangzhou Dianzi University, contacting the Systems Group of the Computer Science Association directly might be faster.)
 
----
-
 ## 我们目前的计划 Our Current Plans
 
 1. 大致完成riscv32的特权级指令，达到启动xv6的要求。Complete privileged instructions for `riscv32` to meet the requirements of booting xv6.  
@@ -68,14 +58,10 @@ Email: ziyou@hdu.edu.cn (We will respond within one week. If you are a student a
 
 4. 对LoongArch和x86指令集进行支持。Add support for LoongArch and x86 instruction sets.
 
----
-
 ## 声明 Disclaimer
 
 如果你需要将本项目用于比赛或者商业盈利性活动，那么你**必须在显著位置**标明本项目的主要贡献者(如果我们更新了)和开源链接。
 
 If you wish to use this project for competitions or commercial profit-driven activities, you **must prominently credit** the main contributors of this project (if updated) and include the open-source link.
-
----
 
 ## 主要贡献者 Main Contributors
