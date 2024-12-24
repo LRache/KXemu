@@ -1,6 +1,5 @@
 #include "debug.h"
 #include "isa/riscv32/core.h"
-#include "isa/riscv32/privileged-def.h"
 #include "isa/riscv32/csr-def.h"
 #include "isa/word.h"
 #include "log.h"
@@ -20,7 +19,7 @@ void RV32Core::trap(word_t code, word_t value) {
         deleg = *this->medeleg & (1 << code);
     }
 
-    word_t cause = code & ~CAUSE_INTERRUPT;
+    word_t cause = code & ~CAUSE_INTERRUPT_MASK;
     word_t vec;
     if (deleg) {
         *this->sepc = this->pc;
@@ -62,7 +61,7 @@ void RV32Core::interrupt_m(word_t code) {
     *this->mip &= ~(1 << code);
     
     *this->mepc = this->pc;
-    *this->mcause = code | CAUSE_INTERRUPT;
+    *this->mcause = code | CAUSE_INTERRUPT_MASK;
     *this->mtval = 0;
 
     word_t mstatus = *this->mstatus;
@@ -85,7 +84,7 @@ void RV32Core::interrupt_s(word_t code) {
     *this->mip &= ~(1 << code);
     
     *this->sepc = this->pc;
-    *this->scause = code | CAUSE_INTERRUPT;
+    *this->scause = code | CAUSE_INTERRUPT_MASK;
     *this->stval = 0;
 
     word_t mstatus = *this->mstatus;

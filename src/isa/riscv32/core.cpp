@@ -1,5 +1,5 @@
 #include "isa/riscv32/core.h"
-#include "isa/riscv32/privileged-def.h"
+#include "isa/riscv32/csr-def.h"
 #include "isa/word.h"
 #include "log.h"
 #include "macro.h"

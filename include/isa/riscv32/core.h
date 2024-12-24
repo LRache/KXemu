@@ -143,6 +143,11 @@ private:
     void do_c_and();
 
     // Privileged mode
+    enum PrivMode {
+        MACHINE = 3,
+        SUPERVISOR = 1,
+        USER = 0,
+    };
     int privMode;
     void do_ecall();
     void do_mret();
