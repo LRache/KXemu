@@ -6,6 +6,7 @@
 #include <vector>
 
 void rsp::rsp_mainloop(int port) {
+    NOT_IMPLEMENTED();
     RSP server;
     if (!server.open_rsp(port)) {
         INFO("Failed to open RSP server");
