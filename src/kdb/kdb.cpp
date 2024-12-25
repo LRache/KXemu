@@ -1,6 +1,7 @@
 #include "kdb/kdb.h"
 #include "cpu/cpu.h"
 #include "isa/riscv32/isa.h"
+#include "kdb/rsp.h"
 #include "log.h"
 #include "isa/isa.h"
 #include "isa/word.h"
@@ -65,4 +66,9 @@ word_t kdb::string_to_addr(const std::string &s, bool &success) {
         }
     }
     return addr;
+}
+
+bool kdb::start_rsp(int port) {
+    rsp::rsp_mainloop(port);
+    return true;
 }

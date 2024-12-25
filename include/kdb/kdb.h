@@ -55,6 +55,9 @@ namespace kdb {
     extern word_t programEntry;
 
     word_t string_to_addr(const std::string &s, bool &success);
+
+    // GDB connection
+    bool start_rsp(int port);
     
 } // kdb
 

@@ -1,8 +1,8 @@
 #include "device/uart.h"
 #include "isa/word.h"
 #include "log.h"
-#include "utils/tcp-server.h"
 
+#include <arpa/inet.h>
 #include <cstdint>
 #include <iostream>
 #include <sys/socket.h>
