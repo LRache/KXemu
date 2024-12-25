@@ -2,6 +2,7 @@
 #define __DEBUG_H__
 
 #include "log.h"
+#include "macro.h"
 
 #define SELF_PROTECT(cond, ...) \
 do { \
@@ -16,7 +17,7 @@ do { \
 
 #define NOT_IMPLEMENTED() \
 do { \
-    printf(FMT_FG_RED "[NOT_IMPLEMENTED][%s:%d %s]\nNot implemented yet.\n" FMT_FG_RESET, __FILE__, __LINE__, __func__); \
+    printf(FMT_FG_RED "[NOT-IMPLEMENTED][%s:%d %s]\nNot implemented yet.\n" FMT_FG_RESET, __FILE__, __LINE__, __func__); \
     exit(1); \
 } while(0);
 
