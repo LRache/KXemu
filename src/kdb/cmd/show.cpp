@@ -162,6 +162,11 @@ static void show_inst(unsigned int count, unsigned int size, word_t addr) {
 }
 
 int cmd::show_mem(const args_t &args) {
+    if (args.size() < 2) {
+        std::cout << "Usage: x /<n/f/c> addr" << std::endl;
+        return cmd::InvalidArgs;
+    }
+
     const std::string arg = args[1];
     std::string addrArg;
     word_t addr;
