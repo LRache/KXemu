@@ -119,7 +119,8 @@ void kdb::cmd_init() {
     std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
 }
 
-int kdb::run_cmd_mainloop() { 
+int kdb::run_cmd_mainloop() {
+    std::string lastCmd;
     while (cmdRunning) {
         char *inputLine = readline(SHELL_BULE ISA_NAME "-kdb> " SHELL_RESET);
         if (inputLine == nullptr) {
@@ -127,12 +128,18 @@ int kdb::run_cmd_mainloop() {
         }
 
         std::string cmd = inputLine;
-        if (cmd.empty()) continue;
-        add_history(inputLine);
+        free(inputLine);
+        if (cmd.empty()) {
+            
+            if (!lastCmd.empty()) {
+                run_command(lastCmd);
+            }
+            continue;
+        }
+        add_history(cmd.c_str());
         
         run_command(cmd);
-
-        free(inputLine);
+        lastCmd = cmd;
     }
 
     return kdb::returnCode;

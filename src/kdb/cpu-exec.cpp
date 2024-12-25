@@ -1,6 +1,7 @@
 #include "isa/word.h"
 #include "kdb/kdb.h"
 #include "log.h"
+#include "macro.h"
 
 #include <iostream>
 
@@ -15,15 +16,15 @@ void kdb::reset_cpu() {
 int static output_and_set_trap(Core *core) {
     int r;
     if (core->is_error()) {
-        std::cout << FMT_FG_RED "Error" FMT_FG_BLUE " at pc=" << FMT_STREAM_WORD(core->get_halt_pc()) << FMT_FG_RESET << std::endl;
+        std::cout << FMT_FG_RED_BLOD "Error" FMT_FG_BLUE_BLOD " at pc=" << FMT_STREAM_WORD(core->get_halt_pc()) << FMT_FG_RESET << std::endl;
         r = 1;
         kdb::returnCode = 1;
     } else if (core->is_break()) {
         r = core->get_halt_code();
         if (r == 0) {
-            std::cout << FMT_FG_GREEN "HIT GOOD TRAP" FMT_FG_BLUE " at pc=" << FMT_STREAM_WORD(core->get_halt_pc()) << FMT_FG_RESET << std::endl;
+            std::cout << FMT_FG_GREEN_BLOD "HIT GOOD TRAP" FMT_FG_BLUE_BLOD " at pc=" << FMT_STREAM_WORD(core->get_halt_pc()) << FMT_FG_RESET << std::endl;
         } else {
-            std::cout << FMT_FG_RED "HIT BAD TRAP" FMT_FG_BLUE " at pc=" << FMT_STREAM_WORD(core->get_halt_pc()) << FMT_FG_RESET << std::endl;
+            std::cout << FMT_FG_RED_BLOD "HIT BAD TRAP" FMT_FG_BLUE_BLOD " at pc=" << FMT_STREAM_WORD(core->get_halt_pc()) << FMT_FG_RESET << std::endl;
         }
         kdb::returnCode = r;
     } else {

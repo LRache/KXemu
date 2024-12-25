@@ -1,17 +1,9 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
+#include "macro.h"
+
 #include <cstdio>
-
-#define FMT_BLOD "m"
-
-#define FMT_FG_RED     "\x1b[1;31m"
-#define FMT_FG_GREEN   "\x1b[1;32m"
-#define FMT_FG_YELLOW  "\x1b[1;33m"
-#define FMT_FG_BLUE    "\x1b[1;34m"
-#define FMT_FG_MAGENTA "\x1b[1;35m"
-#define FMT_FG_CYAN    "\x1b[1;36m"
-#define FMT_FG_RESET   "\x1b[1;0m"
 
 #define PUTLOG(FG, TYPE, ...) \
 do { \
@@ -23,17 +15,17 @@ do { \
 } while(0);
 
 #define DEBUG(...) \
-    PUTLOG(FMT_FG_YELLOW, DEBUG, __VA_ARGS__)
+    PUTLOG(FMT_FG_YELLOW_BLOD, DEBUG, __VA_ARGS__)
 
 #define INFO(...) \
-    PUTLOG(FMT_FG_BLUE, INFO, __VA_ARGS__)
+    PUTLOG(FMT_FG_BLUE_BLOD, INFO, __VA_ARGS__)
 
 #define WARN(...) \
-    PUTLOG(FMT_FG_MAGENTA, WARN, __VA_ARGS__)
+    PUTLOG(FMT_FG_MAGENTA_BLOD, WARN, __VA_ARGS__)
 
 #define PANIC(...) \
 do { \
-    PUTLOG(FMT_FG_RED, PANIC, __VA_ARGS__); \
+    PUTLOG(FMT_FG_RED_BLOD, PANIC, __VA_ARGS__); \
     exit(1); \
 } while(0);
 

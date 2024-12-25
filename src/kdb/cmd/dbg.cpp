@@ -1,6 +1,7 @@
 #include "isa/word.h"
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
+#include "macro.h"
 #include "utils/disasm.h"
 #include "utils/utils.h"
 
@@ -14,19 +15,42 @@ int cmd::reset(const args_t &) {
 
 static void output_disassemble(word_t pc) {
     uint8_t *mem = kdb::memory->get_ptr(pc);
-    auto symbol = kdb::symbolTable.find(pc);
-    if (symbol != kdb::symbolTable.end()) {
-        std::cout << symbol->second << ":" << std::endl;
-    }
     if (mem == nullptr) {
         std::cout << "Unsupport to disassemble at pc=" << FMT_STREAM_WORD(pc) << std::endl;
         return;
     } else {
+        // find nearest symbol
+        std::string symbolName;
+        word_t symbolOffset;
+        bool foundSymbol = false;
+        auto symbolIter = kdb::symbolTable.upper_bound(pc);
+        if (symbolIter != kdb::symbolTable.end()) {
+            if (symbolIter->first != pc) {
+                if (symbolIter != kdb::symbolTable.begin()) {
+                    foundSymbol = symbolIter->first - pc < 0x100;
+                    symbolIter--;
+                } else {
+                    foundSymbol = false;
+                }
+            } else {
+                foundSymbol = symbolIter->first - pc < 0x100;
+            }
+            if (foundSymbol) {
+                symbolName = symbolIter->second;
+                symbolOffset = pc - symbolIter->first;
+                foundSymbol = true;
+            }
+        }
+        
         unsigned int instLength;
         std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
-        std::cout << FMT_STREAM_WORD(pc) << ":";
-        for (unsigned int j = 0; j < instLength; j++) {
-            std::cout << " " << std::hex << std::setw(2) << std::setfill('0') << (int)mem[j];
+        std::cout << FMT_STREAM_WORD(pc) << ": ";
+        if (foundSymbol) {
+            std::cout << "<" << FMT_FG_YELLOW << symbolName << FMT_FG_RESET << "+" << symbolOffset << "> ";
+        }
+        std::cout << "0x";
+        for (int j = instLength - 1; j >= 0; j--) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int)mem[j];
         }
         std::cout << inst << std::endl;
     }
