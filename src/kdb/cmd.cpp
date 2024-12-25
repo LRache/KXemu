@@ -8,6 +8,7 @@
 #include "isa/isa.h"
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
+#include "kdb/rsp.h"
 #include "log.h"
 #include "utils/disasm.h"
 #include "utils/utils.h"
@@ -118,7 +119,7 @@ void kdb::cmd_init() {
     std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
 }
 
-int kdb::run_cmd_mainloop() {
+int kdb::run_cmd_mainloop() { 
     while (cmdRunning) {
         char *inputLine = readline(SHELL_BULE ISA_NAME "-kdb> " SHELL_RESET);
         if (inputLine == nullptr) {

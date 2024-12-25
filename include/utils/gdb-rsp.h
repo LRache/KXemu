@@ -14,8 +14,6 @@ private:
     int client;
     struct sockaddr_in address;
     std::queue<std::string> commandQueue;
-
-    static bool check_valid(const char *buffer, size_t n);
 public:
     enum CommandType {
         Empty,       // The command queue is empty.
@@ -34,6 +32,8 @@ public:
     };
 
     RSP();
+    ~RSP();
+
     bool open_rsp(int port);
     bool wait_client();
     int next_command(std::vector<std::string> &args, bool blocked);

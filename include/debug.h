@@ -7,7 +7,7 @@
 #define SELF_PROTECT(cond, ...) \
 do { \
     if (unlikely(!(cond))) { \
-        printf(FMT_FG_RED "[SELF-PROTECT][%s:%d %s]\nSELF_PROTECT failed: %s\nThere must be wrong in your implemention. Please check.\n" FMT_FG_RESET,\
+        printf(FMT_FG_RED "[SELF-PROTECT][%s:%d %s]\nASSERT FAILED: %s\nThere must be wrong in your implemention. Please check.\n" FMT_FG_RESET,\
          __FILE__, __LINE__, __func__, #cond); \
         printf(__VA_ARGS__); \
         printf(FMT_FG_RESET "\n"); \
