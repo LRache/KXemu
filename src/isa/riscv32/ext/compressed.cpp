@@ -24,27 +24,27 @@ void RV32Core::do_c_lwsp() {
 
     REQUIRE_NOT_ZERO(rd);
 
-    this->set_gpr(rd, this->memory_read(this->gpr[2] + imm, 4));
+    this->set_gpr(rd, this->memory_load(this->gpr[2] + imm, 4));
 }
 
 void RV32Core::do_c_swsp() {
     int rs2 = BITS(6, 2);
     uint32_t imm = BITS(8, 7) << 6 | BITS(12, 9) << 2;
-    this->memory_write(this->gpr[2] + imm, this->gpr[rs2], 4);
+    this->memory_store(this->gpr[2] + imm, this->gpr[rs2], 4);
 }
 
 void RV32Core::do_c_lw() {
     int rd  = BITS(4, 2) + 8;
     int rs1 = BITS(9, 7) + 8;
     int32_t imm = BITS(5, 5) << 6 | BITS(12, 10) << 3 | BITS(6, 6) << 2;
-    this->set_gpr(rd, this->memory_read(this->gpr[rs1] + imm, 4));
+    this->set_gpr(rd, this->memory_load(this->gpr[rs1] + imm, 4));
 }
 
 void RV32Core::do_c_sw() {
     int rs1 = BITS(9, 7) + 8;
     int rs2 = BITS(4, 2) + 8;
     int32_t imm = BITS(5, 5) << 6 | BITS(12, 10) << 3 | BITS(6, 6) << 2;
-    this->memory_write(this->gpr[rs1] + imm, this->gpr[rs2], 4);
+    this->memory_store(this->gpr[rs1] + imm, this->gpr[rs2], 4);
 }
 
 void RV32Core::do_c_j() {

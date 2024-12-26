@@ -68,6 +68,37 @@
 #define CAUSE_INTERRUPT_OFF 31
 #define CAUSE_INTERRUPT_MASK (1 << CAUSE_INTERRUPT_OFF)
 
+// Exception Code
+// INTERRUPT
+#define EXCP_INTERRUPT_SOFTWARE_S   0
+#define EXCP_INTERRUPT_SOFTWARE_M   3
+#define EXCP_INTERRUPT_TIMER_S      5
+#define EXCP_INTERRUPT_TIMER_M      7
+#define EXCP_INTERRUPT_EXTERNAL_S   9
+#define EXCP_INTERRUPT_EXTERNAL_M  11
+#define EXCP_INTERRUPT_COUNTER     13
+
+// TRAP
+#define EXCP_INST_ADDR_MISALIGNED   0
+#define EXCP_INST_ACCESS_FAULT      1
+#define EXCP_ILLEGAL_INST           2
+#define EXCP_BREAKPOINT             3
+#define EXCP_LOAD_ADDR_MISALIGNED   4
+#define EXCP_LOAD_ACCESS_FAULT      5
+#define EXCP_STORE_ADDR_MISALIGNED  6
+#define EXCP_AMO_ACCESS_MISALIGNED  6
+#define EXCP_STORE_ACCESS_FAULT     7
+#define EXCP_AMO_ACCESS_FAULT       7
+#define EXCP_ECALL_U                8
+#define EXCP_ECALL_S                9
+#define EXCP_ECALL_M               11
+#define EXCP_INST_PAGE_FAULT       12
+#define EXCP_LOAD_PAGE_FAULT       13
+#define EXCP_STORE_PAGE_FAULT      15
+#define EXCP_AMO_PAGE_FAULT        15
+#define EXCP_SOFTWARE_CHECK        18
+#define EXCP_HARDWARE_ERROR        19
+
 // Machine or Supervisor Trap-Vector Mode
 #define TVEC_MODE_MASK     (3 << 0)
 #define TVEC_MODE_DIRECT   0x0

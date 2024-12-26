@@ -39,18 +39,21 @@ void RV32Core::execute() {
     if (unlikely(this->timerIntrruptNotTriggered && this->uptime >= this->uptimecmp)) {
         this->interrupt(7);
         this->timerIntrruptNotTriggered = false;
+        return;
     }
     if (unlikely(this->scan_interrupt())) {
-        return ;
+        return;
     }
     
     if (unlikely(this->pc & 0x1)) {
         this->trap(0); // instruction address misaligned
         return;
     }
-    this->inst = this->memory_read(this->pc, 4);
     
-    // try decode and execute the full instruction
+    if (!this->fetch_inst()) {
+        return;
+    }
+    
     bool valid;
     if (likely((this->inst & 0x3) == 0x3)) {
         this->npc = this->pc + 4;
@@ -68,7 +71,21 @@ void RV32Core::execute() {
     this->uptime += end - start;
 }
 
-word_t RV32Core::memory_read(word_t addr, int len) {
+bool RV32Core::fetch_inst() {
+    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->check_pmp(this->pc, 4, MemType::FETCH)))) {
+        this->trap(EXCP_LOAD_ACCESS_FAULT);
+        return false;
+    }
+    this->inst = this->memory_load(this->pc, 4);
+    return true;
+}
+
+word_t RV32Core::memory_load(word_t addr, int len) {
+    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->check_pmp(addr, len, MemType::LOAD)))) {
+        this->trap(EXCP_LOAD_ACCESS_FAULT);
+        return -1;
+    }
+    
     // mtime memory mapped register
     if (unlikely(addr - MTIME_ADDR < 8)) {
         word_t offset = addr - MTIME_ADDR;
@@ -79,7 +96,9 @@ word_t RV32Core::memory_read(word_t addr, int len) {
             return mtime >> 32;
         }
         return 0;
-    } else if (unlikely(addr - MTIMECMP_ADDR < 8)) {
+    } 
+    // mtimecmp memory mapped register
+    else if (unlikely(addr - MTIMECMP_ADDR < 8)) {
         word_t offset = addr - MTIMECMP_ADDR;
         if (offset == 0) {
             return mtimecmp & 0xffffffff;
@@ -89,10 +108,18 @@ word_t RV32Core::memory_read(word_t addr, int len) {
         return -1;
     }
 
-    return this->memory->read(addr, len);
+    bool valid;
+    return this->memory->read(addr, len, valid);
 }
 
-int RV32Core::memory_write(word_t addr, word_t data, int len) {
+bool RV32Core::memory_store(word_t addr, word_t data, int len) {
+    // check PMP
+    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->check_pmp(addr, len, MemType::STROE)))) {
+        this->trap(EXCP_STORE_ACCESS_FAULT);
+        return false;
+    }
+
+    // mtimecmp memory mapped register
     if (unlikely(addr - MTIMECMP_ADDR < 8)) {
         word_t offset = addr - MTIMECMP_ADDR;
         if (offset == 0) {
@@ -104,10 +131,12 @@ int RV32Core::memory_write(word_t addr, word_t data, int len) {
             this->uptimecmp = std::chrono::duration<uint64_t, std::nano>(this->mtimecmp * 100);
             this->timerIntrruptNotTriggered = true;
         }
-        return -1;
+        return false;
     }
+    
     this->memory->write(addr, data, len);
-    return 0;
+    
+    return true;
 }
 
 void RV32Core::do_invalid_inst() {

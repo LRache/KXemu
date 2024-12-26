@@ -38,12 +38,14 @@ void Memory::free_all() {
     memoryMaps.clear();
 }
 
-word_t Memory::read(word_t addr, int size) const {
+word_t Memory::read(word_t addr, int size, bool &valid) const {
     auto map = match_map(addr, size);
     if (map != nullptr) {
+        valid = true;
         word_t data = map->map->read(addr - map->start, size);
         return data;
     }
+    valid = false;
     WARN("read addr: " FMT_WORD ", size: " FMT_VARU ", out of range", addr, size);
     return 0;
 }

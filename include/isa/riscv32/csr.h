@@ -37,6 +37,14 @@ public:
     // sstatus
     word_t read_sstatus (unsigned int addr, word_t value);
     word_t write_sstatus(unsigned int addr, word_t value, bool &valid);
+
+    struct PMPConfig {
+        int mode;
+        bool a;
+        bool x;
+        bool w;
+        bool r;
+    };
 };
 
 #endif

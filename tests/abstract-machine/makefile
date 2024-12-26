@@ -99,7 +99,7 @@ debug: $(ELF)
 
 perf: $(ELF)
 	$(info + PROFILING KXEMU)
-	perf record  -F 100 -g $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/run.kdb
+	perf record -g $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/run.kdb
 
 clean:
 	rm -rf $(BUILD_DIR)

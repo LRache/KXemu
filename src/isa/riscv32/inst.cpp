@@ -129,44 +129,44 @@ void RV32Core::do_sltiu() {
 
 void RV32Core::do_lb() {
     RD; RS1; IMM_I;
-    this->set_gpr(rd, (int8_t)this->memory->read(this->gpr[rs1] + imm, 1));
+    this->set_gpr(rd, (int8_t)this->memory_load(this->gpr[rs1] + imm, 1));
 }
 
 void RV32Core::do_lbu() {
     RD; RS1; IMM_I;
-    word_t data = this->memory_read(this->gpr[rs1] + imm, 1);
+    word_t data = this->memory_load(this->gpr[rs1] + imm, 1);
     this->set_gpr(rd, data);
 }
 
 void RV32Core::do_lh() {
     RD; RS1; IMM_I;
-    this->set_gpr(rd, (int16_t)this->memory_read(this->gpr[rs1] + imm, 2));
+    this->set_gpr(rd, (int16_t)this->memory_load(this->gpr[rs1] + imm, 2));
 }
 
 void RV32Core::do_lhu() {
     RD; RS1; IMM_I;
-    word_t data = this->memory_read(this->gpr[rs1] + imm, 2);
+    word_t data = this->memory_load(this->gpr[rs1] + imm, 2);
     this->set_gpr(rd, data);
 }
 
 void RV32Core::do_lw() {
     RD; RS1; IMM_I;
-    this->set_gpr(rd, this->memory_read(this->gpr[rs1] + imm, 4));
+    this->set_gpr(rd, this->memory_load(this->gpr[rs1] + imm, 4));
 }
 
 void RV32Core::do_sb() {
     RS1; RS2; IMM_S;
-    this->memory_write(this->gpr[rs1] + imm, this->gpr[rs2], 1);
+    this->memory_store(this->gpr[rs1] + imm, this->gpr[rs2], 1);
 }
 
 void RV32Core::do_sh() {
     RS1; RS2; IMM_S;
-    this->memory_write(this->gpr[rs1] + imm, this->gpr[rs2], 2);
+    this->memory_store(this->gpr[rs1] + imm, this->gpr[rs2], 2);
 }
 
 void RV32Core::do_sw() {
     RS1; RS2; IMM_S;
-    this->memory_write(this->gpr[rs1] + imm, this->gpr[rs2], 4);
+    this->memory_store(this->gpr[rs1] + imm, this->gpr[rs2], 4);
 }
 
 void RV32Core::do_beq() {

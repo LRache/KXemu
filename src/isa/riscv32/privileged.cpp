@@ -12,6 +12,7 @@
 // up to x, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode y
 // into privilege mode x, xPIE is set to the value of xIE; xIE is set to 0; and xPP is set to y.
 void RV32Core::trap(word_t code, word_t value) {
+    this->trapFlag = true;
     bool deleg;
     if (code >= 32) {
         deleg = *this->medelegh & (1 << (code - 32));
@@ -135,9 +136,9 @@ void RV32Core::do_ecall() {
     // ecall trap
     word_t code;
     switch (this->privMode) {
-        case PrivMode::MACHINE:    code = 11; break;
-        case PrivMode::SUPERVISOR: code = 9;  break;
-        case PrivMode::USER:       code = 8;  break;
+        case PrivMode::MACHINE:    code = EXCP_ECALL_M; break;
+        case PrivMode::SUPERVISOR: code = EXCP_ECALL_S; break;
+        case PrivMode::USER:       code = EXCP_ECALL_U; break;
         default: code = 0; break;
     }
     trap(code); 
@@ -201,5 +202,9 @@ void RV32Core::do_ebreak() {
     this->haltPC = this->pc;
     
     // breakpoint trap
-    this->trap(3); 
+    this->trap(EXCP_BREAKPOINT); 
+}
+
+bool RV32Core::check_pmp(word_t addr, int len, int type) {
+    return true;
 }

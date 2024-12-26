@@ -5,6 +5,7 @@
 #include "cpu/decoder.h"
 #include "isa/riscv32/csr.h"
 #include "isa/riscv32/isa.h"
+#include "isa/word.h"
 #include "memory/memory.h"
 
 #include <chrono>
@@ -26,9 +27,16 @@ private:
     word_t haltCode;
     word_t haltPC;
 
+    enum MemType {
+        FETCH,
+        LOAD,
+        STROE,
+    };
     Memory *memory;
-    word_t memory_read(word_t addr, int len);
-    int memory_write(word_t addr, word_t data, int len);
+    bool fetch_inst();
+    word_t memory_load(word_t addr, int len);
+    bool memory_store(word_t addr, word_t data, int len);
+    bool check_pmp(word_t addr, int len, int type);
 
     // decoder
     Decoder<RV32Core> decoder;
@@ -40,7 +48,8 @@ private:
     word_t npc;
     void execute();
 
-    // Trap
+    // Trap and Interrupt
+    bool trapFlag;
     void trap(word_t code, word_t value = 0);
     void interrupt(word_t code);
     bool scan_interrupt();

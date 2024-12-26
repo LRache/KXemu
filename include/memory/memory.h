@@ -10,7 +10,7 @@
 
 class Memory {
 public:
-    word_t read(word_t addr, int size) const;
+    word_t read(word_t addr, int size, bool &valid) const;
     bool write(word_t addr, word_t data, int size);
     uint8_t *get_ptr(word_t addr) const;
     word_t   get_ptr_length(word_t addr) const;
