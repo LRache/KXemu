@@ -39,7 +39,7 @@ void Memory::free_all() {
 }
 
 word_t Memory::read(word_t addr, int size) const {
-    auto map = match_map(addr);
+    auto map = match_map(addr, size);
     if (map != nullptr) {
         word_t data = map->map->read(addr - map->start, size);
         return data;
@@ -49,7 +49,7 @@ word_t Memory::read(word_t addr, int size) const {
 }
 
 bool Memory::write(word_t addr, word_t data, int size) {
-    auto map = match_map(addr);
+    auto map = match_map(addr, size);
     if (map != nullptr) {
         return map->map->write(addr - map->start, data, size);
     }
@@ -202,10 +202,10 @@ bool Memory::dump(std::ostream &stream, word_t addr, word_t length) const {
     return true;
 }
 
-Memory::MapBlock *Memory::match_map(word_t addr) const {
-    for (size_t i = 0; i < memoryMaps.size(); i++) {
-        if (memoryMaps[i]->start <= addr && addr < memoryMaps[i]->start + memoryMaps[i]->length) {
-            return memoryMaps[i];
+Memory::MapBlock *Memory::match_map(word_t addr, word_t size) const {
+    for (auto &m : memoryMaps) {
+        if (m->start <= addr && addr + size <= m->start + m->length) {
+            return m;
         }
     }
     return nullptr;

@@ -32,7 +32,7 @@ public:
         MemoryMap *map;
     };
     std::vector<MapBlock *> memoryMaps;
-    MapBlock *match_map(word_t addr) const;
+    MapBlock *match_map(word_t addr, word_t size = 0) const;
 
     ~Memory();
 };
