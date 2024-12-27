@@ -1,13 +1,13 @@
 #include "kdb/kdb.h"
-#include "memory/memory.h"
+#include "device/bus.h"
 
-Memory *kdb::memory = nullptr;
+Bus *kdb::bus = nullptr;
 
-void kdb::init_memory() {
-    memory = new Memory();
+void kdb::init_bus() {
+    bus = new Bus();
 }
 
-void kdb::deinit_memory() {
-    memory->free_all();
-    delete memory;
+void kdb::deinit_bus() {
+    bus->free_all();
+    delete bus;
 }

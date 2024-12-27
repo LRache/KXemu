@@ -10,7 +10,7 @@ private:
     int coreCount;
 
 public:
-    void init(Memory *memory, int flags, int coreCount) override;
+    void init(Bus *memory, int flags, int coreCount) override;
     void reset(word_t pc) override;
     void step() override;
     bool is_running() override;

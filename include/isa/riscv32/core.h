@@ -5,8 +5,7 @@
 #include "cpu/decoder.h"
 #include "isa/riscv32/csr.h"
 #include "isa/riscv32/isa.h"
-#include "isa/word.h"
-#include "memory/memory.h"
+#include "device/bus.h"
 
 class RV32Core : public Core {
 private:
@@ -29,7 +28,7 @@ private:
         LOAD,
         STROE,
     };
-    Memory *memory;
+    Bus *bus;
     bool fetch_inst();
     word_t memory_load(word_t addr, int len);
     bool memory_store(word_t addr, word_t data, int len);
@@ -199,7 +198,7 @@ private:
     bool timerIntrruptNotTriggered;
 
 public:
-    void init(Memory *memory, int flags);
+    void init(Bus *bus, int flags);
     void reset(word_t entry = INIT_PC);
     void step() override;
     bool is_error() override;

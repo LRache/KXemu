@@ -5,11 +5,9 @@
 #include "macro.h"
 
 #include <cstdint>
-#include <ctime>
-#include <iostream>
 
-void RV32Core::init(Memory *memory, int flags) {
-    this->memory = memory;
+void RV32Core::init(Bus *bus, int flags) {
+    this->bus = bus;
     this->flags = flags;
     this->state = IDLE;
 
@@ -115,7 +113,7 @@ word_t RV32Core::memory_load(word_t addr, int len) {
     }
 
     bool valid;
-    return this->memory->read(addr, len, valid);
+    return this->bus->read(addr, len, valid);
 }
 
 bool RV32Core::memory_store(word_t addr, word_t data, int len) {
@@ -141,7 +139,7 @@ bool RV32Core::memory_store(word_t addr, word_t data, int len) {
         return false;
     }
     
-    this->memory->write(addr, data, len);
+    this->bus->write(addr, data, len);
     
     return true;
 }

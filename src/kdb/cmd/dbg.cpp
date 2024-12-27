@@ -14,7 +14,7 @@ int cmd::reset(const args_t &) {
 }
 
 static void output_disassemble(word_t pc) {
-    uint8_t *mem = kdb::memory->get_ptr(pc);
+    uint8_t *mem = kdb::bus->get_ptr(pc);
     if (mem == nullptr) {
         std::cout << "Unsupport to disassemble at pc=" << FMT_STREAM_WORD(pc) << std::endl;
         return;

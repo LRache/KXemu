@@ -1,7 +1,7 @@
 #include "isa/riscv32/cpu.h"
 #include "log.h"
 
-void RV32CPU::init(Memory *memory, int flags, int coreCount) {
+void RV32CPU::init(Bus *memory, int flags, int coreCount) {
     if (coreCount != 1) {
         PANIC("RV32CPU does not support multi-core");
     }

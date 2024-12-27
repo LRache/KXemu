@@ -1,16 +1,14 @@
-#include "memory/memory.h"
 #include "isa/word.h"
 #include "log.h"
-#include "memory/map.h"
+#include "device/bus.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
-#include <ios>
 
 #define BUFFER_SIZE 1024U
 
-bool Memory::add_memory_map(const std::string &name, word_t start, word_t length, MemoryMap *map) {
+bool Bus::add_memory_map(const std::string &name, word_t start, word_t length, MemoryMap *map) {
     // check if overlap
     for (auto &m : memoryMaps) {
         if (m->start <= start && start < m->start + m->length) {
@@ -29,7 +27,7 @@ bool Memory::add_memory_map(const std::string &name, word_t start, word_t length
     return true;
 }
 
-void Memory::free_all() {
+void Bus::free_all() {
     for (auto &m : memoryMaps) {
         delete m->map;
         m->map = nullptr;
@@ -38,7 +36,7 @@ void Memory::free_all() {
     memoryMaps.clear();
 }
 
-word_t Memory::read(word_t addr, int size, bool &valid) const {
+word_t Bus::read(word_t addr, int size, bool &valid) const {
     auto map = match_map(addr, size);
     if (map != nullptr) {
         valid = true;
@@ -50,7 +48,7 @@ word_t Memory::read(word_t addr, int size, bool &valid) const {
     return 0;
 }
 
-bool Memory::write(word_t addr, word_t data, int size) {
+bool Bus::write(word_t addr, word_t data, int size) {
     auto map = match_map(addr, size);
     if (map != nullptr) {
         return map->map->write(addr - map->start, data, size);
@@ -58,7 +56,7 @@ bool Memory::write(word_t addr, word_t data, int size) {
     return false;
 }
 
-uint8_t *Memory::get_ptr(word_t addr) const{
+uint8_t *Bus::get_ptr(word_t addr) const{
     auto map = match_map(addr);
     if (map == nullptr) {
         return nullptr;
@@ -66,7 +64,7 @@ uint8_t *Memory::get_ptr(word_t addr) const{
     return map->map->get_ptr(addr - map->start);
 }
 
-word_t Memory::get_ptr_length(word_t addr) const {
+word_t Bus::get_ptr_length(word_t addr) const {
     auto map = match_map(addr);
     if (map == nullptr) {
         return 0;
@@ -75,7 +73,7 @@ word_t Memory::get_ptr_length(word_t addr) const {
     return map->length - offset;
 }
 
-bool Memory::load_from_stream(std::istream &stream, word_t addr) {
+bool Bus::load_from_stream(std::istream &stream, word_t addr) {
     auto map = match_map(addr);
     if (map == nullptr) {
         WARN("addr: " FMT_WORD "out of range", addr);
@@ -108,7 +106,7 @@ bool Memory::load_from_stream(std::istream &stream, word_t addr) {
     return true;
 }
 
-bool Memory::load_from_stream(std::istream &stream, word_t addr, word_t length) {
+bool Bus::load_from_stream(std::istream &stream, word_t addr, word_t length) {
     auto map = match_map(addr);
     if (map == nullptr) {
         WARN("addr: " FMT_WORD "out of range", addr);
@@ -146,7 +144,7 @@ bool Memory::load_from_stream(std::istream &stream, word_t addr, word_t length) 
     return true;
 }
 
-bool Memory::load_from_memory(const uint8_t *src, word_t addr, word_t length) {
+bool Bus::load_from_memory(const uint8_t *src, word_t addr, word_t length) {
     auto map = match_map(addr);
     if (map == nullptr) {
         WARN("addr=" FMT_WORD " out of range", addr);
@@ -167,7 +165,7 @@ bool Memory::load_from_memory(const uint8_t *src, word_t addr, word_t length) {
     return true;
 }
 
-bool Memory::memset(word_t addr, word_t length, uint8_t byte) {
+bool Bus::memset(word_t addr, word_t length, uint8_t byte) {
     auto map = match_map(addr);
     if (map == nullptr || addr + length > map->start + map->length) {
         WARN("memset addr=" FMT_WORD " length=" FMT_VARU " out of range", addr, length);
@@ -181,7 +179,7 @@ bool Memory::memset(word_t addr, word_t length, uint8_t byte) {
     return true;
 }
 
-bool Memory::dump(std::ostream &stream, word_t addr, word_t length) const {
+bool Bus::dump(std::ostream &stream, word_t addr, word_t length) const {
     auto map = match_map(addr);
     if (map == nullptr || addr + length > map->start + map->length) {
         WARN("dump addr=" FMT_WORD " length=" FMT_VARU " out of range", addr, length);
@@ -204,7 +202,7 @@ bool Memory::dump(std::ostream &stream, word_t addr, word_t length) const {
     return true;
 }
 
-Memory::MapBlock *Memory::match_map(word_t addr, word_t size) const {
+Bus::MapBlock *Bus::match_map(word_t addr, word_t size) const {
     for (auto &m : memoryMaps) {
         if (m->start <= addr && addr + size <= m->start + m->length) {
             return m;
@@ -213,7 +211,7 @@ Memory::MapBlock *Memory::match_map(word_t addr, word_t size) const {
     return nullptr;
 }
 
-Memory::~Memory() {
+Bus::~Bus() {
     for (auto &m : memoryMaps) {
         delete m;
     }

@@ -1,6 +1,5 @@
 #include "isa/word.h"
 #include "kdb/kdb.h"
-#include "log.h"
 #include "macro.h"
 
 #include <iostream>

@@ -4,7 +4,7 @@
 #include "device/uart.h"
 #include "isa/word.h"
 #include "cpu/cpu.h"
-#include "memory/memory.h"
+#include "device/bus.h"
 
 #include <cstddef>
 #include <ostream>
@@ -30,10 +30,10 @@ namespace kdb {
     int run_cpu();
     int step_core(Core *core);
 
-    // Memory
-    extern Memory *memory;
-    void init_memory();
-    void deinit_memory();
+    // Bus
+    extern Bus *bus;
+    void init_bus();
+    void deinit_bus();
 
     // Uart
     namespace uart{

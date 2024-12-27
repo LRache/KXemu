@@ -2,7 +2,6 @@
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "utils/disasm.h"
-#include "utils/utils.h"
 
 #include <bitset>
 #include <cctype>
@@ -10,8 +9,6 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
-#include <iterator>
-#include <vector>
 
 /*
     arg: /<n/f/c> addr
@@ -49,8 +46,8 @@ enum Format{
 typedef void (*func_t)(uint8_t *, unsigned int);
 
 static void show_mem_value_helper(unsigned int count, unsigned int size, word_t addr, func_t f) {
-    uint8_t *mem = kdb::memory->get_ptr(addr);
-    word_t memSize = kdb::memory->get_ptr_length(addr);
+    uint8_t *mem = kdb::bus->get_ptr(addr);
+    word_t memSize = kdb::bus->get_ptr_length(addr);
     for (unsigned int i = 0; i < count; i++) {
         std::cout << FMT_STREAM_WORD(addr) << ": ";
         if (memSize < size) {
@@ -132,8 +129,8 @@ static void show_float(uint8_t *mem, unsigned int size) {
 }
 
 static void show_inst(unsigned int count, unsigned int size, word_t addr) {
-    uint8_t *mem = kdb::memory->get_ptr(addr);
-    word_t memSize = kdb::memory->get_ptr_length(addr);
+    uint8_t *mem = kdb::bus->get_ptr(addr);
+    word_t memSize = kdb::bus->get_ptr_length(addr);
 
     for (unsigned int i = 0; i < count; i++) {
         std::cout << FMT_STREAM_WORD(addr) << ": ";

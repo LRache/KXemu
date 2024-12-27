@@ -9,7 +9,7 @@
 #define __CPU_H__
 
 #include "isa/word.h"
-#include "memory/memory.h"
+#include "device/bus.h"
 
 class Core {
 public:
@@ -30,7 +30,7 @@ public:
 class CPU {
 public:
     // flags for extension features
-    virtual void init(Memory *memory, int flags, int coreCount) = 0;
+    virtual void init(Bus *memory, int flags, int coreCount) = 0;
     virtual void reset(word_t pc) = 0;
     virtual void step() = 0;
     virtual bool is_running() = 0;

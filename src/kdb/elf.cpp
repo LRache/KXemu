@@ -57,7 +57,7 @@ static bool check_is_valid_elf(const Elf_Ehdr &ehdr) {
     if (ehdr.e_ident[EI_CLASS] != EXPECTED_CLASS) {
         return false;
     }
-
+    
     // check isa
     if (ehdr.e_machine != EXPECTED_ISA) {
         return false;
@@ -79,8 +79,8 @@ static bool load_program(const Elf_Phdr &phdr, std::fstream &f) {
     if (memsze == 0) return true;
 
     f.seekg(phdr.p_offset, std::ios::beg);
-    kdb::memory->memset(start, memsze, 0); // clear memory
-    kdb::memory->load_from_stream(f, start, filesz); // copy ELF file to memory
+    kdb::bus->memset(start, memsze, 0); // clear memory
+    kdb::bus->load_from_stream(f, start, filesz); // copy ELF file to memory
     
     return true;
 }

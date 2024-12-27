@@ -3,6 +3,7 @@
 
 #include "log.h"
 #include "macro.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>

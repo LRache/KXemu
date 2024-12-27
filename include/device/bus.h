@@ -1,14 +1,20 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 
-#include "memory/map.h"
 #include "isa/word.h"
-#include <cstdint>
-#include <string>
-#include <sys/types.h>
+
 #include <vector>
 
-class Memory {
+class MemoryMap {
+public:
+    virtual word_t read(word_t offset, int size) = 0;
+    virtual bool write(word_t offset, word_t data, int size) = 0;
+    virtual uint8_t *get_ptr(word_t offset) = 0;
+    virtual std::string get_type_str() const = 0;
+    virtual ~MemoryMap() {};
+};
+
+class Bus {
 public:
     word_t read(word_t addr, int size, bool &valid) const;
     bool write(word_t addr, word_t data, int size);
@@ -34,7 +40,7 @@ public:
     std::vector<MapBlock *> memoryMaps;
     MapBlock *match_map(word_t addr, word_t size = 0) const;
 
-    ~Memory();
+    ~Bus();
 };
 
 #endif

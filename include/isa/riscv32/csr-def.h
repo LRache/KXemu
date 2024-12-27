@@ -21,6 +21,8 @@
 #define CSR_MTVAL   0x343
 #define CSR_MIP     0x344
 
+#define CSR_PMPCFG0 0x3A0
+
 #define CSR_SSTATUS 0x100
 #define CSR_SIE     0x104
 #define CSR_STVEC   0x105
@@ -64,6 +66,16 @@
 #define MSTATUS_MPIE_MASK (1 << MSTATUS_MPIE_OFF)
 #define MSTATUS_MPP_MASK  (3 << MSTATUS_MPP_OFF)
 #define MSTATUS_MPRV_MASK (1 << MSTATUS_MPRV_OFF)
+
+#define PMPCFG_R_OFF 0
+#define PMPCFG_W_OFF 1
+#define PMPCFG_X_OFF 2
+#define PMPCFG_A_OFF 3
+
+#define PMPCFG_R_MASK (1 << PMPCFG_R_OFF)
+#define PMPCFG_W_MASK (1 << PMPCFG_W_OFF)
+#define PMPCFG_X_MASK (1 << PMPCFG_X_OFF)
+#define PMPCFG_A_MASK (3 << PMPCFG_A_OFF)
 
 #define PMPCONF_A_OFF   0
 #define PMPCONF_A_TOR   1

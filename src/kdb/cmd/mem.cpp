@@ -1,9 +1,9 @@
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
-#include "memory/map.h"
+#include "device/bus.h"
+#include "device/memory.h"
 #include "utils/utils.h"
 
-#include <cstdint>
 #include <exception>
 #include <fstream>
 #include <iomanip>
@@ -27,7 +27,7 @@ static const cmd::cmd_map_t cmdMap = {
 };
 
 static bool check_memory_initialized() {
-    if (kdb::memory == nullptr) {
+    if (kdb::bus == nullptr) {
         std::cout << "Memory not initialized" << std::endl;
         return false;
     }
@@ -53,7 +53,7 @@ static int cmd_mem_create(const std::vector<std::string> &args) {
         return cmd::InvalidArgs;
     }
     
-    bool s = kdb::memory->add_memory_map(name, start, size, new StorageMemoryMap(size));
+    bool s = kdb::bus->add_memory_map(name, start, size, new StorageMemoryMap(size));
     if (s) {
         std::cout << "Create new memory map " << name << " at " << FMT_STREAM_WORD(start) << " with size=" << size << std::endl;
         return cmd::Success;
@@ -73,7 +73,7 @@ static int cmd_mem_img(const cmd::args_t &args) {
         return cmd::CmdError;
     }
 
-    kdb::memory->load_from_stream(f, 0x80000000);
+    kdb::bus->load_from_stream(f, 0x80000000);
 
     return cmd::Success;
 }
@@ -97,7 +97,7 @@ static int cmd_mem_elf(const cmd::args_t &args) {
 }
 
 static int cmd_mem_map(const cmd::args_t &) {
-    if (kdb::memory->memoryMaps.empty()) {
+    if (kdb::bus->memoryMaps.empty()) {
         std::cout << "There is no any memory map." << std::endl;
         return cmd::Success;
     }
@@ -110,7 +110,7 @@ static int cmd_mem_map(const cmd::args_t &) {
     << "type"
     << std::setw(8) << std::endl;
 
-    for (auto &m : kdb::memory->memoryMaps) {
+    for (auto &m : kdb::bus->memoryMaps) {
         std::cout << std::setfill(' ')
         << std::setw(10) << m->name << " | "
         << FMT_STREAM_WORD(m->start)  << " | "
@@ -144,7 +144,7 @@ static int cmd_mem_save(const cmd::args_t &args) {
         return cmd::CmdError;
     }
     
-    if (kdb::memory->dump(f, start, length)) {
+    if (kdb::bus->dump(f, start, length)) {
         std::cout << "Save memory from " << FMT_STREAM_WORD(start) << " to " << FMT_STREAM_WORD(start + length) << " to " << filename << std::endl;
     } else {
         std::cout << "Error save memory to file " << filename << std::endl;

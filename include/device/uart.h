@@ -1,7 +1,8 @@
 #ifndef __DEVICE_UART_H__
 #define __DEVICE_UART_H__
 
-#include "memory/map.h"
+#include "device/bus.h"
+
 #include <atomic>
 #include <cstdint>
 #include <ostream>

@@ -1,6 +1,5 @@
 #include "isa/riscv32/core.h"
 #include "isa/riscv32/csr-def.h"
-#include "isa/word.h"
 
 #define INSTPAT(pat, name) this->decoder.add(pat, &RV32Core::do_##name)
 #define BITS(hi, lo) sub_bits(this->inst, hi, lo)

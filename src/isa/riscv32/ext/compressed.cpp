@@ -1,7 +1,4 @@
-#include "cpu/decoder.h"
 #include "isa/riscv32/core.h"
-#include "log.h"
-#include <cstdint>
 
 #define INSTPAT(pat, name) this->cdecoder.add(pat, &RV32Core::do_##name)
 #define BITS(hi, lo) sub_bits(this->inst, hi, lo)

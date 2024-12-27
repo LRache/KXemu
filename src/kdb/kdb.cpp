@@ -17,12 +17,12 @@ word_t kdb::programEntry;
 int kdb::returnCode = 0;
 
 void kdb::init() {
-    init_memory();
+    init_bus();
 
     logFlag = DEBUG | INFO | WARN | PANIC;
 
     cpu = new ISA_CPU();
-    cpu->init(memory, RVFlag::C | RVFlag::M | RVFlag::Zicsr | RVFlag::Priv, 1);
+    cpu->init(bus, RVFlag::C | RVFlag::M | RVFlag::Zicsr | RVFlag::Priv, 1);
     cpu->reset(INIT_PC);
     programEntry = INIT_PC;
 

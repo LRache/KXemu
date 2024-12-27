@@ -1,6 +1,5 @@
-#include "memory/map.h"
+#include "device/memory.h"
 #include "log.h"
-#include <cstdint>
 
 StorageMemoryMap::StorageMemoryMap(uint64_t length) {
     this->length = length;

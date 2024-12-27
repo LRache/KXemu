@@ -8,19 +8,13 @@
 #include "isa/isa.h"
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
-#include "kdb/rsp.h"
 #include "log.h"
 #include "utils/disasm.h"
 #include "utils/utils.h"
 
-#include <cstddef>
-#include <cstdio>
-#include <map>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <string>
-#include <utility>
-#include <sstream>
 #include <iostream>
 
 #define SHELL_BULE "\x1b[94m"
@@ -103,7 +97,7 @@ static const char *logo = \
 " |_|\\_\\ |____/  |____/ \n";
 
 void kdb::cmd_init() {
-    if (kdb::cpu == nullptr || kdb::memory == nullptr) {
+    if (kdb::cpu == nullptr || kdb::bus == nullptr) {
         PANIC("CPU or memory not initialized");
     }
 

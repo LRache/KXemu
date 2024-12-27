@@ -6,7 +6,7 @@
 std::vector<Uart16650 *> kdb::uart::list;
 
 static bool add_uart_map(word_t base, Uart16650 *uart) {
-    if (!kdb::memory->add_memory_map("uart" + std::to_string(kdb::uart::list.size()), base, UART_LENGTH, uart)) {
+    if (!kdb::bus->add_memory_map("uart" + std::to_string(kdb::uart::list.size()), base, UART_LENGTH, uart)) {
         // Add memory map failed, free
         delete uart;
         return false;

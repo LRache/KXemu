@@ -1,4 +1,3 @@
-#include "debug.h"
 #include "isa/riscv32/core.h"
 #include "isa/riscv32/csr-def.h"
 #include "isa/word.h"
