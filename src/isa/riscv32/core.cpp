@@ -3,9 +3,10 @@
 #include "isa/word.h"
 #include "log.h"
 #include "macro.h"
-#include <chrono>
+
 #include <cstdint>
-#include <ratio>
+#include <ctime>
+#include <iostream>
 
 void RV32Core::init(Memory *memory, int flags) {
     this->memory = memory;
@@ -34,7 +35,9 @@ void RV32Core::step() {
 }
 
 void RV32Core::execute() {
-    auto start = std::chrono::high_resolution_clock::now();
+    struct timespec startTime, endTime;
+
+    clock_gettime(CLOCK_MONOTONIC, &startTime);
 
     if (unlikely(this->timerIntrruptNotTriggered && this->uptime >= this->uptimecmp)) {
         this->interrupt(7);
@@ -67,7 +70,9 @@ void RV32Core::execute() {
         this->do_invalid_inst();
     }
 
-    auto end = std::chrono::high_resolution_clock::now();
+    clock_gettime(CLOCK_MONOTONIC, &endTime);
+    uint64_t start = startTime.tv_sec * 1e9 + startTime.tv_nsec;
+    uint64_t end = endTime.tv_sec * 1e9 + endTime.tv_nsec;
     this->uptime += end - start;
 }
 
@@ -90,7 +95,8 @@ word_t RV32Core::memory_load(word_t addr, int len) {
     if (unlikely(addr - MTIME_ADDR < 8)) {
         word_t offset = addr - MTIME_ADDR;
         if (offset == 0) {
-            mtime = std::chrono::duration_cast<std::chrono::nanoseconds>(this->uptime).count() / 100;
+            // mtime = std::chrono::duration_cast<std::chrono::nanoseconds>(this->uptime).count() / 100;
+            mtime = uptime / 100;
             return mtime & 0xffffffff;
         } else if (offset == 4) {
             return mtime >> 32;
@@ -128,7 +134,8 @@ bool RV32Core::memory_store(word_t addr, word_t data, int len) {
         } else if (offset == 4) {
             this->mtimecmp &= 0xffffffffUL;
             this->mtimecmp |= (uint64_t)data << 32;
-            this->uptimecmp = std::chrono::duration<uint64_t, std::nano>(this->mtimecmp * 100);
+            // this->uptimecmp = std::chrono::duration<uint64_t, std::nano>(this->mtimecmp * 100);
+            this->uptimecmp = mtimecmp * 100;
             this->timerIntrruptNotTriggered = true;
         }
         return false;

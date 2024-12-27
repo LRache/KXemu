@@ -21,7 +21,7 @@ static void output_disassemble(word_t pc) {
     } else {
         // find nearest symbol
         std::string symbolName;
-        word_t symbolOffset;
+        word_t symbolOffset = 0;
         bool foundSymbol = false;
         auto symbolIter = kdb::symbolTable.upper_bound(pc);
         if (symbolIter != kdb::symbolTable.end()) {

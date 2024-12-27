@@ -8,9 +8,6 @@
 #include "isa/word.h"
 #include "memory/memory.h"
 
-#include <chrono>
-#include <ratio>
-
 class RV32Core : public Core {
 private:
     int flags;
@@ -197,8 +194,8 @@ private:
     // timer interrupt
     uint64_t mtime;
     uint64_t mtimecmp;
-    std::chrono::duration<uint64_t, std::nano> uptime;
-    std::chrono::duration<uint64_t, std::nano> uptimecmp;
+    uint64_t uptime;
+    uint64_t uptimecmp;
     bool timerIntrruptNotTriggered;
 
 public:

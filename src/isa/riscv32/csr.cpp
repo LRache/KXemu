@@ -5,7 +5,6 @@
 #include "debug.h"
 #include "macro.h"
 
-
 void RV32CSR::init(unsigned int hartId) {    
     add_csr(0xF11, 0, nullptr, nullptr); // mvendorid, Not implemented
     add_csr(0xF12, 0, nullptr, nullptr); // marchid, Not implemented
@@ -36,10 +35,18 @@ void RV32CSR::init(unsigned int hartId) {
     add_csr(0x747, 0, nullptr, nullptr); // mseccfg, Not implemented
     add_csr(0x757, 0, nullptr, nullptr); // mseccfgh, Not implemented
 
+    // Physical Memory Protection
+    for (int i = 0; i < 16; i++) {
+        add_csr(0x3A0 + i, 0, nullptr, &RV32CSR::write_pmpcfg);
+    }
+    for (int i = 0; i < 64; i++) {
+        add_csr(0x3B0 + i, 0, nullptr, &RV32CSR::write_pmpaddr);
+    }
+
     // Supervisor Trap Setup
-    add_csr(0x100, 0, nullptr, nullptr); // sstatus, Not implemented
+    add_csr(0x100, 0, nullptr, nullptr); // sstatus
     add_csr(0x104, 0, nullptr, nullptr); // sie
-    add_csr(0x105, 0, nullptr, nullptr); // stvec, Not implemented
+    add_csr(0x105, 0, nullptr, nullptr); // stvec
 
     // Supervisor Trap Handling
     add_csr(0x141, 0, nullptr, nullptr); // sepc

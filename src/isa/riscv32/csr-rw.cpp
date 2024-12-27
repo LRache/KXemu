@@ -42,3 +42,13 @@ word_t RV32CSR::write_sstatus(unsigned int addr, word_t value, bool &valid) {
     mstatus |= value & SSTATUS_MASK;
     return 0;
 }
+
+word_t RV32CSR::write_pmpcfg(unsigned int addr, word_t value, bool &valid) {
+    valid = true;
+    return value;
+}
+
+word_t RV32CSR::write_pmpaddr(unsigned int addr, word_t value, bool &valid) {
+    valid = true;
+    return value;
+}

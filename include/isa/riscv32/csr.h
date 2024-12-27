@@ -27,24 +27,38 @@ public:
     const word_t *get_csr_ptr_readonly(unsigned int addr) const;
 
     // misa
-    word_t read_misa (unsigned int addr, word_t value);
+    word_t  read_misa(unsigned int addr, word_t value);
     word_t write_misa(unsigned int addr, word_t value, bool &valid);
 
+    // pmp
+    word_t write_pmpcfg (unsigned int addr, word_t value, bool &valid);
+    word_t write_pmpaddr(unsigned int addr, word_t value, bool &valid);
+    struct PMPCfg {
+        unsigned int index;
+        unsigned int a;
+        word_t start;
+        word_t length;
+        bool r;
+        bool w;
+        bool x;
+
+        bool operator<(const PMPCfg &other) {
+            if (this->a != other.a) {
+                return this->a < other.a;
+            }
+            return this->index < other.index;
+        }
+    };
+    PMPCfg pmpCfgArray[64];
+    unsigned int pmpCfgCount;
+
     // sip
-    word_t read_sip (unsigned int addr, word_t value);
+    word_t  read_sip(unsigned int addr, word_t value);
     word_t write_sip(unsigned int addr, word_t value, bool &valid);
 
     // sstatus
-    word_t read_sstatus (unsigned int addr, word_t value);
+    word_t  read_sstatus(unsigned int addr, word_t value);
     word_t write_sstatus(unsigned int addr, word_t value, bool &valid);
-
-    struct PMPConfig {
-        int mode;
-        bool a;
-        bool x;
-        bool w;
-        bool r;
-    };
 };
 
 #endif
