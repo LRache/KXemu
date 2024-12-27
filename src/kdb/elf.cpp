@@ -1,3 +1,4 @@
+#include "isa/word.h"
 #include "kdb/kdb.h"
 #include "log.h"
 
@@ -8,6 +9,7 @@
 #include <ios>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <ostream>
 #include <vector>
 
@@ -57,7 +59,7 @@ static bool check_is_valid_elf(const Elf_Ehdr &ehdr) {
     if (ehdr.e_ident[EI_CLASS] != EXPECTED_CLASS) {
         return false;
     }
-    
+
     // check isa
     if (ehdr.e_machine != EXPECTED_ISA) {
         return false;
@@ -173,4 +175,28 @@ word_t kdb::load_elf(const std::string &filename) {
     f.close();
     
     return ehdr.e_entry;
+}
+
+std::optional<std::string> kdb::addr_match_symbol(word_t addr, word_t &offset) {
+    if (kdb::symbolTable.empty()) {
+        return std::nullopt;
+    }
+
+    auto iter = kdb::symbolTable.upper_bound(addr);
+    if (iter == kdb::symbolTable.end()) {
+        iter = iter--;
+    } else if (iter->first != addr) {
+        if (iter != kdb::symbolTable.begin()) {
+            iter--;
+        } else {
+            return std::nullopt;
+        }
+    }
+
+    if (addr - iter->first < 0x100) {
+        offset = addr - iter->first;
+        return iter->second;
+    } else {
+        return std::nullopt;
+    }
 }

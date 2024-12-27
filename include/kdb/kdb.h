@@ -7,6 +7,7 @@
 #include "device/bus.h"
 
 #include <cstddef>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <map>
@@ -51,6 +52,7 @@ namespace kdb {
     // ELF format
     // Load ELF to memory, return 0 if failed and entry else.
     word_t load_elf(const std::string &filename);
+    std::optional<std::string> addr_match_symbol(word_t addr, word_t &offset);
     extern std::map<word_t, std::string> symbolTable;
     extern word_t programEntry;
 

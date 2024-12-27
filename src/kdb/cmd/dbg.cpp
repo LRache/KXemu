@@ -7,6 +7,7 @@
 
 #include <exception>
 #include <iostream>
+#include <optional>
 
 int cmd::reset(const args_t &) {
     kdb::reset_cpu();
@@ -20,33 +21,14 @@ static void output_disassemble(word_t pc) {
         return;
     } else {
         // find nearest symbol
-        std::string symbolName;
         word_t symbolOffset = 0;
-        bool foundSymbol = false;
-        auto symbolIter = kdb::symbolTable.upper_bound(pc);
-        if (symbolIter != kdb::symbolTable.end()) {
-            if (symbolIter->first != pc) {
-                if (symbolIter != kdb::symbolTable.begin()) {
-                    foundSymbol = symbolIter->first - pc < 0x100;
-                    symbolIter--;
-                } else {
-                    foundSymbol = false;
-                }
-            } else {
-                foundSymbol = symbolIter->first - pc < 0x100;
-            }
-            if (foundSymbol) {
-                symbolName = symbolIter->second;
-                symbolOffset = pc - symbolIter->first;
-                foundSymbol = true;
-            }
-        }
+        auto symbolName = kdb::addr_match_symbol(pc, symbolOffset);
         
         unsigned int instLength;
         std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
         std::cout << FMT_STREAM_WORD(pc) << ": ";
-        if (foundSymbol) {
-            std::cout << "<" << FMT_FG_YELLOW << symbolName << FMT_FG_RESET << "+" << symbolOffset << "> ";
+        if (symbolName != std::nullopt) {
+            std::cout << "<" << FMT_FG_YELLOW << symbolName.value() << FMT_FG_RESET << "+" << symbolOffset << "> ";
         }
         std::cout << "0x";
         for (int j = instLength - 1; j >= 0; j--) {
