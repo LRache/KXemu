@@ -1,6 +1,7 @@
 #include "isa/word.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
+#include "macro.h"
 #include "utils/disasm.h"
 
 #include <bitset>
@@ -9,6 +10,7 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <optional>
 
 /*
     arg: /<n/f/c> addr
@@ -147,9 +149,15 @@ static void show_inst(unsigned int count, unsigned int size, word_t addr) {
             break;
         }
 
-        std::cout << std::hex;
-        for (unsigned int j = 0; j < instLen; j++) {
-            std::cout << std::setw(2) << std::setfill('0') << (uint64_t)mem[j] << ' ';
+        word_t symbolOffset = 0;
+        auto symbolName = kdb::addr_match_symbol(addr, symbolOffset);
+        if (symbolName != std::nullopt) {
+            std::cout << "<" << FMT_FG_YELLOW << symbolName.value() << FMT_FG_RESET << "+" << symbolOffset << "> ";
+        }
+
+        std::cout << "0x" << std::hex;
+        for (unsigned int j = instLen; j > 0; j--) {
+            std::cout << std::setw(2) << std::setfill('0') << (uint64_t)mem[j];
         }
         std::cout << disasmStr << std::endl;
         memSize -= instLen;
