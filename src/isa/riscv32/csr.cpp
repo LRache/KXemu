@@ -130,11 +130,16 @@ void RV32CSR::reload_pmpcfg() {
                 if (index == 0) {
                     pmpConfig.start = 0;
                     pmpConfig.end = csr[CSR_PMPADDR0].value << 2;
+                    this->pmpCfgCount++;
                 } else {
-                    pmpConfig.start = csr[CSR_PMPADDR0 + index - 1].value << 2;
-                    pmpConfig.end = csr[CSR_PMPADDR0 + index].value << 2;
+                    word_t start = csr[CSR_PMPADDR0 + index - 1].value << 2;
+                    word_t end = csr[CSR_PMPADDR0 + index].value << 2;
+                    if (start <= end) {
+                        pmpConfig.start = start;
+                        pmpConfig.end = end;
+                        this->pmpCfgCount++;
+                    }
                 }
-                this->pmpCfgCount++;
             } else if (a == PMPCONFIG_A_NA4) {
                 pmpConfig.start = csr[CSR_PMPADDR0 + index].value << 2;
                 pmpConfig.end = pmpConfig.start + 4;
