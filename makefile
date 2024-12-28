@@ -27,6 +27,10 @@ CXXFLAGS += -DISA=$(ISA)
 CXXFLAGS += $(shell llvm-config --cxxflags) -fexceptions # for expection handling
 CXXFLAGS += $(shell llvm-config --libs)
 
+ifeq ($(shell which ccache > /dev/null 2>&1; echo $$?), 0)
+	CXX := ccache $(CXX)
+endif
+
 TARGET = $(BUILD_DIR)/$(ISA_LOWER)-kxemu
 
 $(TARGET): $(OBJS)
