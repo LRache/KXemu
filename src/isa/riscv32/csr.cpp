@@ -5,6 +5,9 @@
 #include "debug.h"
 #include "macro.h"
 
+#define INIT_CSR(addr, v) this->csr[addr].value = v
+#define INIT_CSR_0(addr) INIT_CSR(addr, 0)
+
 void RV32CSR::init(unsigned int hartId) {    
     add_csr(0xF11, 0, nullptr, nullptr); // mvendorid, Not implemented
     add_csr(0xF12, 0, nullptr, nullptr); // marchid, Not implemented
@@ -25,7 +28,7 @@ void RV32CSR::init(unsigned int hartId) {
     // Machine Trap Handling
     add_csr(0x340, 0, nullptr, nullptr); // mscratch
     add_csr(0x341, 0, nullptr, nullptr); // mepc
-    add_csr(0x342, 0, nullptr, nullptr); // mcause
+    add_csr(0x342, 0x1800, nullptr, nullptr); // mcause
     add_csr(0x343, 0, nullptr, nullptr); // mtval
     add_csr(0x344, 0, nullptr, nullptr); // mip
 
@@ -58,8 +61,135 @@ void RV32CSR::init(unsigned int hartId) {
     add_csr(0x180, 0, nullptr, nullptr); // satp, Not implemented
 }
 
+void RV32CSR::reset() {
+    INIT_CSR(0xF11, 0);
+    INIT_CSR(0xF12, 0);
+    INIT_CSR(0xF13, 0);
+    INIT_CSR(0xF14, 0);
+    INIT_CSR(0xF15, 0);
+
+    INIT_CSR(0x300, 0);
+    INIT_CSR(0x301, MISA_C | MISA_M);
+    INIT_CSR(0x302, 0);
+    INIT_CSR(0x303, 0);
+    INIT_CSR(0x304, 0);
+    INIT_CSR(0x305, 0);
+    INIT_CSR(0x310, 0);
+    INIT_CSR(0x312, 0);
+
+    INIT_CSR(0x340, 0);
+    INIT_CSR(0x341, 0);
+    INIT_CSR(0x342, 0x1800);
+    INIT_CSR(0x343, 0);
+    INIT_CSR(0x344, 0);
+
+    INIT_CSR(0x30A, 0);
+    INIT_CSR(0x31A, 0);
+    INIT_CSR(0x747, 0);
+    INIT_CSR(0x757, 0);
+
+    for (int i = 0; i < 16; i++) {
+        INIT_CSR(0x3A0 + i, 0);
+    }
+    for (int i = 0; i < 64; i++) {
+        INIT_CSR(0x3B0 + i, 0);
+    }
+
+    INIT_CSR(0x100, 0);
+    INIT_CSR(0x104, 0);
+    INIT_CSR(0x105, 0);
+
+    INIT_CSR(0x141, 0);
+    INIT_CSR(0x142, 0);
+    INIT_CSR(0x143, 0);
+    INIT_CSR(0x144, 0);
+
+    INIT_CSR(0x180, 0);
+
+    pmpCfgCount = 0;
+}
+
 void RV32CSR::add_csr(word_t addr, word_t init, csr_read_fun_t readFunc, csr_write_fun_t writeFunc) {
     this->csr[addr] = {readFunc, writeFunc, init};
+}
+
+void RV32CSR::reload_pmpcfg() {
+    pmpCfgCount = 0;
+    unsigned int index = 0;
+    for (unsigned int i = 0; i < 16; i++) {
+        for (unsigned int j = 0; j < 4; j++) {
+            word_t cfg = this->csr[CSR_PMPCFG0 + i].value >> (j * 8);
+            word_t a = ((cfg & PMPCFG_A_MASK) >> PMPCFG_A_OFF);
+            
+            auto &pmpConfig = pmpCfgArray[pmpCfgCount];
+            pmpConfig.r = cfg & PMPCFG_R_MASK;
+            pmpConfig.w = cfg & PMPCFG_W_MASK;
+            pmpConfig.x = cfg & PMPCFG_X_MASK;
+            
+            if (a == PMPCONFIG_A_TOR) {
+                if (index == 0) {
+                    pmpConfig.start = 0;
+                    pmpConfig.end = csr[CSR_PMPADDR0].value << 2;
+                } else {
+                    pmpConfig.start = csr[CSR_PMPADDR0 + index - 1].value << 2;
+                    pmpConfig.end = csr[CSR_PMPADDR0 + index].value << 2;
+                }
+                this->pmpCfgCount++;
+            } else if (a == PMPCONFIG_A_NA4) {
+                pmpConfig.start = csr[CSR_PMPADDR0 + index].value << 2;
+                pmpConfig.end = pmpConfig.start + 4;
+                this->pmpCfgCount++;
+            } else if (a == PMPCONFIG_A_NAPOT) {
+                pmpConfig.start = csr[CSR_PMPADDR0 + index].value << 2;
+                word_t addr = csr[CSR_PMPADDR0 + index].value;
+                word_t length = 4;
+                for (int k = 0; k < 32; k++) {
+                    if (addr & 1){
+                        length <<= 1;
+                        addr >>= 1;
+                    }
+                    else break;
+                }
+                pmpConfig.end = pmpConfig.start + length;
+                this->pmpCfgCount++;
+            }
+            index ++;
+        }
+    }
+}
+
+RV32CSR::PMPCfg *RV32CSR::pmp_check(word_t addr, int len) {
+    for (unsigned int i = 0; i < this->pmpCfgCount; i++) {
+        auto &pmpConfig = this->pmpCfgArray[i];
+        if (addr >= pmpConfig.start && addr + len < pmpConfig.end) {
+            return &pmpConfig;
+        }
+    }
+    return nullptr;
+}
+
+bool RV32CSR::pmp_check_r(word_t addr, int len) {
+    auto pmpConfig = pmp_check(addr, len);
+    if (pmpConfig == nullptr) {
+        return false;
+    }
+    return pmpConfig->r;
+}
+
+bool RV32CSR::pmp_check_w(word_t addr, int len) {
+    auto pmpConfig = pmp_check(addr, len);
+    if (pmpConfig == nullptr) {
+        return false;
+    }
+    return pmpConfig->w;
+}
+
+bool RV32CSR::pmp_check_x(word_t addr, int len) {
+    auto pmpConfig = pmp_check(addr, len);
+    if (pmpConfig == nullptr) {
+        return false;
+    }
+    return pmpConfig->x;
 }
 
 word_t RV32CSR::get_csr(unsigned int addr, bool &success) {

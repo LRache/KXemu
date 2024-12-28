@@ -21,7 +21,8 @@
 #define CSR_MTVAL   0x343
 #define CSR_MIP     0x344
 
-#define CSR_PMPCFG0 0x3A0
+#define CSR_PMPCFG0  0x3A0
+#define CSR_PMPADDR0 0x3B0
 
 #define CSR_SSTATUS 0x100
 #define CSR_SIE     0x104
@@ -77,10 +78,10 @@
 #define PMPCFG_X_MASK (1 << PMPCFG_X_OFF)
 #define PMPCFG_A_MASK (3 << PMPCFG_A_OFF)
 
-#define PMPCONF_A_OFF   0
-#define PMPCONF_A_TOR   1
-#define PMPCONF_A_NA4   2
-#define PMPCONF_A_NAPOT 3
+#define PMPCONFIG_A_OFF   0
+#define PMPCONFIG_A_TOR   1
+#define PMPCONFIG_A_NA4   2
+#define PMPCONFIG_A_NAPOT 3
 
 #define CAUSE_INTERRUPT_OFF 31
 #define CAUSE_INTERRUPT_MASK (1 << CAUSE_INTERRUPT_OFF)

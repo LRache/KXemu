@@ -17,8 +17,22 @@ private:
 
     void add_csr(word_t addr, word_t init = 0, csr_read_fun_t = nullptr, csr_write_fun_t = nullptr);
 
+    struct PMPCfg {
+        unsigned int index;
+        unsigned int a;
+        word_t start;
+        word_t end;
+        bool r;
+        bool w;
+        bool x;
+    } pmpCfgArray[64];
+    unsigned int pmpCfgCount;
+    void reload_pmpcfg();
+    PMPCfg *pmp_check(word_t addr, int len);
+
 public:
     void init(unsigned int hartId);
+    void reset();
 
     word_t get_csr(unsigned int addr, bool &success);
     void   set_csr(unsigned int addr, word_t value, bool &success);
@@ -33,24 +47,9 @@ public:
     // pmp
     word_t write_pmpcfg (unsigned int addr, word_t value, bool &valid);
     word_t write_pmpaddr(unsigned int addr, word_t value, bool &valid);
-    struct PMPCfg {
-        unsigned int index;
-        unsigned int a;
-        word_t start;
-        word_t length;
-        bool r;
-        bool w;
-        bool x;
-
-        bool operator<(const PMPCfg &other) {
-            if (this->a != other.a) {
-                return this->a < other.a;
-            }
-            return this->index < other.index;
-        }
-    };
-    PMPCfg pmpCfgArray[64];
-    unsigned int pmpCfgCount;
+    bool pmp_check_r(word_t addr, int len);
+    bool pmp_check_w(word_t addr, int len);
+    bool pmp_check_x(word_t addr, int len);
 
     // sip
     word_t  read_sip(unsigned int addr, word_t value);

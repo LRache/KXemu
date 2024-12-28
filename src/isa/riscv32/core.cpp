@@ -21,6 +21,7 @@ void RV32Core::init(Bus *bus, int flags) {
 void RV32Core::reset(word_t entry) {
     this->pc = entry;
     this->state = RUNNING;
+    this->csr.reset();
 }
 
 void RV32Core::step() {
@@ -75,7 +76,8 @@ void RV32Core::execute() {
 }
 
 bool RV32Core::fetch_inst() {
-    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->check_pmp(this->pc, 4, MemType::FETCH)))) {
+    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->csr.pmp_check_x(this->pc, 4)))) {
+        WARN("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
         this->trap(EXCP_LOAD_ACCESS_FAULT);
         return false;
     }
@@ -84,7 +86,8 @@ bool RV32Core::fetch_inst() {
 }
 
 word_t RV32Core::memory_load(word_t addr, int len) {
-    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->check_pmp(addr, len, MemType::LOAD)))) {
+    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->csr.pmp_check_r(addr, len)))) {
+        WARN("Physical memory protection check failed when load, addr=" FMT_WORD ", len=%d", addr, len);
         this->trap(EXCP_LOAD_ACCESS_FAULT);
         return -1;
     }
@@ -93,7 +96,6 @@ word_t RV32Core::memory_load(word_t addr, int len) {
     if (unlikely(addr - MTIME_ADDR < 8)) {
         word_t offset = addr - MTIME_ADDR;
         if (offset == 0) {
-            // mtime = std::chrono::duration_cast<std::chrono::nanoseconds>(this->uptime).count() / 100;
             mtime = uptime / 100;
             return mtime & 0xffffffff;
         } else if (offset == 4) {
@@ -118,7 +120,8 @@ word_t RV32Core::memory_load(word_t addr, int len) {
 
 bool RV32Core::memory_store(word_t addr, word_t data, int len) {
     // check PMP
-    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->check_pmp(addr, len, MemType::STROE)))) {
+    if (unlikely(!(this->privMode == PrivMode::MACHINE || this->csr.pmp_check_w(addr, len)))) {
+        WARN("Physical memory protection check failed when store, addr=" FMT_WORD ", len=%d", addr, len);
         this->trap(EXCP_STORE_ACCESS_FAULT);
         return false;
     }
@@ -132,7 +135,6 @@ bool RV32Core::memory_store(word_t addr, word_t data, int len) {
         } else if (offset == 4) {
             this->mtimecmp &= 0xffffffffUL;
             this->mtimecmp |= (uint64_t)data << 32;
-            // this->uptimecmp = std::chrono::duration<uint64_t, std::nano>(this->mtimecmp * 100);
             this->uptimecmp = mtimecmp * 100;
             this->timerIntrruptNotTriggered = true;
         }

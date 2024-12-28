@@ -2,6 +2,13 @@
 .global puts
 
 main:
+    // configure Physical Memory Protection to give supervisor mode
+    // access to all of physical memory.
+    li t0, 0xffffffff
+    csrw pmpaddr0, t0
+    li t0, 0xf
+    csrw pmpcfg0, t0
+
     // set the mstatues.mpp to S mode
     li t0, 3 << 11
     csrc mstatus, t0
@@ -17,6 +24,7 @@ main:
     
     mret
 
+.align 2
 m_mode_handle:
     csrr t0, mepc
     addi t0, t0, 4
@@ -30,6 +38,7 @@ m_mode_handle:
     
     mret
 
+.align 2
 s_mode_entry:
     la a0, str1
     call puts

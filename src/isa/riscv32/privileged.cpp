@@ -32,6 +32,8 @@ void RV32Core::trap(word_t code, word_t value) {
         mstatus = (mstatus & ~MSTATUS_SPIE_MASK) | ((mstatus & MSTATUS_SIE_MASK) << (MSTATUS_SPIE_OFF - MSTATUS_SIE_OFF));
         mstatus = (mstatus & ~MSTATUS_SIE_MASK);
         *this->mstatus = mstatus;
+
+        this->privMode = PrivMode::SUPERVISOR;
     } else {
         *this->mepc = this->pc;
         *this->mcause = cause;
@@ -43,6 +45,8 @@ void RV32Core::trap(word_t code, word_t value) {
         mstatus = (mstatus & ~MSTATUS_MPIE_MASK) | ((mstatus & MSTATUS_MIE_MASK) << (MSTATUS_MPIE_OFF - MSTATUS_MIE_OFF));
         mstatus = (mstatus & ~MSTATUS_MIE_MASK);
         *this->mstatus = mstatus;
+
+        this->privMode = PrivMode::MACHINE;
     }
 
     word_t vecMode = vec & TVEC_MODE_MASK;

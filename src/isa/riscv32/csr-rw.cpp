@@ -44,11 +44,14 @@ word_t RV32CSR::write_sstatus(unsigned int addr, word_t value, bool &valid) {
 }
 
 word_t RV32CSR::write_pmpcfg(unsigned int addr, word_t value, bool &valid) {
+    csr[addr].value = value;
+    reload_pmpcfg();
     valid = true;
     return value;
 }
 
 word_t RV32CSR::write_pmpaddr(unsigned int addr, word_t value, bool &valid) {
-    valid = true;
+    csr[addr].value = value;
+    reload_pmpcfg();
     return value;
 }
