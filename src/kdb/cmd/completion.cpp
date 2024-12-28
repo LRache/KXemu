@@ -1,9 +1,6 @@
 #include "kdb/cmd.h"
 #include "utils/utils.h"
 
-#include <algorithm>
-#include <cstddef>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <readline/readline.h>
