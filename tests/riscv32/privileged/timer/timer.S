@@ -23,7 +23,7 @@ main:
 
     j .
 
-.align 4   
+.align 2
 m_mode_handle:
     csrr t0, mcause
     li t1, 0x80000007
@@ -50,6 +50,7 @@ m_mode_handle:
 
     li a0, 1
     ebreak
+    j .
 
 .section .data
 str0:
