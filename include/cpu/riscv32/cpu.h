@@ -3,10 +3,13 @@
 
 #include "cpu/cpu.h"
 #include "cpu/riscv32/core.h"
+#include <sys/types.h>
 
 namespace kxemu::cpu {
 
-class RV32CPU : public CPU {
+class RV32CPU : public CPU<uint32_t> {
+public:
+    using word_t = uint32_t;
 private:    
     RV32Core *core;
     int coreCount;
@@ -18,7 +21,7 @@ public:
     bool is_running() override;
 
     int core_count() override;
-    Core *get_core(int coreID) override;
+    RV32Core *get_core(int coreID) override;
 
     ~RV32CPU() override;
 };

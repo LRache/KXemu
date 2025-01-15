@@ -1,6 +1,5 @@
 #include "cpu/riscv32/csr.h"
 #include "cpu/riscv32/csr-def.h"
-#include "isa/word.h"
 #include "log.h"
 #include "debug.h"
 #include "macro.h"
@@ -199,7 +198,7 @@ bool RV32CSR::pmp_check_x(word_t addr, int len) {
     return pmpConfig->x;
 }
 
-word_t RV32CSR::get_csr(unsigned int addr, bool &success) {
+RV32CSR::word_t RV32CSR::get_csr(unsigned int addr, bool &success) {
     auto iter = this->csr.find(addr);
     if (iter == this->csr.end()) {
         success = false;
@@ -215,7 +214,7 @@ word_t RV32CSR::get_csr(unsigned int addr, bool &success) {
     return value;
 }
 
-word_t *RV32CSR::get_csr_ptr(unsigned int addr) {
+RV32CSR::word_t *RV32CSR::get_csr_ptr(unsigned int addr) {
     auto iter = this->csr.find(addr);
     
     SELF_PROTECT(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
@@ -226,7 +225,7 @@ word_t *RV32CSR::get_csr_ptr(unsigned int addr) {
     return &iter->second.value;
 }
 
-const word_t *RV32CSR::get_csr_ptr_readonly(unsigned int addr) const {
+const RV32CSR::word_t *RV32CSR::get_csr_ptr_readonly(unsigned int addr) const {
     auto iter = this->csr.find(addr);
 
     SELF_PROTECT(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);

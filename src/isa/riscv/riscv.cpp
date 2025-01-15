@@ -10,3 +10,9 @@ static const char* gprNames[] = {
 const char *kxemu::isa::get_gpr_name(int idx) {
     return gprNames[idx];
 }
+
+extern void init_disasm();
+
+void kxemu::isa::init() {
+    init_disasm();
+}

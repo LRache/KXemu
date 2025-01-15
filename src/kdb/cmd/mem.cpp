@@ -3,6 +3,7 @@
 #include "device/bus.h"
 #include "device/memory.h"
 #include "utils/utils.h"
+#include "isa/word.h"
 
 #include <exception>
 #include <fstream>
@@ -14,6 +15,7 @@
 
 using namespace kxemu;
 using namespace kxemu::kdb;
+using kxemu::kdb::word_t;
 using kxemu::device::StorageMemoryMap;
 
 static int cmd_mem_create(const cmd::args_t &);
@@ -50,8 +52,8 @@ static int cmd_mem_create(const std::vector<std::string> &args) {
     word_t start, size;
     name = args[2];
     try {
-        start = utils::string_to_word(args[3]);
-        size = utils::string_to_word(args[4]);
+        start = utils::string_to_unsigned(args[3]);
+        size = utils::string_to_unsigned(args[4]);
     } catch (std::exception &) {
         std::cout << "Usage: mem create <name> <addr> <size> [type]" << std::endl;
         return cmd::InvalidArgs;
@@ -133,8 +135,8 @@ static int cmd_mem_save(const cmd::args_t &args) {
     word_t start, length;
     std::string filename;
     try {
-        start = utils::string_to_word(args[2]);
-        length = utils::string_to_word(args[3]);
+        start  = utils::string_to_unsigned(args[2]);
+        length = utils::string_to_unsigned(args[3]);
         filename = args[4];
     } catch (std::exception &) {
         std::cout << "Usage: mem save <start> <length> <filename>" << std::endl;

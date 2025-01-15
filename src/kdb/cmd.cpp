@@ -9,7 +9,6 @@
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
 #include "log.h"
-#include "utils/disasm.h"
 #include "utils/utils.h"
 
 #include <readline/readline.h>
@@ -49,7 +48,7 @@ static const cmd::cmd_map_t cmdMap = {
 
 static bool cmdRunning = true;
 
-Core *cmd::currentCore;
+Core<word_t> *cmd::currentCore;
 int cmd::coreCount;
 
 int cmd::help(const args_t &) {
@@ -111,7 +110,7 @@ void kdb::cmd_init() {
         WARN("Multiple cores detected, only core 0 is used");
     }
 
-    disasm::init(ISA_NAME);
+    isa::init();
     cmd::init_completion();
 
     std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;

@@ -5,6 +5,7 @@
 #include <iostream>
 
 using namespace kxemu;
+using kxemu::kdb::word_t;
 using kxemu::cpu::Core;
 
 std::unordered_set<word_t> kdb::breakpointSet;
@@ -15,7 +16,7 @@ void kdb::reset_cpu() {
     kdb::returnCode = 0;
 }
 
-int static output_and_set_trap(Core *core) {
+int static output_and_set_trap(Core<word_t> *core) {
     int r;
     if (core->is_error()) {
         std::cout << FMT_FG_RED_BLOD "Error" FMT_FG_BLUE_BLOD " at pc=" << FMT_STREAM_WORD(core->get_halt_pc()) << FMT_FG_RESET << std::endl;
@@ -35,7 +36,7 @@ int static output_and_set_trap(Core *core) {
     return r;
 };
 
-int kdb::step_core(Core *core) {
+int kdb::step_core(Core<word_t> *core) {
     word_t pc = core->get_pc();
     core->step();
     output_and_set_trap(core);
@@ -56,7 +57,7 @@ int kdb::run_cpu() {
         }
     }
 
-    Core *core = cpu->get_core(0);
+    auto core = cpu->get_core(0);
     return output_and_set_trap(core);
 }
 

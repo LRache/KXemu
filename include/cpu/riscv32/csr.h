@@ -1,12 +1,14 @@
 #ifndef __KXEMU_CPU_RISCV32_CSR_H__
 #define __KXEMU_CPU_RISCV32_CSR_H__
 
-#include "isa/word.h"
 #include <unordered_map>
+#include <cstdint>
 
 namespace kxemu::cpu {
 
 class RV32CSR {
+public:
+    using word_t = uint32_t;
 private:
     using csr_read_fun_t  = word_t (RV32CSR::*)(unsigned int addr, word_t value);
     using csr_write_fun_t = word_t (RV32CSR::*)(unsigned int addr, word_t oldValue, bool &valid);

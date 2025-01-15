@@ -36,7 +36,7 @@ void RV32Core::init_csr() {
     this->stval   = this->csr.get_csr_ptr(CSR_STVAL);
 }
 
-word_t RV32Core::get_csr(unsigned int addr, bool &success) {
+RV32Core::word_t RV32Core::get_csr(unsigned int addr, bool &success) {
     return this->csr.get_csr(addr, success);
 }
 

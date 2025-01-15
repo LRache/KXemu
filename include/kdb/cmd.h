@@ -14,6 +14,7 @@
 #define __KXEMU_KDB_CMD_H__
 
 #include "cpu/cpu.h"
+#include "kdb/kdb.h"
 
 #include <cstddef>
 #include <unordered_map>
@@ -55,7 +56,7 @@ namespace kxemu::kdb::cmd {
     // load source from args
     extern std::string elfFileName;
 
-    extern cpu::Core *currentCore; // command line current cpu core
+    extern cpu::Core<word_t> *currentCore; // command line current cpu core
     extern int coreCount; // core count of cpu
 
     using completion_func_t = std::vector<std::string> (*)(); // return possible list

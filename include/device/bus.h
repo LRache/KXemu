@@ -1,11 +1,17 @@
 #ifndef __KXEMU_DEVICE_BUS_H__
 #define __KXEMU_DEVICE_BUS_H__
 
-#include "isa/word.h"
-
 #include <vector>
+#include <string>
+#include <cstdint>
 
 namespace kxemu::device {
+
+#ifdef ISA_64
+    using word_t = uint64_t;
+#else
+    using word_t = uint32_t;
+#endif
 
 class MemoryMap {
 public:

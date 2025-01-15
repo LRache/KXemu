@@ -8,11 +8,11 @@
 #ifndef __KXEMU_CPU_CPU_H__
 #define __KXEMU_CPU_CPU_H__
 
-#include "isa/word.h"
 #include "device/bus.h"
 
 namespace kxemu::cpu {
 
+template <typename word_t>
 class Core {
 public:
     virtual bool is_error() = 0;
@@ -29,6 +29,7 @@ public:
     virtual word_t get_halt_code() = 0;
 };
 
+template <typename word_t>
 class CPU {
 public:
     // flags for extension features
@@ -38,7 +39,7 @@ public:
     virtual bool is_running() = 0;
 
     virtual int core_count() = 0;
-    virtual Core *get_core(int coreID) = 0;
+    virtual Core<word_t> *get_core(int coreID) = 0;
 
     virtual ~CPU() = default;
 };

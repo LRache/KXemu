@@ -1,5 +1,6 @@
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
+#include "isa/word.h"
 
 #include <iostream>
 

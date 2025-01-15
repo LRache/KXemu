@@ -3,7 +3,6 @@
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
 #include "macro.h"
-#include "utils/disasm.h"
 #include "utils/utils.h"
 
 #include <exception>
@@ -30,7 +29,7 @@ static void output_disassemble(word_t pc) {
         auto symbolName = kdb::addr_match_symbol(pc, symbolOffset);
         
         unsigned int instLength;
-        std::string inst = disasm::disassemble(mem, MAX_INST_LEN, pc, instLength);
+        std::string inst = isa::disassemble(mem, MAX_INST_LEN, pc, instLength);
         std::cout << FMT_STREAM_WORD(pc) << ": ";
         if (symbolName != std::nullopt) {
             std::cout << "<" << FMT_FG_YELLOW << symbolName.value() << FMT_FG_RESET << "+" << symbolOffset << "> ";
@@ -60,7 +59,7 @@ int cmd::step(const args_t &args) {
         }
     }
 
-    Core *core = cmd::currentCore;
+    auto core = cmd::currentCore;
     kdb::brkTriggered = false;
     for (unsigned long i = 0; i < n; i++) {
         if (!core->is_running()) {
@@ -121,7 +120,7 @@ int cmd::breakpoint(const cmd::args_t &args) {
     std::string addrStr = args[1];
     word_t addr;
     try {
-        addr = utils::string_to_word(addrStr);
+        addr = utils::string_to_unsigned(addrStr);
     } catch (const std::exception &) {
         std::cout << "Invalid argument: " << addrStr << std::endl;
         return cmd::InvalidArgs;

@@ -1,5 +1,4 @@
-#include "utils/disasm.h"
-#include "log.h"
+#include "isa/isa.h"
 
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
@@ -21,12 +20,12 @@ static MCDisassembler *disassembler;
 static MCInstPrinter *gIP = nullptr;
 static MCSubtargetInfo *gSTI = nullptr;
 
-void disasm::init(std::string isaName) {
+void init_disasm() {
     InitializeAllTargetInfos();
     InitializeAllTargetMCs();
     InitializeAllDisassemblers();
 
-    std::string targetTriple = isaName + "-unknown-elf";
+    std::string targetTriple = "riscv32-unknown-elf";
     std::string error;
     const Target *target = TargetRegistry::lookupTarget(targetTriple, error);
 
@@ -36,9 +35,7 @@ void disasm::init(std::string isaName) {
 
     MCTargetOptions MCOptions;
     gSTI = target->createMCSubtargetInfo(targetTriple, "", "");
-    if (isaName == "riscv32") {
-        gSTI->ApplyFeatureFlag("+c");
-    }
+    gSTI->ApplyFeatureFlag("+c");
     auto gMII = target->createMCInstrInfo();
     auto gMRI = target->createMCRegInfo(targetTriple);
     auto asmInfo = target->createMCAsmInfo(*gMRI, targetTriple, MCOptions);
@@ -54,7 +51,7 @@ void disasm::init(std::string isaName) {
     gIP->applyTargetSpecificCLOption("no-aliases");
 }
 
-std::string disasm::disassemble(const uint8_t *code, const size_t length, word_t pc, unsigned int &instLen) {
+std::string kxemu::isa::disassemble(const uint8_t *code, const size_t length, word_t pc, unsigned int &instLen) {
     MCInst inst;
     ArrayRef<uint8_t> arr(code, length);
     uint64_t dummy_size = 0;
@@ -65,6 +62,5 @@ std::string disasm::disassemble(const uint8_t *code, const size_t length, word_t
     gIP->printInst(&inst, pc, "", *gSTI, os);
     
     instLen = dummy_size;
-    // std::replace(s.begin(), s.end(), '\t', ' ');
     return s;
 }

@@ -1,4 +1,3 @@
-#include "isa/word.h"
 #include "kdb/kdb.h"
 #include "log.h"
 #include "config/config.h"
@@ -19,12 +18,18 @@
     #define Elf_Phdr Elf64_Phdr
     #define Elf_Shdr Elf64_Shdr
     #define Elf_Sym  Elf64_Sym
+    #define Elf_Word Elf64_Word
+    #define Elf_Addr Elf64_Addr
+    #define Elf_Off  Elf64_Off
     #define EXPECTED_CLASS ELFCLASS64
 #else
     #define Elf_Ehdr Elf32_Ehdr
     #define Elf_Phdr Elf32_Phdr
     #define Elf_Shdr Elf32_Shdr
     #define Elf_Sym  Elf32_Sym
+    #define Elf_Word Elf32_Word
+    #define Elf_Addr Elf32_Addr
+    #define Elf_Off  Elf32_Off
     #define EXPECTED_CLASS ELFCLASS32
 #endif
 
@@ -45,7 +50,7 @@ do { \
 
 using namespace kxemu;
 
-std::map<word_t, std::string> kdb::symbolTable;
+std::map<kdb::word_t, std::string> kdb::symbolTable;
 
 static bool check_is_valid_elf(const Elf_Ehdr &ehdr) {
     // check elf magic number
@@ -76,11 +81,10 @@ static bool load_program(const Elf_Phdr &phdr, std::fstream &f) {
         return true;
     }
 
-    word_t start  = phdr.p_vaddr;
-    word_t filesz = phdr.p_filesz;
-    word_t memsze = phdr.p_memsz;
+    Elf_Addr start  = phdr.p_vaddr;
+    Elf_Word filesz = phdr.p_filesz;
+    Elf_Word memsze = phdr.p_memsz;
 
-    DEBUG("Load ELF: load program to " FMT_WORD " memsize=" FMT_VARU ", filesize=" FMT_VARU, start, memsze, filesz);
     if (memsze == 0) return true;
 
     f.seekg(phdr.p_offset, std::ios::beg);
@@ -91,14 +95,14 @@ static bool load_program(const Elf_Phdr &phdr, std::fstream &f) {
 }
 
 static bool load_symbol_table(const Elf_Shdr &symtabShdr, const Elf_Shdr &strtabShdr, std::fstream &f) {
-    word_t symtabStart = symtabShdr.sh_offset;
-    word_t symtabSize  = symtabShdr.sh_size;
-    word_t strtabStart = strtabShdr.sh_offset;
+    Elf_Off  symtabStart = symtabShdr.sh_offset;
+    Elf_Word symtabSize  = symtabShdr.sh_size;
+    Elf_Off  strtabStart = strtabShdr.sh_offset;
 
     unsigned int symbolCount = symtabSize / sizeof(Elf_Sym);
 
     kdb::symbolTable.clear();
-    word_t offset = symtabStart;
+    Elf_Off offset = symtabStart;
     for (unsigned int i = 0; i < symbolCount; i++) {
         Elf_Sym sym;
         f.seekg(offset, std::ios::beg);
@@ -120,7 +124,7 @@ static bool load_symbol_table(const Elf_Shdr &symtabShdr, const Elf_Shdr &strtab
 
 // ELF file format see https://www.man7.org/linux/man-pages/man5/elf.5.html
 // Load elf file from local disk to memory and build symbol table for debug.
-word_t kdb::load_elf(const std::string &filename) {
+kdb::word_t kdb::load_elf(const std::string &filename) {
     std::fstream f;
     f.open(filename, std::ios_base::in);
     if (!f.is_open()) {

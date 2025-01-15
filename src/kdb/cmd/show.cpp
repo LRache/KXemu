@@ -2,7 +2,6 @@
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "macro.h"
-#include "utils/disasm.h"
 
 #include <bitset>
 #include <cctype>
@@ -145,7 +144,7 @@ static void show_inst(unsigned int count, unsigned int size, word_t addr) {
         }
 
         unsigned int instLen;
-        auto disasmStr = disasm::disassemble(mem, memSize, addr, instLen);
+        auto disasmStr = isa::disassemble(mem, memSize, addr, instLen);
 
         if (instLen == 0) {
             std::cout << "Unsupport to disassemble at " << FMT_STREAM_WORD(addr) << std::endl;

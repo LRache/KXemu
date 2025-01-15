@@ -1,4 +1,5 @@
 #include "cpu/riscv32/cpu.h"
+#include "device/bus.h"
 #include "log.h"
 
 using namespace kxemu::cpu;
@@ -29,7 +30,7 @@ int RV32CPU::core_count() {
     return coreCount;
 }
 
-Core *RV32CPU::get_core(int coreID) {
+RV32Core *RV32CPU::get_core(int coreID) {
     if (coreID != 0) {
         PANIC("RV32CPU does not support multi-core");
     }

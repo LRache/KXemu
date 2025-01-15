@@ -2,9 +2,9 @@
 #define __KXEMU_KDB_KDB_H__
 
 #include "device/uart.h"
-#include "isa/word.h"
 #include "cpu/cpu.h"
 #include "device/bus.h"
+#include "isa/isa.h"
 
 #include <cstddef>
 #include <optional>
@@ -15,6 +15,8 @@
 #include <vector>
 
 namespace kxemu::kdb {
+    using word_t = isa::word_t;
+    
     void init();
     void deinit();
 
@@ -25,11 +27,11 @@ namespace kxemu::kdb {
     int run_source_file(const std::string &filename);
 
     // CPU execution
-    extern cpu::CPU *cpu;
+    extern cpu::CPU<word_t> *cpu;
     extern int returnCode; // set when a core halt
     void reset_cpu();
     int run_cpu();
-    int step_core(cpu::Core *core);
+    int step_core(cpu::Core<word_t> *core);
 
     // Bus
     extern device::Bus *bus;

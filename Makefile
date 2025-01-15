@@ -13,6 +13,7 @@ OBJ_DIR = ./build/obj
 
 SRCS += $(shell find $(SRC_DIR) -path $(SRC_DIR)/isa -prune -o -path $(SRC_DIR)/cpu -prune -o \( -name "*.cpp" -o -name "*.c" \) -print)
 SRCS += $(shell find $(SRC_DIR)/isa/$(BASE_ISA) -name "*.cpp" -or -name "*.c" )
+SRCS += $(shell find $(SRC_DIR)/isa/$(ISA) -name "*.cpp" -or -name "*.c" )
 SRCS += $(shell find $(SRC_DIR)/cpu/$(ISA) -name "*.cpp" -or -name "*.c" )
 OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
@@ -66,3 +67,4 @@ tidy:
 	clang-tidy $(SRCS)
 
 .PHONY: kxemu run clean
+.DEFAULT_GOAL := kxemu

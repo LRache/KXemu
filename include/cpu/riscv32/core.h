@@ -5,10 +5,11 @@
 #include "utils/decoder.h"
 #include "cpu/riscv32/csr.h"
 #include "device/bus.h"
+#include <cstdint>
 
 namespace kxemu::cpu {
 
-class RV32Core : public Core {
+class RV32Core : public Core<uint32_t> {
 private:
     int flags;
     using word_t = uint32_t;

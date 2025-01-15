@@ -60,7 +60,7 @@ static int cmd_uart_puts(const cmd::args_t &args) {
     }
     
     bool s;
-    std::size_t index = utils::string_to_word(args[2], s);
+    std::size_t index = utils::string_to_unsigned(args[2], s);
     if (!s) {
         std::cout << "Invalid Index: " << args[2] << std::endl;
         return cmd::InvalidArgs;

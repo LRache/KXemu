@@ -4,7 +4,6 @@
 #include "kdb/rsp.h"
 #include "log.h"
 #include "isa/isa.h"
-#include "isa/word.h"
 #include "utils/utils.h"
 
 #include <exception>
@@ -14,9 +13,9 @@
 
 using namespace kxemu;
 using kxemu::cpu::CPU;
-using kxemu::cpu::ISA_CPU;
+using kxemu::kdb::word_t;
 
-CPU *kdb::cpu = nullptr;
+CPU<word_t> *kdb::cpu = nullptr;
 word_t kdb::programEntry;
 int kdb::returnCode = 0;
 
@@ -25,10 +24,10 @@ void kdb::init() {
 
     logFlag = DEBUG | INFO | WARN | PANIC;
 
-    cpu = new ISA_CPU();
+    cpu = isa::new_cpu();
     cpu->init(bus, RVFlag::C | RVFlag::M | RVFlag::Zicsr | RVFlag::Priv, 1);
     cpu->reset(INIT_PC);
-    programEntry = INIT_PC;
+    kdb::programEntry = INIT_PC;
 
     INFO("Init %s CPU", ISA_NAME);
 }
@@ -58,7 +57,7 @@ word_t kdb::string_to_addr(const std::string &s, bool &success) {
     success = false;
     word_t addr = -1;
     try {
-        addr = ::utils::string_to_word(s);
+        addr = utils::string_to_unsigned(s);
         success = true;
         return addr;
     } catch (std::exception &) {}

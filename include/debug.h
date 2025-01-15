@@ -2,6 +2,7 @@
 #define __KXEMU_DEBUG_H__
 
 #include "macro.h"
+#include <cstdlib>
 
 #define SELF_PROTECT(cond, ...) \
 do { \

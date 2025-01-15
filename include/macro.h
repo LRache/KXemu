@@ -4,6 +4,8 @@
 #define likely(x)       __builtin_expect(!!(x), 1)
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
+#define MACRO_TO_STRING(x) #x
+
 #define FMT_FG_RED     "\x1b[31m"
 #define FMT_FG_GREEN   "\x1b[32m"
 #define FMT_FG_YELLOW  "\x1b[33m"
