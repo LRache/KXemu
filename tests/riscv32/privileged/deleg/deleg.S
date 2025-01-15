@@ -6,7 +6,7 @@ main:
     csrw pmpaddr0, t0
     li t0, 0xf
     csrw pmpcfg0, t0
-    
+
     // set the mstatues.mpp to S mode
     li t0, 3 << 11
     csrc mstatus, t0
