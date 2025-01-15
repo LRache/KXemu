@@ -1,7 +1,9 @@
-#include "cpu/decoder.h"
+#include "utils/decoder.h"
 #include "log.h"
 #include <cstddef>
 #include <cstdint>
+
+using namespace kxemu::utils;
 
 BitPat::BitPat(const std::string &s) {
     uint64_t bits = 0;

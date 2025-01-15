@@ -5,11 +5,13 @@
                 different ISA.
  ***************************************************************/
 
-#ifndef __CPU_H__
-#define __CPU_H__
+#ifndef __KXEMU_CPU_CPU_H__
+#define __KXEMU_CPU_CPU_H__
 
 #include "isa/word.h"
 #include "device/bus.h"
+
+namespace kxemu::cpu {
 
 class Core {
 public:
@@ -30,7 +32,7 @@ public:
 class CPU {
 public:
     // flags for extension features
-    virtual void init(Bus *memory, int flags, int coreCount) = 0;
+    virtual void init(device::Bus *memory, int flags, int coreCount) = 0;
     virtual void reset(word_t pc) = 0;
     virtual void step() = 0;
     virtual bool is_running() = 0;
@@ -40,5 +42,7 @@ public:
 
     virtual ~CPU() = default;
 };
+
+} // namespace kxemu::cpu
 
 #endif

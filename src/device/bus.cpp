@@ -8,6 +8,8 @@
 
 #define BUFFER_SIZE 1024U
 
+using namespace kxemu::device;
+
 bool Bus::add_memory_map(const std::string &name, word_t start, word_t length, MemoryMap *map) {
     // check if overlap
     for (auto &m : memoryMaps) {

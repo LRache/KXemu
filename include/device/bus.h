@@ -1,9 +1,11 @@
-#ifndef __MEMORY_H__
-#define __MEMORY_H__
+#ifndef __KXEMU_DEVICE_BUS_H__
+#define __KXEMU_DEVICE_BUS_H__
 
 #include "isa/word.h"
 
 #include <vector>
+
+namespace kxemu::device {
 
 class MemoryMap {
 public:
@@ -42,5 +44,7 @@ public:
 
     ~Bus();
 };
+
+} // namespace kxemu::device
 
 #endif

@@ -1,6 +1,6 @@
 #include "kdb/kdb.h"
 #include "cpu/cpu.h"
-#include "isa/riscv32/isa.h"
+#include "isa/isa.h"
 #include "kdb/rsp.h"
 #include "log.h"
 #include "isa/isa.h"
@@ -11,6 +11,10 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+
+using namespace kxemu;
+using kxemu::cpu::CPU;
+using kxemu::cpu::ISA_CPU;
 
 CPU *kdb::cpu = nullptr;
 word_t kdb::programEntry;
@@ -54,7 +58,7 @@ word_t kdb::string_to_addr(const std::string &s, bool &success) {
     success = false;
     word_t addr = -1;
     try {
-        addr = utils::string_to_word(s);
+        addr = ::utils::string_to_word(s);
         success = true;
         return addr;
     } catch (std::exception &) {}

@@ -3,6 +3,9 @@
 
 #include <iostream>
 
+using namespace kxemu;
+using namespace kxemu::kdb;
+
 std::string cmd::elfFileName;
 
 static int cmd_load_elf(const cmd::args_t &);

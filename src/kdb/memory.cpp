@@ -1,10 +1,12 @@
 #include "kdb/kdb.h"
 #include "device/bus.h"
 
-Bus *kdb::bus = nullptr;
+using namespace kxemu;
+
+device::Bus *kdb::bus = nullptr;
 
 void kdb::init_bus() {
-    bus = new Bus();
+    bus = new device::Bus();
 }
 
 void kdb::deinit_bus() {

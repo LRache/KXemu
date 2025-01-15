@@ -1,5 +1,5 @@
-#include "isa/riscv32/csr.h"
-#include "isa/riscv32/csr-def.h"
+#include "cpu/riscv32/csr.h"
+#include "cpu/riscv32/csr-def.h"
 #include "isa/word.h"
 #include "log.h"
 #include "debug.h"
@@ -7,6 +7,8 @@
 
 #define INIT_CSR(addr, v) this->csr[addr].value = v
 #define INIT_CSR_0(addr) INIT_CSR(addr, 0)
+
+using namespace kxemu::cpu;
 
 void RV32CSR::init(unsigned int hartId) {    
     add_csr(0xF11, 0, nullptr, nullptr); // mvendorid, Not implemented

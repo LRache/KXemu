@@ -1,8 +1,10 @@
-#include "cpu/decoder.h"
-#include "isa/riscv32/core.h"
-#include "isa/riscv32/isa.h"
+#include "utils/decoder.h"
+#include "cpu/riscv32/core.h"
+#include "isa/riscv/isa.h"
 
 #define INSTPAT(pat, name) decoder.add(pat, &RV32Core::do_##name)
+
+using namespace kxemu::cpu;
 
 void RV32Core::init_decoder() {
     this->decoder.init(this);

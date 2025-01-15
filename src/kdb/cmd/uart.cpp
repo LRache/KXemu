@@ -6,6 +6,9 @@
 #include <cstddef>
 #include <iostream>
 
+using namespace kxemu;
+using namespace kxemu::kdb;
+
 static int cmd_uart_add (const cmd::args_t &);
 static int cmd_uart_puts(const cmd::args_t &);
 

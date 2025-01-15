@@ -4,6 +4,9 @@
 
 #include <iostream>
 
+using namespace kxemu;
+using namespace kxemu::kdb;
+
 static int cmd_info_gpr(const cmd::args_t &args);
 
 static const cmd::cmd_map_t cmdMap = {
@@ -13,7 +16,7 @@ static const cmd::cmd_map_t cmdMap = {
 static int cmd_info_gpr(const cmd::args_t &args) {
     for (int i = 0; i < GPR_COUNT; i++) {
         word_t value = cmd::currentCore->get_gpr(i);
-        std::cout << get_gpr_name(i) << " = " 
+        std::cout << isa::get_gpr_name(i) << " = " 
         << FMT_STREAM_WORD(value) 
         << "(" << value<< ")" << std::endl;
     }

@@ -14,6 +14,8 @@
 
 #define BUFFER_SIZE 1024
 
+using namespace kxemu::device;
+
 static int open_socket_client(const std::string &ip, int port) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {

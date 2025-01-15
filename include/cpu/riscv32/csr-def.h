@@ -1,5 +1,5 @@
-#ifndef __ISA_RISCV32_CSR_DEF_H__
-#define __ISA_RISCV32_CSR_DEF_H__
+#ifndef __KXEMU_RISCV32_CSR_DEF_H__
+#define __KXEMU_RISCV32_CSR_DEF_H__
 
 #define MTIME_ADDR    0x0200BFF8
 #define MTIMECMP_ADDR 0x02004000

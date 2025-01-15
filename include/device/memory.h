@@ -1,7 +1,9 @@
-#ifndef __DEVICE_MEMORY_H__
-#define __DEVICE_MEMORY_H__
+#ifndef __KXEMU_DEVICE_MEMORY_H__
+#define __KXEMU_DEVICE_MEMORY_H__
 
 #include "device/bus.h"
+
+namespace kxemu::device {
 
 class StorageMemoryMap : public MemoryMap {
 private:
@@ -17,5 +19,7 @@ public:
 
     uint8_t *data;
 };
+
+} // namespace kxemu::device
 
 #endif

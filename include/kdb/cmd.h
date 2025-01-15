@@ -10,8 +10,8 @@
                 4. Return the result code to the caller.
  ***************************************************************/
 
-#ifndef __KDB_CMD_H__
-#define __KDB_CMD_H__
+#ifndef __KXEMU_KDB_CMD_H__
+#define __KXEMU_KDB_CMD_H__
 
 #include "cpu/cpu.h"
 
@@ -20,7 +20,7 @@
 #include <vector>
 #include <string>
 
-namespace cmd {
+namespace kxemu::kdb::cmd {
     using args_t = std::vector<std::string>;
     using func_t = int (*)(const args_t &);
     using cmd_map_t = std::unordered_map<std::string, func_t>;
@@ -55,7 +55,7 @@ namespace cmd {
     // load source from args
     extern std::string elfFileName;
 
-    extern Core *currentCore; // command line current cpu core
+    extern cpu::Core *currentCore; // command line current cpu core
     extern int coreCount; // core count of cpu
 
     using completion_func_t = std::vector<std::string> (*)(); // return possible list

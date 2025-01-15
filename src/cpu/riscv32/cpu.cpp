@@ -1,5 +1,8 @@
-#include "isa/riscv32/cpu.h"
+#include "cpu/riscv32/cpu.h"
 #include "log.h"
+
+using namespace kxemu::cpu;
+using namespace kxemu::device;
 
 void RV32CPU::init(Bus *memory, int flags, int coreCount) {
     if (coreCount != 1) {

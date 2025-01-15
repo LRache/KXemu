@@ -1,5 +1,5 @@
-#include "isa/riscv32/core.h"
-#include "isa/riscv32/csr-def.h"
+#include "cpu/riscv32/core.h"
+#include "cpu/riscv32/csr-def.h"
 
 #define INSTPAT(pat, name) this->decoder.add(pat, &RV32Core::do_##name)
 #define BITS(hi, lo) sub_bits(this->inst, hi, lo)
@@ -14,6 +14,8 @@
 static inline uint32_t sub_bits(uint64_t bits, int hi, int lo) {
     return (bits >> lo) & ((1 << (hi - lo + 1)) - 1);
 }
+
+using namespace kxemu::cpu;
 
 void RV32Core::init_csr() {
     this->csr.init(0);

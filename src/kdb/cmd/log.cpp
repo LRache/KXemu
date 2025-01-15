@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+using namespace kxemu::kdb;
+
 static const struct {
     std::string name;
     int level;

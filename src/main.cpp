@@ -23,6 +23,8 @@
 #include <getopt.h>
 #include <vector>
 
+using namespace kxemu;
+
 void parse_args(int argc, char **argv) {
     static struct option options[] = {
         {"source", required_argument, 0, 's'},
@@ -39,7 +41,7 @@ void parse_args(int argc, char **argv) {
                 sourceFiles.push_back(optarg);
                 break;
             case 'e':
-                cmd::elfFileName = optarg;
+                kdb::cmd::elfFileName = optarg;
                 break;
             default:
                 break;

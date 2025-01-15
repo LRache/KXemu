@@ -1,4 +1,4 @@
-#include "isa/riscv32/core.h"
+#include "cpu/riscv32/core.h"
 
 #define INSTPAT(pat, name) this->decoder.add(pat, &RV32Core::do_##name)
 #define RD  int rd  = get_rd (this->inst);
@@ -30,6 +30,8 @@ static inline int32_t sign_extend(uint32_t bits, int from) {
     int shift = 32 - from;
     return (int32_t)(bits << shift) >> shift;
 }
+
+using namespace kxemu::cpu;
 
 void RV32Core::do_add() {
     RD; RS1; RS2;

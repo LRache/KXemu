@@ -1,5 +1,5 @@
-#ifndef __KDB_H__
-#define __KDB_H__
+#ifndef __KXEMU_KDB_KDB_H__
+#define __KXEMU_KDB_KDB_H__
 
 #include "device/uart.h"
 #include "isa/word.h"
@@ -14,7 +14,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace kdb {
+namespace kxemu::kdb {
     void init();
     void deinit();
 
@@ -25,20 +25,20 @@ namespace kdb {
     int run_source_file(const std::string &filename);
 
     // CPU execution
-    extern CPU *cpu;
+    extern cpu::CPU *cpu;
     extern int returnCode; // set when a core halt
     void reset_cpu();
     int run_cpu();
-    int step_core(Core *core);
+    int step_core(cpu::Core *core);
 
     // Bus
-    extern Bus *bus;
+    extern device::Bus *bus;
     void init_bus();
     void deinit_bus();
 
     // Uart
     namespace uart{
-        extern std::vector<Uart16650 *> list;
+        extern std::vector<kxemu::device::Uart16650 *> list;
         bool add(word_t base, std::ostream &os);
         bool add(word_t base, const std::string &ip, int port);
         bool puts(std::size_t index, const std::string &s);

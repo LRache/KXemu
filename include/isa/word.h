@@ -1,14 +1,5 @@
-#ifndef __ISA_WORD_H__
-#define __ISA_WORD_H__
-
-#ifdef ISA
-    #if ISA == RISCV32
-    #else
-        #error "Unsupport ISA"
-    #endif
-#else
-    #error "ISA not defined"
-#endif
+#ifndef __KXEMU_ISA_WORD_H__
+#define __KXEMU_ISA_WORD_H__
 
 #include <cinttypes>
 #include <iomanip>

@@ -1,3 +1,4 @@
+#include "cpu/cpu.h"
 #include "isa/word.h"
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
@@ -8,6 +9,10 @@
 #include <exception>
 #include <iostream>
 #include <optional>
+
+using namespace kxemu;
+using namespace kxemu::kdb;
+using kxemu::cpu::Core;
 
 int cmd::reset(const args_t &) {
     kdb::reset_cpu();

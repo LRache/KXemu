@@ -1,7 +1,6 @@
-#ifndef __UTILS_RSP_H__
-#define __UTILS_RSP_H__
+#ifndef __KXEMU_UTILS_RSP_H__
+#define __KXEMU_UTILS_RSP_H__
 
-#include <cstddef>
 #include <string>
 #include <vector>
 #include <queue>

@@ -1,5 +1,5 @@
-#ifndef __DEVICE_UART_H__
-#define __DEVICE_UART_H__
+#ifndef __KXEMU_DEVICE_UART_H__
+#define __KXEMU_DEVICE_UART_H__
 
 #include "device/bus.h"
 
@@ -11,6 +11,8 @@
 #include <mutex>
 
 #define UART_LENGTH 8
+
+namespace kxemu::device {
 
 class Uart16650: public MemoryMap {
 public:
@@ -103,5 +105,7 @@ private:
     // [3] R - Delta Data Carrier Detect
     uint8_t msr;
 };
+
+} // namespace kxemu::device
 
 #endif

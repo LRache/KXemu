@@ -1,12 +1,11 @@
-#ifndef __ISA_RISCV32_CPU_H__
-#define __ISA_RISCV32_CPU_H__
+#ifndef __KXEMU_ISA_RISCV64_CPU_H__
+#define __KXEMU_ISA_RISCV64_CPU_H__
 
-#include "cpu/cpu.h"
-#include "isa/riscv32/core.h"
+#include "isa/riscv64/core.h"
 
-class RV32CPU : public CPU {
-private:    
-    RV32Core *core;
+class RV64CPU : public CPU {
+private:
+    RV64Core *core;
     int coreCount;
 
 public:
@@ -18,7 +17,7 @@ public:
     int core_count() override;
     Core *get_core(int coreID) override;
 
-    ~RV32CPU() override;
+    ~RV64CPU() override;
 };
 
 #endif

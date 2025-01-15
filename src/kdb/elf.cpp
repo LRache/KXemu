@@ -1,6 +1,7 @@
 #include "isa/word.h"
 #include "kdb/kdb.h"
 #include "log.h"
+#include "config/config.h"
 
 #include <cstdint>
 #include <cstring>
@@ -28,7 +29,7 @@
 #endif
 
 #ifdef ISA
-    #if ISA == RISCV32
+    #if ISA == riscv32
         #define EXPECTED_ISA EM_RISCV
     #endif
 #endif
@@ -41,6 +42,8 @@ do { \
         return false; \
     } \
 } while (0) 
+
+using namespace kxemu;
 
 std::map<word_t, std::string> kdb::symbolTable;
 

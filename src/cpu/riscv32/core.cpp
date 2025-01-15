@@ -1,10 +1,14 @@
-#include "isa/riscv32/core.h"
-#include "isa/riscv32/csr-def.h"
+#include "cpu/riscv32/core.h"
+#include "cpu/riscv32/csr-def.h"
+#include "device/bus.h"
 #include "isa/word.h"
 #include "log.h"
 #include "macro.h"
 
 #include <cstdint>
+
+using namespace kxemu::cpu;
+using namespace kxemu::device;
 
 void RV32Core::init(Bus *bus, int flags) {
     this->bus = bus;

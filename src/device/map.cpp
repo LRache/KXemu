@@ -1,6 +1,8 @@
 #include "device/memory.h"
 #include "log.h"
 
+using namespace kxemu::device;
+
 StorageMemoryMap::StorageMemoryMap(uint64_t length) {
     this->length = length;
     data = new uint8_t[length];

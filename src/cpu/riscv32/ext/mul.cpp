@@ -1,4 +1,4 @@
-#include "isa/riscv32/core.h"
+#include "cpu/riscv32/core.h"
 
 #define INSTPAT(pat, name) this->decoder.add(pat, &RV32Core::do_##name)
 #define RD  int rd  = get_rd (this->inst);
@@ -20,6 +20,8 @@ static inline int get_rs1(uint32_t inst) {
 static inline int get_rs2(uint32_t inst) {
     return sub_bits(inst, 24, 20);
 }
+
+using namespace kxemu::cpu;
 
 void RV32Core::do_mul() {
     RD; RS1; RS2;

@@ -12,6 +12,9 @@
 #include <iostream>
 #include <optional>
 
+using namespace kxemu;
+using namespace kxemu::kdb;
+
 /*
     arg: /<n/f/c> addr
     n: unit count

@@ -1,5 +1,5 @@
-#ifndef __CPU_DECODER_H__
-#define __CPU_DECODER_H__
+#ifndef __KXEMU_UTILS_DECODER_H__
+#define __KXEMU_UTILS_DECODER_H__
 
 #include "log.h"
 #include "macro.h"
@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+
+namespace kxemu::utils {
 
 class BitPat {
 private:
@@ -60,5 +62,7 @@ public:
         return false;
     }
 };
+
+} // namespace kxemu::utils
 
 #endif

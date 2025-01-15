@@ -1,5 +1,5 @@
-#ifndef __UTILS_DISASM_H__
-#define __UTILS_DISASM_H__
+#ifndef __KXEMU_UTILS_DISASM_H__
+#define __KXEMU_UTILS_DISASM_H__
 
 #include "isa/isa.h"
 #include <string>

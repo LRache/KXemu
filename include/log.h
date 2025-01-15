@@ -1,5 +1,5 @@
-#ifndef __LOG_H__
-#define __LOG_H__
+#ifndef __KXEMU_LOG_H__
+#define __KXEMU_LOG_H__
 
 #include "macro.h"
 

@@ -3,6 +3,9 @@
 #include "kdb/kdb.h"
 #include <string>
 
+using namespace kxemu;
+using kxemu::device::Uart16650;
+
 std::vector<Uart16650 *> kdb::uart::list;
 
 static bool add_uart_map(word_t base, Uart16650 *uart) {

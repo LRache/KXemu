@@ -1,8 +1,10 @@
-#ifndef __ISA_RISCV32_CSR_H__
-#define __ISA_RISCV32_CSR_H__
+#ifndef __KXEMU_CPU_RISCV32_CSR_H__
+#define __KXEMU_CPU_RISCV32_CSR_H__
 
 #include "isa/word.h"
 #include <unordered_map>
+
+namespace kxemu::cpu {
 
 class RV32CSR {
 private:
@@ -59,5 +61,7 @@ public:
     word_t  read_sstatus(unsigned int addr, word_t value);
     word_t write_sstatus(unsigned int addr, word_t value, bool &valid);
 };
+
+} // namespace kxemu::cpu
 
 #endif

@@ -6,6 +6,9 @@
 #include <readline/readline.h>
 #include <vector>
 
+using namespace kxemu;
+using namespace kxemu::kdb;
+
 struct Node {
     explicit Node(const std::unordered_map<std::string, Node*> &children) : children(children) , func(nullptr){};
     explicit Node(const cmd::completion_func_t &func) : func(func) {}

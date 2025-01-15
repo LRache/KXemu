@@ -4,6 +4,9 @@
 
 #include <iostream>
 
+using namespace kxemu;
+using kxemu::cpu::Core;
+
 std::unordered_set<word_t> kdb::breakpointSet;
 bool kdb::brkTriggered = false;
 

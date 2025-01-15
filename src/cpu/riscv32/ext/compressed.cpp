@@ -1,4 +1,4 @@
-#include "isa/riscv32/core.h"
+#include "cpu/riscv32/core.h"
 
 #define INSTPAT(pat, name) this->cdecoder.add(pat, &RV32Core::do_##name)
 #define BITS(hi, lo) sub_bits(this->inst, hi, lo)
@@ -14,6 +14,8 @@ static inline int32_t sign_extend(uint32_t bits, int from) {
     int shift = 32 - from;
     return (int32_t)(bits << shift) >> shift;
 }
+
+using namespace kxemu::cpu;
 
 void RV32Core::do_c_lwsp() {
     int rd = BITS(11, 7);

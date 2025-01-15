@@ -12,6 +12,10 @@
 #include <vector>
 #include <iostream>
 
+using namespace kxemu;
+using namespace kxemu::kdb;
+using kxemu::device::StorageMemoryMap;
+
 static int cmd_mem_create(const cmd::args_t &);
 static int cmd_mem_img   (const cmd::args_t &);
 static int cmd_mem_elf   (const cmd::args_t &);

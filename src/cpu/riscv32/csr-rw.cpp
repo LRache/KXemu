@@ -1,6 +1,8 @@
-#include "isa/riscv32/csr.h"
-#include "isa/riscv32/csr-def.h"
+#include "cpu/riscv32/csr.h"
+#include "cpu/riscv32/csr-def.h"
 #include "isa/word.h"
+
+using namespace kxemu::cpu;
 
 word_t RV32CSR::read_misa(unsigned int addr, word_t value) {
     return value;

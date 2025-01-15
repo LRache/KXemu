@@ -1,7 +1,5 @@
-#ifndef __ISA_RISCV32_ISA_H__
-#define __ISA_RISCV32_ISA_H__
-
-#include <string>
+#ifndef __KXEMU_ISA_RISCV32_ISA_H__
+#define __KXEMU_ISA_RISCV32_ISA_H__
 
 #define INIT_PC 0x80000000
 
@@ -15,7 +13,5 @@ enum RVFlag {
     Zicsr = 8,
     Priv  = 16
 };
-
-std::string get_gpr_name(int idx);
 
 #endif

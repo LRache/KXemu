@@ -1,12 +1,11 @@
-#ifndef __UTILS_TCP_SERVER_H__
-#define __UTILS_TCP_SERVER_H__
+#ifndef __KXEMU_UTILS_TCP_SERVER_H__
+#define __KXEMU_UTILS_TCP_SERVER_H__
 
 #include <cstddef>
 #include <cstdint>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h> // close
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <string>

@@ -1,9 +1,10 @@
-#include "isa/riscv32/core.h"
-#include "isa/riscv32/csr-def.h"
+#include "cpu/riscv32/core.h"
+#include "cpu/riscv32/csr-def.h"
 #include "isa/word.h"
 #include "log.h"
 #include "macro.h"
 
+using namespace kxemu::cpu;
 
 // To support nested traps, each privilege mode x that can respond to interrupts has a two-level stack of
 // interrupt-enable bits and privilege modes. xPIE holds the value of the interrupt-enable bit active prior
