@@ -1,0 +1,23 @@
+mainmenu "KXemu Configurations"
+
+choice
+    prompt "ISA"
+    default ISA_riscv32
+
+config ISA_riscv32
+    bool "riscv32"
+
+config ISA_riscv64
+    bool "riscv64"
+
+endchoice
+
+config ISA
+    string
+    default riscv32 if ISA_riscv32
+    default riscv64 if ISA_riscv64
+
+config BASE_ISA
+    string
+    default riscv if ISA_riscv32
+    default riscv if ISA_riscv64

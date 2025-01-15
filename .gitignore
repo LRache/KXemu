@@ -6,3 +6,5 @@ build
 # clangd
 compile_commands.json
 .cache
+
+autoconf.h
