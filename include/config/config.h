@@ -7,7 +7,7 @@
     #define ISA riscv32
 #elif defined (CONFIG_ISA_riscv64) && CONFIG_ISA_riscv64 == 1
     #define ISA riscv64
-    #define ISA_64
+    #define ISA64
 #endif
 
 #endif
