@@ -19,4 +19,4 @@ menuconfig: $(CONF) $(MCONF)
 	@ cd $(CONFIG_DIR) && ../$(MCONF) -s Kconfig
 	@ cd $(CONFIG_DIR) && ../$(CONF) -s --syncconfig Kconfig
 	@ mkdir -p ./include/generated
-	@ cp $(CONFIG_DIR)/include/generated/autoconf.h ./include
+	@ cp $(CONFIG_DIR)/include/generated/autoconf.h ./include/config
