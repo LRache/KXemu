@@ -8,7 +8,9 @@
 
 3. `mtime`和`mtimecmp`的计时功能，默认频率是10MHz。Timing functionality for mtime and mtimecmp, with a default frequency of 10 MHz.
 
-4. 物理内存管理和虚拟内存管理。
+4. 物理内存保护和虚拟内存管理。 Physical Memory Protection and Vitrual Memory.
+
+5. Sstc扩展。 Sstc Extension.
 
 ## 计划实现
 
