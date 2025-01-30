@@ -16,10 +16,10 @@ namespace kxemu::device {
 
 class Uart16650: public MemoryMap {
 public:
-    word_t read(word_t offset, int size);
-    bool write(word_t offset, word_t data, int size);
-    uint8_t *get_ptr(word_t offset);
-    std::string get_type_str() const;
+    word_t read(word_t offset, int size) override;
+    bool write(word_t offset, word_t data, int size) override;
+    uint8_t *get_ptr(word_t offset) override;
+    const char *get_type_name() const override;
 
     bool putch(uint8_t data);
     void set_output_stream(std::ostream &os);    // send data to stream

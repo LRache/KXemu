@@ -110,7 +110,7 @@ static char *command_completion_generator(const char *, int state) {
     }
 }
 
-static char **cmd_completion(const char *text, int start, int end) {
+static char **cmd_completion(const char *text, int, int) {
     return rl_completion_matches(text, command_completion_generator);
 }
 

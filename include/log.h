@@ -5,6 +5,8 @@
 
 #include <cstdio>
 
+#include "isa/word.h"
+
 #define PUTLOG(FG, TYPE, ...) \
 do { \
     if (!(logFlag & TYPE)) break; \

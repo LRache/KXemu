@@ -3,18 +3,19 @@ include ./scripts/config.mk
 remove_quote = $(patsubst "%",%,$(1))
 
 CXX = clang++
-CXXFLAGS = -Wall -Wextra -Werror -pedantic -O3 -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field -flto
+LD = clang++
+CXXFLAGS = -Wall -Wextra -Werror -pedantic -Ofast -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field -flto -funroll-loops
 ISA := $(call remove_quote,$(CONFIG_ISA))
 BASE_ISA := $(call remove_quote,$(CONFIG_BASE_ISA))
 
 SRC_DIR = ./src
 BUILD_DIR = ./build
-OBJ_DIR = ./build/obj
+OBJ_DIR = ./build/$(ISA)
 
 SRCS += $(shell find $(SRC_DIR) -path $(SRC_DIR)/isa -prune -o -path $(SRC_DIR)/cpu -prune -o \( -name "*.cpp" -o -name "*.c" \) -print)
 SRCS += $(shell find $(SRC_DIR)/isa/$(BASE_ISA) -name "*.cpp" -or -name "*.c" )
-SRCS += $(shell find $(SRC_DIR)/isa/$(ISA) -name "*.cpp" -or -name "*.c" )
-SRCS += $(shell find $(SRC_DIR)/cpu/$(ISA) -name "*.cpp" -or -name "*.c" )
+# SRCS += $(shell find $(SRC_DIR)/isa/$(ISA) -name "*.cpp" -or -name "*.c" )
+SRCS += $(shell find $(SRC_DIR)/cpu/$(CONFIG_SRC_CPU_ISA) -name "*.cpp" -or -name "*.c" )
 OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
@@ -41,7 +42,7 @@ TARGET = $(BUILD_DIR)/$(ISA)-kxemu
 $(TARGET): $(OBJS)
 	$(info + CXX $@)
 	@ mkdir -p $(BUILD_DIR)
-	@ $(CXX) $(OBJS) -o $(TARGET) $(LDFLAGS) $(CXXFLAGS)
+	@ $(LD) $(OBJS) -o $(TARGET) $(LDFLAGS) $(CXXFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(info + CXX $<)

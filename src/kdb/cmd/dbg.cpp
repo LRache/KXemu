@@ -3,15 +3,13 @@
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
 #include "macro.h"
-#include "utils/utils.h"
 
-#include <exception>
+#include <cstdint>
 #include <iostream>
 #include <optional>
 
 using namespace kxemu;
 using namespace kxemu::kdb;
-using kxemu::cpu::Core;
 
 int cmd::reset(const args_t &) {
     kdb::reset_cpu();
@@ -19,7 +17,20 @@ int cmd::reset(const args_t &) {
 }
 
 static void output_disassemble(word_t pc) {
+    bool valid;
+    word_t paddr = kdb::cpu->get_core(0)->vaddr_translate(pc, valid);
+
+    if (!valid) {
+        std::cout << "Cannot access memory at pc= " << FMT_STREAM_WORD(pc) << "." << std::endl;
+        return;
+    }
+    if (paddr != pc) {
+        std::cout << "(vaddr=" << FMT_STREAM_WORD(pc) << ")";
+    }
+    pc = paddr;
+
     uint8_t *mem = kdb::bus->get_ptr(pc);
+    uint64_t memSize = kdb::bus->get_ptr_length(pc);
     if (mem == nullptr) {
         std::cout << "Unsupport to disassemble at pc=" << FMT_STREAM_WORD(pc) << std::endl;
         return;
@@ -28,8 +39,8 @@ static void output_disassemble(word_t pc) {
         word_t symbolOffset = 0;
         auto symbolName = kdb::addr_match_symbol(pc, symbolOffset);
         
-        unsigned int instLength;
-        std::string inst = isa::disassemble(mem, MAX_INST_LEN, pc, instLength);
+        uint64_t instLength;
+        std::string inst = isa::disassemble(mem, memSize, pc, instLength);
         std::cout << FMT_STREAM_WORD(pc) << ": ";
         if (symbolName != std::nullopt) {
             std::cout << "<" << FMT_FG_YELLOW << symbolName.value() << FMT_FG_RESET << "+" << symbolOffset << "> ";
@@ -88,7 +99,7 @@ int cmd::run(const args_t &) {
     } else {
         kdb::run_cpu();
         if (kdb::brkTriggered) {
-            std::cout << "Breakpoint triggered."<< std::endl;
+            std::cout << "Breakpoint at " << FMT_STREAM_WORD(currentCore->get_pc()) << " triggered."<< std::endl;
         }
     }
     return 0;
@@ -118,10 +129,9 @@ int cmd::breakpoint(const cmd::args_t &args) {
         return cmd::EmptyArgs;
     }
     std::string addrStr = args[1];
-    word_t addr;
-    try {
-        addr = utils::string_to_unsigned(addrStr);
-    } catch (const std::exception &) {
+    bool success;
+    word_t addr = string_to_addr(addrStr, success);
+    if (!success) {
         std::cout << "Invalid argument: " << addrStr << std::endl;
         return cmd::InvalidArgs;
     }

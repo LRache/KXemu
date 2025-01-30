@@ -4,6 +4,7 @@
 #include "log.h"
 #include "macro.h"
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -33,6 +34,7 @@ private:
         void (T::*action)();
     };
     std::vector<Entry> patterns;
+    // Entry patterns[N];
     T *obj;
 public:
     unsigned int fixedLength = 0;

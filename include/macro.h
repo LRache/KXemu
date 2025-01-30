@@ -6,6 +6,8 @@
 
 #define MACRO_TO_STRING(x) #x
 
+#define ARRLEN(array) (sizeof(array) / sizeof(array[0]))
+
 #define FMT_FG_RED     "\x1b[31m"
 #define FMT_FG_GREEN   "\x1b[32m"
 #define FMT_FG_YELLOW  "\x1b[33m"

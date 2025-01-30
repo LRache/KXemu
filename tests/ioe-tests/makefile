@@ -8,4 +8,4 @@ ifneq ($(wildcard $(KDB_FILE)),)
 	KDB_INIT_SRC += $(abspath $(KDB_FILE))
 endif
 
-include ../abstract-machine/makefile
+include ../abstract-machine/Makefile

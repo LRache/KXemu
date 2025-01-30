@@ -9,7 +9,7 @@ TCPServer::TCPServer() {
     std::memset(&address, 0, sizeof(address));
 }
 
-bool TCPServer::start(const std::string &ip, int port) {
+bool TCPServer::start(const std::string &, int port) {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
         return false;

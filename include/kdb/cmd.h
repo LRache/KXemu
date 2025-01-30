@@ -13,7 +13,6 @@
 #ifndef __KXEMU_KDB_CMD_H__
 #define __KXEMU_KDB_CMD_H__
 
-#include "cpu/cpu.h"
 #include "kdb/kdb.h"
 
 #include <cstddef>

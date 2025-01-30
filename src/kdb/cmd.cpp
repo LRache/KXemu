@@ -11,6 +11,7 @@
 #include "log.h"
 #include "utils/utils.h"
 
+#include <cstdio>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <string>
@@ -117,9 +118,13 @@ void kdb::cmd_init() {
 }
 
 int kdb::run_cmd_mainloop() {
+    char prompt[64];
+    snprintf(prompt, sizeof(prompt), SHELL_BULE "%s-kdb> " SHELL_RESET, isa::get_isa_name());
+
     std::string lastCmd;
+    char *inputLine;
     while (cmdRunning) {
-        char *inputLine = readline(SHELL_BULE ISA_NAME "-kdb> " SHELL_RESET);
+        inputLine = readline(prompt);
         if (inputLine == nullptr) {
             break;
         }

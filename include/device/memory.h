@@ -5,17 +5,17 @@
 
 namespace kxemu::device {
 
-class StorageMemoryMap : public MemoryMap {
+class Memory : public MemoryMap {
 private:
     uint64_t length;
 public:
-    StorageMemoryMap(uint64_t length);
-    ~StorageMemoryMap();
+    Memory(uint64_t length);
+    ~Memory();
     
     word_t read(word_t addr, int size) override;
     bool write(word_t addr, word_t data, int size) override;
     uint8_t *get_ptr(word_t addr) override;
-    std::string get_type_str() const override;
+    const char *get_type_name() const override;
 
     uint8_t *data;
 };

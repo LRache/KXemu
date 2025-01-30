@@ -1,4 +1,4 @@
-#include "isa/word.h"
+#include "log.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "macro.h"
@@ -50,6 +50,13 @@ enum Format{
 typedef void (*func_t)(uint8_t *, unsigned int);
 
 static void show_mem_value_helper(unsigned int count, unsigned int size, word_t addr, func_t f) {
+    bool valid;
+    addr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
+    if (!valid) {
+        std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+        return;
+    }
+
     uint8_t *mem = kdb::bus->get_ptr(addr);
     word_t memSize = kdb::bus->get_ptr_length(addr);
     for (unsigned int i = 0; i < count; i++) {
@@ -120,7 +127,7 @@ static void show_bin(uint8_t *mem, unsigned int size) {
     std::cout << std::endl;
 }
 
-static void show_char(uint8_t *mem, unsigned int size) {
+static void show_char(uint8_t *mem, unsigned int) {
     std::cout << *(char *)mem << std::endl;
 }
 
@@ -132,7 +139,14 @@ static void show_float(uint8_t *mem, unsigned int size) {
     std::cout << std::endl;
 }
 
-static void show_inst(unsigned int count, unsigned int size, word_t addr) {
+static void show_inst(unsigned int count, unsigned int, word_t addr) {
+    bool valid;
+    addr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
+    if (!valid) {
+        std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+        return;
+    }
+    
     uint8_t *mem = kdb::bus->get_ptr(addr);
     word_t memSize = kdb::bus->get_ptr_length(addr);
 
@@ -143,7 +157,7 @@ static void show_inst(unsigned int count, unsigned int size, word_t addr) {
             break;
         }
 
-        unsigned int instLen;
+        uint64_t instLen;
         auto disasmStr = isa::disassemble(mem, memSize, addr, instLen);
 
         if (instLen == 0) {

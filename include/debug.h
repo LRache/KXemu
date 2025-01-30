@@ -2,15 +2,16 @@
 #define __KXEMU_DEBUG_H__
 
 #include "macro.h"
+#include <cstdio>
 #include <cstdlib>
 
 #define SELF_PROTECT(cond, ...) \
 do { \
     if (unlikely(!(cond))) { \
-        printf(FMT_FG_RED "[SELF-PROTECT][%s:%d %s]\nASSERT FAILED: %s\nThere must be wrong in your implemention. Please check.\n" FMT_FG_RESET,\
+        fprintf(stderr, FMT_FG_RED "[SELF-PROTECT][%s:%d %s]\nASSERT FAILED: %s\nThere must be wrong in your implemention. Please check.\n",\
          __FILE__, __LINE__, __func__, #cond); \
-        printf(__VA_ARGS__); \
-        printf(FMT_FG_RESET "\n"); \
+        fprintf(stderr, __VA_ARGS__); \
+        fprintf(stderr, FMT_FG_RESET "\n"); \
         exit(1); \
     } \
 } while(0);

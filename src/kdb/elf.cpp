@@ -1,3 +1,4 @@
+#include "isa/isa.h"
 #include "kdb/kdb.h"
 #include "log.h"
 #include "config/config.h"
@@ -13,7 +14,7 @@
 #include <ostream>
 #include <vector>
 
-#ifdef ISA64
+#ifdef KXEMU_ISA64
     #define Elf_Ehdr Elf64_Ehdr
     #define Elf_Phdr Elf64_Phdr
     #define Elf_Shdr Elf64_Shdr
@@ -69,7 +70,7 @@ static bool check_is_valid_elf(const Elf_Ehdr &ehdr) {
     }
 
     // check isa
-    if (ehdr.e_machine != EXPECTED_ISA) {
+    if (ehdr.e_machine != isa::get_elf_expected_machine()) {
         return false;
     }
 
@@ -122,7 +123,7 @@ static bool load_symbol_table(const Elf_Shdr &symtabShdr, const Elf_Shdr &strtab
     return true;
 }
 
-// ELF file format see https://www.man7.org/linux/man-pages/man5/elf.5.html
+// For ELF file format, see https://www.man7.org/linux/man-pages/man5/elf.5.html
 // Load elf file from local disk to memory and build symbol table for debug.
 kdb::word_t kdb::load_elf(const std::string &filename) {
     std::fstream f;

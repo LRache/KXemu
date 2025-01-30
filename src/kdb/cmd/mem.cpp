@@ -3,7 +3,7 @@
 #include "device/bus.h"
 #include "device/memory.h"
 #include "utils/utils.h"
-#include "isa/word.h"
+#include "log.h"
 
 #include <exception>
 #include <fstream>
@@ -16,7 +16,7 @@
 using namespace kxemu;
 using namespace kxemu::kdb;
 using kxemu::kdb::word_t;
-using kxemu::device::StorageMemoryMap;
+using kxemu::device::Memory;
 
 static int cmd_mem_create(const cmd::args_t &);
 static int cmd_mem_img   (const cmd::args_t &);
@@ -59,7 +59,7 @@ static int cmd_mem_create(const std::vector<std::string> &args) {
         return cmd::InvalidArgs;
     }
     
-    bool s = kdb::bus->add_memory_map(name, start, size, new StorageMemoryMap(size));
+    bool s = kdb::bus->add_memory_map(name, start, size, new Memory(size));
     if (s) {
         std::cout << "Create new memory map " << name << " at " << FMT_STREAM_WORD(start) << " with size=" << size << std::endl;
         return cmd::Success;
@@ -121,7 +121,7 @@ static int cmd_mem_map(const cmd::args_t &) {
         << std::setw(10) << m->name << " | "
         << FMT_STREAM_WORD(m->start)  << " | "
         << FMT_STREAM_WORD(m->length) << " | "
-        << std::setw(6) << m->map->get_type_str() << std::endl;
+        << std::setw(6) << m->map->get_type_name() << std::endl;
     }
     return cmd::Success;
 }

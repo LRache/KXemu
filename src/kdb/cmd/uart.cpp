@@ -1,4 +1,4 @@
-#include "isa/word.h"
+#include "log.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "utils/utils.h"

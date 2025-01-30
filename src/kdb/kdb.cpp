@@ -25,11 +25,11 @@ void kdb::init() {
     logFlag = DEBUG | INFO | WARN | PANIC;
 
     cpu = isa::new_cpu();
-    cpu->init(bus, RVFlag::C | RVFlag::M | RVFlag::Zicsr | RVFlag::Priv, 1);
-    cpu->reset(INIT_PC);
-    kdb::programEntry = INIT_PC;
+    cpu->init(bus, -1, 1);
+    cpu->reset(0x80000000);
+    kdb::programEntry = 0x80000000;
 
-    INFO("Init %s CPU", ISA_NAME);
+    INFO("Init %s CPU", isa::get_isa_name());
 }
 
 void kdb::deinit() {
@@ -42,7 +42,7 @@ int kdb::run_source_file(const std::string &filename) {
     std::ifstream f;
     f.open(filename, std::ios::in);
     if (!f.is_open()) {
-        std::cout << "FileNotFound: No such file: " << filename << std::endl;
+        std::cerr << "FileNotFound: No such file: " << filename << std::endl;
         return 1;
     }
 

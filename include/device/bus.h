@@ -7,24 +7,20 @@
 
 namespace kxemu::device {
 
-#ifdef ISA_64
     using word_t = uint64_t;
-#else
-    using word_t = uint32_t;
-#endif
 
 class MemoryMap {
 public:
     virtual word_t read(word_t offset, int size) = 0;
     virtual bool write(word_t offset, word_t data, int size) = 0;
     virtual uint8_t *get_ptr(word_t offset) = 0;
-    virtual std::string get_type_str() const = 0;
+    virtual const char *get_type_name() const = 0;
     virtual ~MemoryMap() {};
 };
 
 class Bus {
 public:
-    word_t read(word_t addr, int size, bool &valid) const;
+    word_t read(word_t addr, unsigned int size, bool &valid) const;
     bool write(word_t addr, word_t data, int size);
     uint8_t *get_ptr(word_t addr) const;
     word_t   get_ptr_length(word_t addr) const;

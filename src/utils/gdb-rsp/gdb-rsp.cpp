@@ -90,7 +90,7 @@ bool RSP::wait_client() {
     return true;
 }
 
-int RSP::next_command(std::vector<std::string> &args, bool blocked) {
+int RSP::next_command(std::vector<std::string> &, bool blocked) {
     SELF_PROTECT(this->client != -1, "Client is not initialized.")
 
     if (commandQueue.empty()) {

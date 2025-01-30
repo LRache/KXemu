@@ -1,5 +1,4 @@
 #include "device/uart.h"
-#include "isa/word.h"
 #include "log.h"
 
 #include <arpa/inet.h>
@@ -80,7 +79,7 @@ word_t Uart16650::read(word_t offset, int size) {
         // MSR: Modem Status Register
         return msr;
     } else {
-        WARN("uart read offset %d not supported.", offset);
+        WARN("uart read offset " FMT_VARU64 " not supported.", offset);
         return -1;
     }
 }
@@ -118,7 +117,7 @@ bool Uart16650::write(word_t offset, word_t data, int size) {
         // Note: MCR is not implemented
         return true;
     } else {
-        WARN("uart write offset %d not supported.", offset);
+        WARN("uart write offset " FMT_VARU64 " not supported.", offset);
         return false;
     }
 }
@@ -180,11 +179,11 @@ void Uart16650::send_byte(uint8_t c) {
     }
 }
 
-uint8_t *Uart16650::get_ptr(word_t offset) {
+uint8_t *Uart16650::get_ptr(word_t) {
     return nullptr;
 }
 
-std::string Uart16650::get_type_str() const {
+const char *Uart16650::get_type_name() const {
     return "uart16650";
 }
 
