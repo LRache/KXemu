@@ -1,6 +1,6 @@
-# RISCV32
+# RISCV
 
-## 实现的功能
+## 已实现
 
 1. 基本整数指令集、M扩展指令集、C扩展指令集的整数部分。Basic integer instruction set, M-extension, and the integer part of the C-extension.
 
@@ -8,8 +8,10 @@
 
 3. `mtime`和`mtimecmp`的计时功能，默认频率是10MHz。Timing functionality for mtime and mtimecmp, with a default frequency of 10 MHz.
 
+4. 物理内存管理和虚拟内存管理。
+
 ## 计划实现
 
-1. PMP物理内存保护。Physical Memory Protection (PMP).
+1. 原子指令A扩展。
 
-2. 虚拟内存。Virtual memory.
+2. 浮点指令F扩展和D扩展。

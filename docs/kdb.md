@@ -56,6 +56,8 @@ Load commands are used to load files specified in the command-line arguments, su
 
 - `info gpr` 打印当前核的所有通用寄存器。Prints all general-purpose registers of the current core(or halt).
 
+- `info pc` 打印当前核的PC。Prints the PC register of the current core(or halt).
+
 ### 其他
 
 - `source [filename]` 运行存储在本地的kdb命令文件。Executes a local KDB command file.

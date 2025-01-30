@@ -10,19 +10,17 @@ We are a group of students from Hangzhou Dianzi University who are passionate ab
 
 ## 使用方法 Usage
 
-在项目的目录下运行`make ISA=[isa]`即可编译`kxemu`，同样，使用`make run`可以直接运行`kdb`，当然，里面没有任何自带的镜像文件，你需要自己加载。在`test`目录下，有许多已经写好的测试程序，包括了简单的CPU测试和特权级指令测试。在`docs`文件夹下面，有详细的`kdb`命令教程。
+在项目的目录下运行`make menuconfig`选择编译选项和指令集，同样，使用`make run`可以直接运行`kdb`，当然，里面没有任何自带的镜像文件，你需要自己加载ELF文件。在`test`目录下，有许多已经写好的测试程序，包括了简单的CPU测试和特权级指令测试。在`docs`文件夹下面，有详细的`kdb`命令教程。
 
-To compile `kxemu`, run `make ISA=[isa]` in the project directory. Similarly, you can directly run `kdb` using `make run`. However, it does not include any built-in image files, so you need to load them yourself. In the `test` directory, there are various pre-written test programs, including basic CPU tests and privileged instruction tests. Detailed `kdb` command tutorials can be found in the `docs` folder.
-
-理论上来说，除了UART的部分套接字我们使用了Unix的套接字，其余的代码是和运行平台解耦的。所以如果想在Windows下运行这个项目，只需要对`include/device/uart.h`和`include/device/uart.cpp`等文件中的部分代码进行注释即可。
-
-Theoretically, except for the UART sockets, where we used Unix sockets, the rest of the code is decoupled from the running platform. To run this project on Windows, you only need to comment out parts of the code in `include/device/uart.h` and `include/device/uart.cpp`.
+To compile `kxemu`, run `make menuconfig` in the project directory. Similarly, you can directly run `kdb` using `make run`. However, it does not include any built-in image files, so you need to load them yourself. In the `test` directory, there are various pre-written test programs, including basic CPU tests and privileged instruction tests. Detailed `kdb` command tutorials can be found in the `docs` folder.
 
 ## 功能支持 Features
 
-现在的KXemu只支持riscv32一种指令集，所以所有编译运行选项的ISA只能指定为`riscv32`。已经实现的具体细节可以在`docs`目录下的文档中查看。
+现在的KXemu现在支持riscv32和riscv64指令集，所以所有编译运行选项的ISA只能指定为`riscv32`或`riscv64`。已经实现的具体细节可以在`docs`目录下的文档中查看。
 
-Currently, KXemu only supports the `riscv32` instruction set, so all compile and run options for ISA must be set to `riscv32`. Specific details of the implementation can be found in the documents under the `docs` directory.
+Currently, KXemu supports the `riscv32` and `riscv64` instruction sets, so all compile and run options for ISA must be set to `riscv32` or `riscv64`. Specific details of the implementation can be found in the documents under the `docs` directory.
+
+- [riscv32/64](./docs/riscv.md)
 
 ## 文件结构 File Structure
 
