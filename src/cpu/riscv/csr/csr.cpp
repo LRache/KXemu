@@ -18,39 +18,38 @@ RVCSR::RVCSR() {
     // Machine Information Registers
     add_csr(CSR_MVENDORID, MVENDORID, nullptr, nullptr); // mvendorid, Not implemented
     add_csr(CSR_MARCHID  , MARCHID, nullptr, nullptr); // marchid, Not implemented
-    add_csr(CSR_MIMPID   , 0, nullptr, nullptr); // mimpid, Not implemented
-    add_csr(CSR_MHARTID  , 0, nullptr, nullptr); // mhartid
-    add_csr(CSR_MCFGPTR  , 0, nullptr, nullptr); // mconfigptr, Not implemented
+    add_csr(CSR_MIMPID ); // mimpid, Not implemented
+    add_csr(CSR_MHARTID); // mhartid
+    add_csr(CSR_MCFGPTR); // mconfigptr, Not implemented
 
     // Machine Trap Setup
-    add_csr(CSR_MSTATUS, 0, nullptr, nullptr); // Not implemented
-    add_csr(CSR_MISA   , MISA_C | MISA_M, &RVCSR::read_misa, &RVCSR::write_misa); // misa
-    add_csr(CSR_MEDELEG, 0, nullptr, nullptr); // medeleg
-    add_csr(CSR_MIDELEG, 0, nullptr, nullptr); // mideleg
-    add_csr(CSR_MIE    , 0, nullptr, nullptr); // mie
-    add_csr(CSR_MTVEC  , 0, nullptr, nullptr); // mtvec
-    add_csr(CSR_MCNTEN , 0, nullptr, nullptr); // mcounteren, Not implemented
+    add_csr(CSR_MSTATUS); // Not implemented
+    add_csr(CSR_MISA, MISA_C | MISA_M, &RVCSR::read_misa, &RVCSR::write_misa); // misa
+    add_csr(CSR_MEDELEG); // medeleg
+    add_csr(CSR_MIDELEG); // mideleg
+    add_csr(CSR_MIE    ); // mie
+    add_csr(CSR_MTVEC  ); // mtvec
+    add_csr(CSR_MCNTEN ); // mcounteren, Not implemented
 #ifdef KXEMU_ISA32
-    add_csr(CSR_MSTATUSH, 0, nullptr, nullptr); // mstatush, Not implemented
-    add_csr(CSR_MEDELEGH, 0, nullptr, nullptr); // medelegh
+    add_csr(CSR_MSTATUSH); // mstatush, Not implemented
+    add_csr(CSR_MEDELEGH); // medelegh
 #endif
 
     // Machine Trap Handling
-    add_csr(CSR_MSCRATCH, 0, nullptr, nullptr); // mscratch
-    add_csr(CSR_MEPC    , 0, nullptr, nullptr); // mepc
-    add_csr(CSR_MCAUSE  , 0x1800, nullptr, nullptr); // mcause
-    add_csr(CSR_MTVAL   , 0, nullptr, nullptr); // mtval
-    add_csr(CSR_MIP     , 0, nullptr, nullptr); // mip
-    add_csr(CSR_MTINST  , 0, nullptr, nullptr); // mtinst, Not implemented
-    add_csr(CSR_MTVAL2  , 0, nullptr, nullptr); // mtval2, Not implemented
+    add_csr(CSR_MSCRATCH); // mscratch
+    add_csr(CSR_MEPC    ); // mepc
+    add_csr(CSR_MCAUSE  ); // mcause
+    add_csr(CSR_MTVAL   ); // mtval
+    add_csr(CSR_MIP     ); // mip
+    add_csr(CSR_MTINST  ); // mtinst, Not implemented
+    add_csr(CSR_MTVAL2  ); // mtval2, Not implemented
 
     // Machine Configuration
-    add_csr(CSR_MENVCFG, 0, nullptr, nullptr); // menvcfg, Not implemented
-    
-    add_csr(CSR_MSECCFG, 0, nullptr, nullptr); // mseccfg, Not implemented
+    add_csr(CSR_MENVCFG); // menvcfg, Not implemented 
+    add_csr(CSR_MSECCFG); // mseccfg, Not implemented
 #ifdef KXEMU_ISA32
-    add_csr(0x31a, 0, nullptr, nullptr); // menvcfgh, Not implemented
-    add_csr(0x757, 0, nullptr, nullptr); // mseccfgh, Not implemented
+    add_csr(CSR_MENVCFGH); // menvcfgh, Not implemented
+    add_csr(CSR_MSECCFGH); // mseccfgh, Not implemented
 #endif
 
     // Physical Memory Protection
@@ -67,9 +66,9 @@ RVCSR::RVCSR() {
     }
 
     // Supervisor Trap Setup
-    add_csr(CSR_SSTATUS, 0, nullptr, nullptr); // sstatus
+    add_csr(CSR_SSTATUS); // sstatus
     add_csr(CSR_SIE    , 0, &RVCSR::read_sie, &RVCSR::write_sie); // sie
-    add_csr(CSR_STVEC  ,  0, nullptr, nullptr); // stvec
+    add_csr(CSR_STVEC  ); // stvec
 
     // Supervisor Trap Handling
     add_csr(CSR_SSCRATCH, 0, nullptr, nullptr); // sscratch
@@ -77,7 +76,7 @@ RVCSR::RVCSR() {
     add_csr(CSR_SCAUSE  , 0, nullptr, nullptr); // scause
     add_csr(CSR_STVAL   , 0, nullptr, nullptr); // stval
     add_csr(CSR_SIP     , 0, &RVCSR::read_sip, &RVCSR::write_sip); // sip
-    add_csr(CSR_STIMECMP, 0, nullptr, nullptr); // stimecmp
+    add_csr(CSR_STIMECMP, 0, nullptr, &RVCSR::write_stimecmp); // stimecmp
 #ifdef KXEMU_ISA32
     add_csr(CSR_STIMECMPH, 0, nullptr, nullptr); // stimecmph
 #endif
@@ -95,13 +94,12 @@ RVCSR::RVCSR() {
 }
 
 void RVCSR::init(unsigned int hartId, std::function<uint64_t()> get_uptime) {    
-    this->csr[CSR_MHARTID].value = hartId; // mhartid
+    this->csr[CSR_MHARTID].resetValue = hartId; // mhartid
 
     this->get_uptime = get_uptime;
 }
 
-void RVCSR::init_callbacks(void *core, callback_t update_stimecmp) {
-    this->parentCore = core;
+void RVCSR::init_callbacks(callback_t update_stimecmp) {
     this->update_stimecmp = update_stimecmp;
 }
 
@@ -113,7 +111,7 @@ void RVCSR::reset() {
     pmpCfgCount = 0;
 }
 
-void RVCSR::add_csr(unsigned int addr, word_t resetValue, csr_read_fun_t readFunc, csr_write_fun_t writeFunc) {
+void RVCSR::add_csr(unsigned int addr, word_t resetValue, csr_rw_func_t readFunc, csr_rw_func_t writeFunc) {
     SELF_PROTECT(this->csr.find(addr) == this->csr.end(), "CSR 0x%03x already exists", addr);
     this->csr[addr] = {readFunc, writeFunc, 0, resetValue};
 }
@@ -243,7 +241,7 @@ word_t RVCSR::read_csr(unsigned int addr, bool &valid) {
     if (likely(iter->second.readFunc == nullptr)) {
         value = iter->second.value;
     } else {
-        value = (this->*(iter->second.readFunc))(addr, iter->second.value);
+        value = (this->*(iter->second.readFunc))(addr, iter->second.value, valid);
     }
     return value;
 }

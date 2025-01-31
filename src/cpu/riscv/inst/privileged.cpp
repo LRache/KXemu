@@ -80,16 +80,8 @@ void RVCore::do_ebreak() {
 }
 
 void RVCore::do_wfi() {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    while (true) {
-        // check interrupt
-        this->check_timer_interrupt();
-        if (this->scan_interrupt()) break;
-
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        this->uptimeUpdated = true;
+    while (!this->scan_interrupt()) {
+        // wait for interrupt
     }
 }
 

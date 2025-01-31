@@ -1,6 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
+#include "log.h"
 #include "macro.h"
 
 #include <cstdint>
@@ -39,15 +40,21 @@ void RVCore::update_stimecmp() {
     this->taskTimer->add_task(delay, [this]() {
         this->set_interrupt(INTERRUPT_TIMER_S);
         this->stimerTaskID = -1;
+        // INFO("STIMER interrupt triggered, mip=" FMT_WORD, this->csr.read_csr(CSR_MIP));
     });
+    // INFO("Set STIMECMP, delay=" FMT_VARU, delay);
 }
 
 void RVCore::set_interrupt(word_t code) {
-    *this->mip |= 1 << code;
+    word_t mip = this->csr.read_csr(CSR_MIP);
+    mip |= 1 << code;
+    this->csr.write_csr(CSR_MIP, mip);
 }
 
 void RVCore::clear_interrupt(word_t code) {
-    *this->mip &= ~(1 << code);
+    word_t mip = this->csr.read_csr(CSR_MIP);
+    mip &= ~(1 << code);
+    this->csr.write_csr(CSR_MIP, mip);
 }
 
 bool RVCore::check_timer_interrupt() {
@@ -81,7 +88,8 @@ void RVCore::clear_external_interrupt_s() {
 }
 
 void RVCore::interrupt_m(word_t code) {
-    *this->mip &= ~(1 << code);
+    INFO("Machine level interrupt, code=" FMT_WORD, code);
+    clear_interrupt(code);
     
     this->csr.write_csr(CSR_MEPC, this->pc);
     this->csr.write_csr(CSR_MCAUSE, code | CAUSE_INTERRUPT_MASK);
@@ -105,7 +113,8 @@ void RVCore::interrupt_m(word_t code) {
 }
 
 void RVCore::interrupt_s(word_t code) {
-    *this->mip &= ~(1 << code);
+    // INFO("Interrupt S, code=" FMT_WORD, code);
+    clear_interrupt(code);
     
     this->csr.write_csr(CSR_SEPC, this->pc);
     this->csr.write_csr(CSR_SCAUSE, code | CAUSE_INTERRUPT_MASK);
@@ -142,28 +151,30 @@ bool RVCore::scan_interrupt() {
     if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & STATUS_SIE_MASK))) return false;
 
     if (*this->mip == 0) return false;
-    if (*this->mie == 0) return false;
 
     // Machine level interrupt
     word_t pending;
-    pending = *this->mip & *this->mie & ~*this->mideleg;
-    if (pending) {
-        for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(word_t); i++) {
-            if (pending & (1 << INTER_BITS[i])) {
-                interrupt_m(INTER_BITS[i]);
-                return true;
+    if (*this->mstatus & STATUS_MIE_MASK) {
+        pending = *this->mip & *this->mie & ~*this->mideleg;
+        if (pending) {
+            for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {
+                if (pending & (1 << INTER_BITS[i])) {
+                    interrupt_m(INTER_BITS[i]);
+                    return true;
+                }
             }
         }
     }
-    if (this->privMode == PrivMode::MACHINE) return false;
     
     // Supervisor level interrupt
-    pending = *this->mip & *this->mie & *this->mideleg;
-    if (pending) {
-        for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(word_t); i++) {
-            if (pending & (1 << INTER_BITS[i])) {
-                interrupt_s(INTER_BITS[i]);
-                return true;
+    if (*this->mstatus & STATUS_SIE_MASK) {
+        pending = *this->mip & *this->mie & *this->mideleg;
+        if (pending) {
+            for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {
+                if (pending & (1 << INTER_BITS[i])) {
+                    interrupt_s(INTER_BITS[i]);
+                    return true;
+                }
             }
         }
     }

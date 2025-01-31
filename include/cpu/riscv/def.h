@@ -147,6 +147,21 @@
 
 #define STATUS_SUM(status) ((status & (1 << STATUS_SUM_OFF)) >> STATUS_SUM_OFF)
 
+#define MCNTEN_CY_MASK (1 << 0)
+#define MCNTEN_TM_MASK (1 << 1)
+#define MCNTEN_IR_MASK (1 << 2)
+
+#define MCNTEN_CY(mcounteren) ((mcounteren) & MCNTEN_CY_MASK)
+#define MCNTEN_TM(mcounteren) ((mcounteren) & MCNTEN_TM_MASK)
+#define MCNTEN_IR(mcounteren) ((mcounteren) & MCNTEN_IR_MASK)
+
+#ifdef KXEMU_ISA64
+    #define MENVCFG_STCE_MASK (1ULL << 63)
+#else
+    #define MENVCFG_STCE_MASK (1 << 31)
+#endif
+#define MENVCFG_STCE(menvcfg) ((menvcfg) & (MENVCFG_STCE_MASK))
+
 #define PMPCFG_R_OFF 0
 #define PMPCFG_W_OFF 1
 #define PMPCFG_X_OFF 2
@@ -278,5 +293,15 @@
 
 #define UPTIME_TO_MTIME(uptime) (uptime / 100)
 #define MTIME_TO_UPTIME(mtime)  (mtime * 100)
+
+namespace kxemu::cpu {
+
+enum PrivMode {
+    MACHINE = 3,
+    SUPERVISOR = 1,
+    USER = 0,
+};
+
+}
 
 #endif

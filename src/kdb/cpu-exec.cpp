@@ -49,15 +49,6 @@ int kdb::step_core(Core<word_t> *core) {
 
 // NOTE: This function only support single core CPU
 int kdb::run_cpu() {
-    // while (cpu->is_running()) {
-    //     word_t pc = cpu->get_core(0)->get_pc();
-    //     if (breakpointSet.find(pc) != breakpointSet.end()) {
-    //         brkTriggered = true;
-    //         break;
-    //     }
-    //     cpu->step();
-    // }
-
     auto core = cpu->get_core(0);
 
     unsigned int n = breakpointSet.size();

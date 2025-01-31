@@ -4,7 +4,7 @@
 
 using namespace kxemu::cpu;
 
-word_t RVCSR::read_misa(unsigned int addr, word_t value) {
+word_t RVCSR::read_misa(unsigned int addr, word_t value, bool &valid) {
     return value;
 }
 
@@ -43,7 +43,7 @@ word_t RVCSR::write_misa(unsigned int addr, word_t value, bool &valid) {
 // SSIP   | ReadWrite
 // SEIP   | ReadOnly
 // LCOFIP | ReadOnly
-word_t RVCSR::read_mip(unsigned int addr, word_t value) {  
+word_t RVCSR::read_mip(unsigned int addr, word_t value, bool &valid) {  
     return value & INTER_MASK_M;
 }
 
@@ -52,7 +52,7 @@ word_t RVCSR::write_mip(unsigned int addr, word_t value, bool &valid) {
     return value & ((1 << INTERRUPT_SOFTWARE_S) | (1 << INTERRUPT_TIMER_S));
 }
 
-word_t RVCSR::read_mie(unsigned int addr, word_t value) {
+word_t RVCSR::read_mie(unsigned int addr, word_t value, bool &valid) {
     return value & INTER_MASK_M;
 }
 
@@ -61,7 +61,7 @@ word_t RVCSR::write_mie(unsigned int addr, word_t value, bool &valid) {
     return value & INTER_MASK_M;
 }
 
-word_t RVCSR::read_sip(unsigned int addr, word_t value) {
+word_t RVCSR::read_sip(unsigned int addr, word_t value, bool &valid) {
     return this->csr[CSR_MIE].value & INTER_MASK_S;
 }
 
@@ -73,7 +73,7 @@ word_t RVCSR::write_sip(unsigned int addr, word_t value, bool &valid) {
     return 0;
 }
 
-word_t RVCSR::read_sie(unsigned int addr, word_t value) {
+word_t RVCSR::read_sie(unsigned int addr, word_t value, bool &valid) {
     return this->csr[CSR_MIE].value & INTER_MASK_S;
 }
 
@@ -82,7 +82,7 @@ word_t RVCSR::write_sie(unsigned int addr, word_t value, bool &valid) {
     return value & INTER_MASK_S;
 }
 
-word_t RVCSR::read_sstatus(unsigned int addr, word_t value) {
+word_t RVCSR::read_sstatus(unsigned int addr, word_t value, bool &valid) {
     return this->csr[CSR_MSTATUS].value & SSTATUS_MASK;
 }
 
@@ -96,7 +96,7 @@ word_t RVCSR::write_sstatus(unsigned int addr, word_t value, bool &valid) {
 
 word_t RVCSR::write_stimecmp(unsigned int addr, word_t value, bool &valid) {
     this->csr[CSR_STIMECMP].value = value;
-    this->update_stimecmp(this->parentCore);
+    this->update_stimecmp();
     valid = true;
     return value;
 }
@@ -141,7 +141,22 @@ word_t RVCSR::write_satp(unsigned int addr, word_t value, bool &valid) {
     return value;
 }
 
-word_t RVCSR::read_time(unsigned int addr, word_t value) {
+word_t RVCSR::read_time(unsigned int addr, word_t value, bool &valid) {
+    if (!MCNTEN_TM(this->csr[CSR_MCNTEN].value) && this->privMode != PrivMode::MACHINE) {
+        valid = false;
+        return 0;
+    }
+    bool sstc;
+#ifdef KXEMU_ISA32
+    sstc = MENVCFG_STCE(this->csr[CSR_MENVCFGH].value);
+#else
+    sstc = MENVCFG_STCE(this->csr[CSR_MENVCFG].value);
+#endif
+    if (!sstc && this->privMode != PrivMode::MACHINE) {
+        valid = false;
+        return 0;
+    }
+
     uint64_t mtime = UPTIME_TO_MTIME(this->get_uptime());
 #ifdef KXEMU_ISA32
     csr[CSR_TIMEH].value = mtime >> 32;

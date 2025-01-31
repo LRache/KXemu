@@ -26,3 +26,9 @@ config SRC_CPU_ISA
     string
     default riscv if ISA_riscv32
     default riscv if ISA_riscv64
+
+config LOG
+    bool "LOG"
+
+config HINT
+    bool "Show hints"

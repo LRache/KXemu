@@ -73,7 +73,7 @@ int cmd::step(const args_t &args) {
     auto core = cmd::currentCore;
     kdb::brkTriggered = false;
     for (unsigned long i = 0; i < n; i++) {
-        if (!core->is_running()) {
+        if (core->is_halt()) {
             break;
         }
 

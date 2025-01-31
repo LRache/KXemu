@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <ctime>
 #include <functional>
 
@@ -18,6 +19,20 @@ using kxemu::utils::TaskTimer;
 RVCore::RVCore() {
     this->mtimerTaskID = -1; // Means the task is not created
     this->stimerTaskID = -1;
+
+    
+    this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
+    this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
+    this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
+    this->mie     = this->csr.get_csr_ptr_readonly(CSR_MIE);
+    this->mip     = this->csr.get_csr_ptr(CSR_MIP);
+
+    // RV32 only
+#ifdef KXEMU_ISA32
+    this->medelegh= this->csr.get_csr_ptr_readonly(CSR_MEDELEGH);
+#endif
+
+    this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
 }
 
 void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, AClint *alint, TaskTimer *timer) {
@@ -46,8 +61,6 @@ void RVCore::reset(word_t entry) {
     this->pc = entry;
     this->state = RUNNING;
     this->privMode = PrivMode::MACHINE;
-    this->timerIntrruptNotTriggered = false;
-    this->stimerIntrruptNotTriggered = false;
     
     this->csr.reset();
 
@@ -59,6 +72,8 @@ void RVCore::reset(word_t entry) {
         this->taskTimer->remove_task(this->stimerTaskID);
         this->stimerTaskID = -1;
     }
+
+    std::memset(this->gpr, 0, sizeof(this->gpr));
 }
 
 void RVCore::step() {
@@ -87,8 +102,6 @@ void RVCore::run() {
             this->state = BREAKPOINT;
             break;
         }
-
-        this->uptimeUpdated = false;
         
         this->check_timer_interrupt();
         this->execute();
@@ -143,7 +156,7 @@ uint64_t RVCore::get_uptime() {
 }
 
 void RVCore::do_invalid_inst() {
-    // this->state = ERROR;
+    this->state = ERROR;
     this->haltPC = this->pc;
     WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
 

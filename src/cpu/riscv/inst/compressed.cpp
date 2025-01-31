@@ -1,6 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "./local-decoder.h"
 #include "cpu/word.h"
+#include "log.h"
 #include <cstdint>
 
 #define REQUIRE(cond) do {if (!(cond)) { this->do_invalid_inst(); return; }} while(0);

@@ -100,15 +100,8 @@ private:
     void do_invalid_inst();
     #include "./local-include/inst-list.h"
 
-    // Priviledge mode
-    enum PrivMode {
-        MACHINE = 3,
-        SUPERVISOR = 1,
-        USER = 0,
-    };
-    int privMode = MACHINE;
-
     RVCSR csr;
+    int &privMode = csr.privMode; // Priviledge mode
     void init_csr();
     word_t  read_csr(unsigned int addr, bool &valid);
     bool   write_csr(unsigned int addr, word_t value);
@@ -118,12 +111,11 @@ private:
 
     word_t *mstatus;
     const word_t *mie;
-    word_t *mip;
+    const word_t *mip;
     const word_t *medeleg;
     const word_t *medelegh;
     const word_t *mideleg;
 
-    const word_t *sie;
     const word_t *satp;
 
     // Timer interrupt
@@ -133,14 +125,8 @@ private:
 
     uint64_t mtime;
     uint64_t mtimecmp;
-    uint64_t suptimecmp;
-    bool timerIntrruptNotTriggered;
-    bool stimerIntrruptNotTriggered;
     unsigned int mtimerTaskID;
     unsigned int stimerTaskID;
-    // Some instructions may update the uptime in do_XXX function like do_wfi, 
-    // do not update it again in the execute function
-    bool uptimeUpdated; 
     void update_mtimecmp();
     void update_stimecmp();
 

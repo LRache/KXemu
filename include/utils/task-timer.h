@@ -23,7 +23,7 @@ private:
         unsigned int id;
 
         bool operator<(const Task &other) const {
-            return this->timepoint < other.timepoint;
+            return this->timepoint > other.timepoint;
         }
     };
     std::priority_queue<Task> tasks;

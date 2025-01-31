@@ -69,6 +69,12 @@ void csrw_satp(word_t value) {
     asm volatile("csrw satp, %0" : : "r"(value));
 }
 
+word_t csrr_time() {
+    uint32_t x;
+    asm volatile("csrr %0, time" : "=r"(x));
+    return x;
+} 
+
 void mret() {
     asm volatile("mret");
 }

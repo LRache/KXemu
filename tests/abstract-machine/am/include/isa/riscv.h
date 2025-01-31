@@ -34,6 +34,8 @@
 
 typedef uintptr_t word_t;
 
+word_t csrr_time();
+
 word_t csrr_mstatus();
 word_t csrr_mcause ();
 word_t csrr_mepc   ();

@@ -5,6 +5,7 @@
 #define unlikely(x)     __builtin_expect(!!(x), 0)
 
 #define MACRO_TO_STRING(x) #x
+#define EMPTY_MACRO(x) x
 
 #define ARRLEN(array) (sizeof(array) / sizeof(array[0]))
 

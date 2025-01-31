@@ -16,21 +16,8 @@
 using namespace kxemu::cpu;
 
 void RVCore::init_csr() {
-    this->csr.init(0, std::bind(&RVCore::get_uptime, this));
-    this->csr.init_callbacks(this, [](void *core) {((RVCore *)core)->update_stimecmp();});
-    
-    this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
-    this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
-    this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
-    this->mie     = this->csr.get_csr_ptr_readonly(CSR_MIE);
-    this->mip     = this->csr.get_csr_ptr(CSR_MIP);
-
-    // RV32 only
-#ifdef KXEMU_ISA32
-    this->medelegh= this->csr.get_csr_ptr_readonly(CSR_MEDELEGH);
-#endif
-
-    this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
+    this->csr.init(this->coreID, std::bind(&RVCore::get_uptime, this));
+    this->csr.init_callbacks(std::bind(&RVCore::update_stimecmp, this));
 }
 
 word_t RVCore::read_csr(unsigned int addr, bool &valid) {

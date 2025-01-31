@@ -1,4 +1,5 @@
 #include "log.h"
 
-int logFlag = DEBUG | INFO | WARN | PANIC;
-int logTriggerFlag = 0;
+using namespace kxemu;
+
+int kxemu::logFlag = DEBUG | INFO | WARN | PANIC;

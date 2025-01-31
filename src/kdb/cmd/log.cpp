@@ -3,6 +3,7 @@
 
 #include <iostream>
 
+using namespace kxemu;
 using namespace kxemu::kdb;
 
 static const struct {

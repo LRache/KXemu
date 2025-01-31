@@ -11,20 +11,18 @@ namespace kxemu::cpu {
 
 class RVCSR {
 private:
-    using csr_read_fun_t  = word_t (RVCSR::*)(unsigned int addr, word_t value);
-    using csr_write_fun_t = word_t (RVCSR::*)(unsigned int addr, word_t oldValue, bool &valid);
+    using csr_rw_func_t = word_t (RVCSR::*)(unsigned int addr, word_t value, bool &valid);
     struct CSR {
-        csr_read_fun_t  readFunc;
-        csr_write_fun_t writeFunc;
+        csr_rw_func_t  readFunc;
+        csr_rw_func_t writeFunc;
         word_t value;
         word_t resetValue;
     };
     std::unordered_map<unsigned int, CSR> csr;
-    void add_csr(unsigned int addr, word_t resetValue = 0, csr_read_fun_t = nullptr, csr_write_fun_t = nullptr);
+    void add_csr(unsigned int addr, word_t resetValue = 0, csr_rw_func_t readFunc = nullptr, csr_rw_func_t writeFunc = nullptr);
 
-    using callback_t = void (*)(void *);
+    using callback_t = std::function<void()>;
     callback_t update_stimecmp;
-    void *parentCore;
 
     struct PMPCfg {
         word_t start;
@@ -40,15 +38,15 @@ private:
     std::function<uint64_t()> get_uptime;
 
     // misa
-    word_t  read_misa(unsigned int addr, word_t value);
+    word_t  read_misa(unsigned int addr, word_t value, bool &valid);
     word_t write_misa(unsigned int addr, word_t value, bool &valid);
 
     // mip
-    word_t  read_mip(unsigned int addr, word_t value);
+    word_t  read_mip(unsigned int addr, word_t value, bool &valid);
     word_t write_mip(unsigned int addr, word_t value, bool &valid);
 
     // mie
-    word_t  read_mie(unsigned int addr, word_t value);
+    word_t  read_mie(unsigned int addr, word_t value, bool &valid);
     word_t write_mie(unsigned int addr, word_t value, bool &valid);
 
     // pmp
@@ -56,32 +54,34 @@ private:
     word_t write_pmpaddr(unsigned int addr, word_t value, bool &valid);
 
     // sip
-    word_t  read_sip(unsigned int addr, word_t value);
+    word_t  read_sip(unsigned int addr, word_t value, bool &valid);
     word_t write_sip(unsigned int addr, word_t value, bool &valid);
 
     // stimecmp
     word_t write_stimecmp(unsigned int addr, word_t value, bool &valid);
 
     // sie
-    word_t  read_sie(unsigned int addr, word_t value);
+    word_t  read_sie(unsigned int addr, word_t value, bool &valid);
     word_t write_sie(unsigned int addr, word_t value, bool &valid);
 
     // sstatus
-    word_t  read_sstatus(unsigned int addr, word_t value);
+    word_t  read_sstatus(unsigned int addr, word_t value, bool &valid);
     word_t write_sstatus(unsigned int addr, word_t value, bool &valid);
 
     // satp
-    word_t  read_satp(unsigned int addr, word_t value);
+    word_t  read_satp(unsigned int addr, word_t value, bool &valid);
     word_t write_satp(unsigned int addr, word_t value, bool &valid);
 
     // time
-    word_t  read_time(unsigned int addr, word_t value);
+    word_t  read_time(unsigned int addr, word_t value, bool &valid);
 
 public:
     RVCSR();
 
+    int privMode;
+
     void init(unsigned int hartId, std::function<uint64_t()> get_uptime);
-    void init_callbacks(void *core, callback_t update_stimecmp);
+    void init_callbacks(callback_t update_stimecmp);
     void reset();
 
     word_t read_csr(unsigned int addr, bool &valid);

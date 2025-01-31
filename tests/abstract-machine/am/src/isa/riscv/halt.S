@@ -5,7 +5,7 @@ __halt:
     mv a1, a0
     la a0, ebreakMessage
     call printf
-    wfi
+    j .
 #else
     ebreak
 #endif
