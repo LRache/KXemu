@@ -10,6 +10,15 @@
 
 using namespace kxemu::device;
 
+Bus::MapBlock *Bus::match_map(word_t addr, word_t size) const {
+    for (auto &m : memoryMaps) {
+        if (m->start <= addr && addr + size <= m->start + m->length) {
+            return m;
+        }
+    }
+    return nullptr;
+}
+
 bool Bus::add_memory_map(const std::string &name, word_t start, word_t length, MemoryMap *map) {
     // check if overlap
     for (auto &m : memoryMaps) {
@@ -46,7 +55,7 @@ word_t Bus::read(word_t addr, unsigned int size, bool &valid) const {
         return data;
     }
     valid = false;
-    WARN("read addr: 0x%" PRIx64 ", size: %" PRIu32 ", out of range", addr, size);
+    PANIC("read addr: 0x%" PRIx64 ", size: %" PRIu32 ", out of range", addr, size);
     return 0;
 }
 
@@ -58,21 +67,13 @@ bool Bus::write(word_t addr, word_t data, int size) {
     return false;
 }
 
-uint8_t *Bus::get_ptr(word_t addr) const{
-    auto map = match_map(addr);
+word_t Bus::do_atomic(word_t addr, word_t data, int size, AMO amo, bool &valid) {
+    auto map = match_map(addr, size);
     if (map == nullptr) {
-        return nullptr;
-    }
-    return map->map->get_ptr(addr - map->start);
-}
-
-word_t Bus::get_ptr_length(word_t addr) const {
-    auto map = match_map(addr);
-    if (map == nullptr) {
+        valid = false;
         return 0;
     }
-    word_t offset = addr - map->start;
-    return map->length - offset;
+    return map->map->do_atomic(addr - map->start, data, size, amo, valid);
 }
 
 bool Bus::load_from_stream(std::istream &stream, word_t addr) {
@@ -167,20 +168,6 @@ bool Bus::load_from_memory(const uint8_t *src, word_t addr, word_t length) {
     return true;
 }
 
-bool Bus::memset(word_t addr, word_t length, uint8_t byte) {
-    auto map = match_map(addr);
-    if (map == nullptr || addr + length > map->start + map->length) {
-        WARN("memset addr=" FMT_HEX64 " length=" FMT_VARU64 " out of range", addr, length);
-        return false;
-    }
-
-    word_t offset = addr - map->start;
-    void *dest = map->map->get_ptr(offset);
-    std::memset(dest, byte, length);
-
-    return true;
-}
-
 bool Bus::dump(std::ostream &stream, word_t addr, word_t length) const {
     auto map = match_map(addr);
     if (map == nullptr || addr + length > map->start + map->length) {
@@ -204,13 +191,35 @@ bool Bus::dump(std::ostream &stream, word_t addr, word_t length) const {
     return true;
 }
 
-Bus::MapBlock *Bus::match_map(word_t addr, word_t size) const {
-    for (auto &m : memoryMaps) {
-        if (m->start <= addr && addr + size <= m->start + m->length) {
-            return m;
-        }
+bool Bus::memset(word_t addr, word_t length, uint8_t byte) {
+    auto map = match_map(addr);
+    if (map == nullptr || addr + length > map->start + map->length) {
+        WARN("memset addr=" FMT_HEX64 " length=" FMT_VARU64 " out of range", addr, length);
+        return false;
     }
-    return nullptr;
+
+    word_t offset = addr - map->start;
+    void *dest = map->map->get_ptr(offset);
+    std::memset(dest, byte, length);
+
+    return true;
+}
+
+uint8_t *Bus::get_ptr(word_t addr) const{
+    auto map = match_map(addr);
+    if (map == nullptr) {
+        return nullptr;
+    }
+    return map->map->get_ptr(addr - map->start);
+}
+
+word_t Bus::get_ptr_length(word_t addr) const {
+    auto map = match_map(addr);
+    if (map == nullptr) {
+        return 0;
+    }
+    word_t offset = addr - map->start;
+    return map->length - offset;
 }
 
 Bus::~Bus() {

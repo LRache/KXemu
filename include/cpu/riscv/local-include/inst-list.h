@@ -84,6 +84,32 @@ _INST(remw)
 _INST(remuw)
 #endif
 
+// Atomic extension
+_INST(lr_w)
+_INST(sc_w)
+_INST(amoswap_w)
+_INST(amoadd_w)
+_INST(amoxor_w)
+_INST(amoand_w)
+_INST(amoor_w)
+_INST(amomin_w)
+_INST(amomax_w)
+_INST(amominu_w)
+_INST(amomaxu_w)
+#ifdef KXEMU_ISA64
+_INST(lr_d)
+_INST(sc_d)
+_INST(amoswap_d)
+_INST(amoadd_d)
+_INST(amoxor_d)
+_INST(amoand_d)
+_INST(amoor_d)
+_INST(amomin_d)
+_INST(amomax_d)
+_INST(amominu_d)
+_INST(amomaxu_d)
+#endif
+
 // Compressed extension
 _INST(c_lwsp)
 _INST(c_swsp)

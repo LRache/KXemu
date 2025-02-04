@@ -4,7 +4,6 @@
 #include "log.h"
 #include "macro.h"
 
-#include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -62,6 +61,10 @@ public:
             }
         }
         return false;
+    }
+
+    unsigned int count() const {
+        return patterns.size();
     }
 };
 

@@ -18,6 +18,8 @@ public:
     const char *get_type_name() const override;
 
     uint8_t *data;
+
+    word_t do_atomic(word_t addr, word_t data, int size, AMO amo, bool &valid) override;
 };
 
 } // namespace kxemu::device

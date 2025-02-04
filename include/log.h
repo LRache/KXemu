@@ -27,20 +27,19 @@ do { \
     #define WARN(...) \
         PUTLOG(FMT_FG_MAGENTA_BLOD, WARN, __VA_ARGS__)
 
-    #define PANIC(...) \
-    do { \
-        PUTLOG(FMT_FG_RED_BLOD, PANIC, __VA_ARGS__); \
-        exit(1); \
-    } while(0);
-
 #else
 
     #define DEBUG(...)
     #define INFO(...)
     #define WARN(...)
-    #define PANIC(...)
 
 #endif
+
+#define PANIC(...) \
+    do { \
+        PUTLOG(FMT_FG_RED_BLOD, PANIC, __VA_ARGS__); \
+        exit(1); \
+    } while(0);
 
 #ifdef CONFIG_HINT
 #define HINT(...) \

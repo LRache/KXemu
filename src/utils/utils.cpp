@@ -47,3 +47,7 @@ std::vector<std::string> utils::string_split(const std::string &s, const char de
     }
     return result;
 }
+
+utils::timepoint_t utils::get_current_timepoint() {
+    return std::chrono::high_resolution_clock::now();
+}

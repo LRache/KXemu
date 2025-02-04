@@ -166,20 +166,20 @@ void RVCore::do_addiw() {
 
 void RVCore::do_slliw() {
     RD; RS1; IMM_I;
-    uint32_t result = ((uint32_t)this->gpr[rs1]) << (imm & SHAMT_MASK);
-    this->set_gpr(rd, (word_t)result);
+    int32_t result = ((uint32_t)this->gpr[rs1]) << (imm & 0x1f);
+    this->set_gpr(rd, (sword_t)result);
 }
 
 void RVCore::do_srliw() {
     RD; RS1; IMM_I;
-    uint32_t result = ((uint32_t)this->gpr[rs1]) >> (imm & SHAMT_MASK);
-    this->set_gpr(rd, (word_t)result);
+    int32_t result = ((uint32_t)this->gpr[rs1]) >> (imm & 0x1f);
+    this->set_gpr(rd, (sword_t)result);
 }
 
 void RVCore::do_sraiw() {
     RD; RS1; IMM_I;
-    int32_t result = ((int32_t)this->gpr[rs1]) >> (imm & SHAMT_MASK);
-    this->set_gpr(rd, (word_t)result);
+    int32_t result = ((int32_t)this->gpr[rs1]) >> (imm & 0x1f);
+    this->set_gpr(rd, (sword_t)result);
 }
 
 #endif

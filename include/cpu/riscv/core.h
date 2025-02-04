@@ -6,11 +6,11 @@
 #include "cpu/word.h"
 #include "cpu/riscv/csr.h"
 #include "device/bus.h"
-#include "utils/decoder.h"
 #include "utils/task-timer.h"
+#include "utils/decoder.h"
 
+#include <unordered_map>
 #include <cstdint>
-#include <unordered_set>
 
 namespace kxemu::cpu {
 
@@ -35,6 +35,7 @@ private:
         STORE = 1 << 1,
         LOAD  = 1 << 2,
         FETCH = 1 << 3,
+        AMO   = 1 << 6,
     };
     device::Bus *bus;
     AClint *aclint;
@@ -49,7 +50,8 @@ private:
         VM_ACCESS_FAULT,
     };
     word_t vaddr_translate(word_t addr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv(word_t addr, MemType type, VMResult &result, int levels, word_t pteSize, unsigned int vpnBits); // The template function for sv32, sv39, sv48, sv57
+    template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
+    word_t vaddr_translate_sv(word_t addr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
     #ifdef KXEMU_ISA32
     word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result);
     #else
@@ -62,22 +64,17 @@ private:
     bool check_pmp(word_t addr, int len, MemType type);
 
     // decoder
-    // utils::Decoder<RVCore>  decoder32;
-    // utils::Decoder<RVCore> cdecoder32;
-    // utils::Decoder<RVCore>  decoder64;
-    // utils::Decoder<RVCore> cdecoder64; 
-    // utils::Decoder<RVCore>  *decoder;
-    // utils::Decoder<RVCore> *cdecoder; // for compressed instructions
-    utils::Decoder<RVCore>  decoder;
-    utils::Decoder<RVCore> cdecoder; // for compressed instructions
-    void build_decoder();
+    utils::Decoder<RVCore>  decoder; // UNUSED
+    utils::Decoder<RVCore> cdecoder; // UNUSED
+    void build_decoder(); // UNUSED
+    bool decode_and_exec();
+    bool decode_and_exec_c(); // for compressed instructions
 
     // running
     uint32_t inst;
     word_t pc;
     word_t npc;
     void execute();
-    std::unordered_set<word_t> breakpoints;
 
     // Trap
     bool trapFlag;
@@ -130,6 +127,13 @@ private:
     void update_mtimecmp();
     void update_stimecmp();
 
+    // Atomic extension
+    std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
+    word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid);
+    template<int len> void do_load_reserved();
+    template<int len> void do_store_conditional();
+    template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst();
+
 public:
     RVCore();
     ~RVCore();
@@ -138,8 +142,7 @@ public:
     
     void reset(word_t entry) override;
     void step() override;
-    void run() override;
-    void run(word_t *breakpoints, unsigned int n) override;
+    void run(word_t *breakpoints = nullptr, unsigned int n = 0) override;
     
     bool is_error()   override;
     bool is_break()   override;

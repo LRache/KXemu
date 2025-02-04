@@ -14,7 +14,7 @@ void RVCore::do_ecall() {
         case PrivMode::MACHINE:    code = TRAP_ECALL_M; break;
         case PrivMode::SUPERVISOR: code = TRAP_ECALL_S; break;
         case PrivMode::USER:       code = TRAP_ECALL_U; break;
-        default: PANIC("Invalid current privileged mode."); break;
+        default: PANIC("Invalid current privileged mode."); return;
     }
     trap(code); 
 }

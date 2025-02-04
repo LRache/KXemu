@@ -215,12 +215,14 @@
 #define PTE_W_MASK  (1 << 2)
 #define PTE_X_MASK  (1 << 3)
 #define PTE_U_MASK  (1 << 4)
+#define PTE_A_MASK  (1 << 6)
 
 #define PTE_V(pte) ((pte & PTE_V_MASK) >> 0)
 #define PTE_R(pte) ((pte & PTE_R_MASK) >> 1)
 #define PTE_W(pte) ((pte & PTE_W_MASK) >> 2)
 #define PTE_X(pte) ((pte & PTE_X_MASK) >> 3)
 #define PTE_U(pte) ((pte & PTE_U_MASK) >> 4)
+#define PTE_A(pte) ((pte & PTE_A_MASK) >> 6)
 
 // Exception Code
 // INTERRUPT

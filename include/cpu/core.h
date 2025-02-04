@@ -17,12 +17,7 @@ public:
     virtual void reset(word_t entry) = 0;
     virtual void step() = 0;
 
-    virtual void run() = 0;
-    virtual void run(word_t *breakpoints, unsigned int n) {
-        (void)breakpoints;
-        (void)n;
-        return run();
-    }
+    virtual void run(word_t *breakpoints = nullptr, unsigned int n = 0) = 0;
     
     virtual word_t get_pc() = 0;
     virtual word_t get_gpr(int idx) = 0;

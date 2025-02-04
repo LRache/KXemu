@@ -7,19 +7,17 @@
 #include "log.h"
 #include "macro.h"
 
-#include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <ctime>
 #include <functional>
+#include <unordered_set>
 
 using namespace kxemu::cpu;
 using kxemu::utils::TaskTimer;
 
 RVCore::RVCore() {
-    this->mtimerTaskID = -1; // Means the task is not created
+    this->mtimerTaskID = -1; // -1 means the task is not exist
     this->stimerTaskID = -1;
-
     
     this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
     this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
@@ -43,7 +41,8 @@ void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, AClint *alin
     this->taskTimer = timer;
     this->state = IDLE;
 
-    this->build_decoder();
+    // this->build_decoder();
+
     this->init_csr();
     
     this->aclint->register_core(coreID, {
@@ -88,7 +87,12 @@ void RVCore::step() {
     }
 }
 
-void RVCore::run() {
+void RVCore::run(word_t *breakpoints_, unsigned int n) {
+    std::unordered_set<word_t> breakpoints;
+    for (unsigned int i = 0; i < n; i++) {
+        breakpoints.insert(breakpoints_[i]);
+    }
+
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     this->bootTime = ts.tv_sec * 1e9 + ts.tv_nsec;
@@ -96,7 +100,7 @@ void RVCore::run() {
     
     this->state = RUNNING;
     while (this->state == RUNNING) {
-        if (this->breakpoints.find(this->pc) != this->breakpoints.end()) {
+        if (breakpoints.find(this->pc) != breakpoints.end()) {
             this->haltCode = 0;
             this->haltPC = this->pc;
             this->state = BREAKPOINT;
@@ -107,15 +111,6 @@ void RVCore::run() {
         this->execute();
         this->pc = this->npc;
     }
-}
-
-void RVCore::run(word_t *breakpoints, unsigned int n) {
-    this->breakpoints.clear();
-    for (unsigned int i = 0; i < n; i++) {
-        this->breakpoints.insert(breakpoints[i]);
-    }
-
-    this->run();
 }
 
 void RVCore::execute() {    
@@ -135,10 +130,10 @@ void RVCore::execute() {
     bool valid;
     if (likely((this->inst & 0x3) == 0x3)) {
         this->npc = this->pc + 4;
-        valid = this->decoder.decode_and_exec(this->inst);
+        valid = this->decode_and_exec();
     } else {
         this->npc = this->pc + 2;
-        valid = this->cdecoder.decode_and_exec(this->inst);
+        valid = this->decode_and_exec_c();
     }
 
     if (unlikely(!valid)) {

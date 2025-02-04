@@ -14,9 +14,9 @@ word_t RVCore::vaddr_translate(word_t addr, MemType type, VMResult &result) {
         return addr;
     }
 #ifdef KXEMU_ISA32
-    // INFO("satp=" FMT_WORD, *this->satp);
     if (SATP_MODE(*this->satp) == SATP_MODE_SV32) {
         word_t vaddr = addr;
+        (void)vaddr; 
         addr = this->vaddr_translate_sv32(addr, type, result);
         DEBUG("Translate vaddr=" FMT_WORD ", type=%d to paddr=" FMT_WORD, vaddr, type, addr);
     }
@@ -50,12 +50,13 @@ word_t RVCore::vaddr_translate(word_t addr, bool &valid) {
     return paddr;
 }
 
-word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, const int LEVELS, const word_t PTESIZE, const unsigned int VPNBITS) {
+template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
+word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) {
     constexpr word_t PGBITS = 12;
     constexpr word_t PGSIZE = 1 << PGBITS;
 
     word_t vpn[5]; // We assume the maximum level is 5
-    for (int i = 0; i < LEVELS; i++) {
+    for (unsigned int i = 0; i < LEVELS; i++) {
         vpn[i] = (vaddr >> (PGBITS + i * VPNBITS)) & ((1 << VPNBITS) - 1);
     }
 
@@ -132,7 +133,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, 
             }
 
             // Determine if the requested memory access is allowed by the pte.r, pte.w, and pte.x bits
-            if (!(pte & 0xf & type)) {
+            if (!(pte & 0xff & type)) {
                 DEBUG("PTE is not valid for the access type");
                 DEBUG("Access type=%d, vaddr=" FMT_WORD " pte=" FMT_WORD, type, vaddr, pte);
                 result = VM_ACCESS_FAULT;
@@ -152,7 +153,6 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, 
             // This is a pointer to the next level of the page table
             word_t ppn = pte >> 10;
             base = ppn * PGSIZE;
-            DEBUG("Next stage page table based on " FMT_WORD, base);
         }
     }
     DEBUG("PTE is not valid");
@@ -162,11 +162,11 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, 
 
 #ifdef KXEMU_ISA32
 word_t RVCore::vaddr_translate_sv32(word_t vaddr, MemType type, VMResult &result) {
-    constexpr word_t LEVELS = 2;
-    constexpr word_t PTESIZE = 4;
-    constexpr word_t VPNBITS = 10;
+    constexpr unsigned int LEVELS  = 2;
+    constexpr unsigned int PTESIZE = 4;
+    constexpr unsigned int VPNBITS = 10;
 
-    return this->vaddr_translate_sv(vaddr, type, result, LEVELS, PTESIZE, VPNBITS);
+    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 #else
 word_t RVCore::vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result) {
@@ -178,48 +178,41 @@ word_t RVCore::vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result
         return -1;
     }
     
-    constexpr word_t LEVELS = 3;
-    constexpr word_t PTESIZE = 8;
-    constexpr word_t VPNBITS = 9;
+    constexpr unsigned int LEVELS  = 3;
+    constexpr unsigned int PTESIZE = 8;
+    constexpr unsigned int VPNBITS = 9;
 
-    return this->vaddr_translate_sv(vaddr, type, result, LEVELS, PTESIZE, VPNBITS);
+    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 
 word_t RVCore::vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result) {
-    constexpr word_t LEVELS = 4;
-    constexpr word_t PTESIZE = 8;
-    constexpr word_t VPNBITS = 9;
+    constexpr unsigned int LEVELS  = 4;
+    constexpr unsigned int PTESIZE = 8;
+    constexpr unsigned int VPNBITS = 9;
 
-    return this->vaddr_translate_sv(vaddr, type, result, LEVELS, PTESIZE, VPNBITS);
+    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 
 word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result) {
-    constexpr word_t LEVELS = 5;
-    constexpr word_t PTESIZE = 8;
-    constexpr word_t VPNBITS = 9;
+    constexpr unsigned int LEVELS  = 5;
+    constexpr unsigned int PTESIZE = 8;
+    constexpr unsigned int VPNBITS = 9;
 
-    return this->vaddr_translate_sv(vaddr, type, result, LEVELS, PTESIZE, VPNBITS);
+    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 
 #endif
 
 bool RVCore::fetch_inst() {
-    // DEBUG("pc=" FMT_WORD, this->pc);
-
     word_t addr = this->pc;
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
-        // VMResult result;
-        // addr = this->vaddr_translate(addr, MemType::FETCH, result);
-
-        // if (result != VM_OK) {
-        //     DEBUG("vaddr_translate failed, pc=" FMT_WORD, this->pc);
-        // }
-
-        // switch (result) {
-        //     case VM_OK: break;
-        //     case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return false;
-        //     case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return false;
-        // }
+        VMResult result;
+        addr = this->vaddr_translate(addr, MemType::FETCH, result);
+        switch (result) {
+            case VM_OK: break;
+            case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return false;
+            case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return false;
+        }
         
         if (unlikely(!this->csr.pmp_check_x(addr, 4))) {
             WARN("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
@@ -284,13 +277,13 @@ word_t RVCore::memory_load(word_t addr, int len) {
 
 bool RVCore::memory_store(word_t addr, word_t data, int len) {
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
-        // VMResult result;
-        // addr = this->vaddr_translate(addr, MemType::STORE, result);
-        // switch (result) {
-        //     case VM_OK: break;
-        //     case VM_ACCESS_FAULT: this->trap(TRAP_STORE_ACCESS_FAULT); return false;
-        //     case VM_PAGE_FAULT:   this->trap(TRAP_STORE_PAGE_FAULT);   return false;
-        // }
+        VMResult result;
+        addr = this->vaddr_translate(addr, MemType::STORE, result);
+        switch (result) {
+            case VM_OK: break;
+            case VM_ACCESS_FAULT: this->trap(TRAP_STORE_ACCESS_FAULT); return false;
+            case VM_PAGE_FAULT:   this->trap(TRAP_STORE_PAGE_FAULT);   return false;
+        }
 
         if (unlikely(!this->csr.pmp_check_w(addr, len))) {
             WARN("Physical memory protection check failed when store, addr=" FMT_WORD ", len=%d", addr, len);

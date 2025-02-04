@@ -51,6 +51,8 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 
 -include $(DEPS)
 
+-include ./scripts/isa/$(BASE_ISA).mk
+
 kxemu: $(TARGET)
 
 run: $(TARGET)
