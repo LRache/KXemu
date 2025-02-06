@@ -8,7 +8,7 @@ using namespace kxemu::utils;
 BitPat::BitPat(const std::string &s) {
     uint64_t bits = 0;
     uint64_t mask = 0;
-    int length = 0;
+    unsigned int length = 0;
     for (int i = s.length() - 1; i >= 0; i--) {
         switch (s[i]) {
             case '0': length++; break;
