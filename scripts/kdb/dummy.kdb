@@ -1,0 +1,4 @@
+mem create mem 0x80000000 0x1000000
+reset
+load elf
+run
