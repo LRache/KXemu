@@ -6,8 +6,6 @@
 
 #include <cstdio>
 
-#include "isa/word.h"
-
 #define PUTLOG(FG, TYPE, ...) \
 do { \
     if (!(kxemu::logFlag & kxemu::TYPE)) break; \

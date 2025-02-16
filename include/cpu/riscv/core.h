@@ -39,7 +39,7 @@ private:
     };
     device::Bus *bus;
     AClint *aclint;
-    bool fetch_inst();
+    bool   memory_fetch();
     word_t memory_load (word_t addr, int len);
     bool   memory_store(word_t addr, word_t data, int len);
 
@@ -81,9 +81,6 @@ private:
     void trap(word_t code, word_t value = 0);
     
     // Interrupt
-    bool check_timer_interrupt();
-    bool check_external_interrupt();
-
     void set_interrupt(word_t code);
     void clear_interrupt(word_t code);
     bool scan_interrupt();
@@ -91,7 +88,6 @@ private:
     void interrupt_s(word_t code);
     
     word_t gpr[32];
-    void set_gpr(int index, word_t value);
 
     // do instructions
     void do_invalid_inst();
@@ -115,16 +111,7 @@ private:
 
     const word_t *satp;
 
-    // Timer interrupt
-    uint64_t bootTime;
     uint64_t get_uptime();
-    utils::TaskTimer *taskTimer = nullptr;
-
-    uint64_t mtime;
-    uint64_t mtimecmp;
-    unsigned int mtimerTaskID;
-    unsigned int stimerTaskID;
-    void update_mtimecmp();
     void update_stimecmp();
 
     // Atomic extension
@@ -142,7 +129,7 @@ public:
     
     void reset(word_t entry) override;
     void step() override;
-    void run(word_t *breakpoints = nullptr, unsigned int n = 0) override;
+    void run(const word_t *breakpoints = nullptr, unsigned int n = 0) override;
     
     bool is_error()   override;
     bool is_break()   override;
@@ -150,7 +137,9 @@ public:
     bool is_halt()    override;
 
     word_t get_pc() override;
-    word_t get_gpr(int idx) override;
+    void   set_pc(word_t pc) override;
+    word_t get_gpr(unsigned int idx) override;
+    void   set_gpr(unsigned int idx, word_t value) override;
     word_t get_register(const std::string &name, bool &success) override;
 
     word_t get_halt_pc() override;
@@ -158,11 +147,20 @@ public:
 
     word_t vaddr_translate(word_t vaddr, bool &valid) override;
     
+    void set_timer_interrupt_m();
+    void set_timer_interrupt_s();
+    void clear_timer_interrupt_m();
+    void clear_timer_interrupt_s();
+
+    void set_software_interrupt_m();
+    void set_software_interrupt_s();
+    void clear_software_interrupt_m();
+    void clear_software_interrupt_s();
+    
     void set_external_interrupt_m();
     void set_external_interrupt_s();
     void clear_external_interrupt_m();
     void clear_external_interrupt_s();
-    void increase_uptime();
 };
 
 } // namespace kxemu::cpu

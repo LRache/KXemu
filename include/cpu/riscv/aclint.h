@@ -2,11 +2,15 @@
 #define __KXEMU_CPU_RISCV_CLINT_H__
 
 #include "cpu/word.h"
+#include "device/mmio.h"
+#include "utils/task-timer.h"
 
 #include <functional>
 #include <cstdint>
 
 namespace kxemu::cpu {
+
+class RVCore;
 
 // This is an implementation of the Advanced Core Local Interruptor (ACLINT) for RISC-V.
 // See https://github.com/riscv/riscv-aclint/releases/download/v1.0-rc4/riscv-aclint-1.0-rc4.pdf
@@ -15,36 +19,45 @@ namespace kxemu::cpu {
 // 0x4000 - 0x7ff0 | MTIMECMP |
 // 0xbff8 - 0xbfff | MTIME    |
 // 0xc000 - 0xffff | SSWI     | Supervisor-mode Software Interrupt Device
-class AClint {
+class AClint : public device::MMIOMap {
 public:
     using callback_t = std::function<void(void *)>;
-    struct CoreInfo {
-        void *core;         // Pointer to the core object
-        
-        // The following fields are allocated in the core object
-        uint64_t *mtimecmp; // Machine-mode Timecmp Register
-        bool *msip;         // Machine-mode Software Interrupt Device
-        bool *ssip;         // Supervisor-mode Software Interrupt Device
+    struct CoreObject {
+        RVCore *core;         // Pointer to the core object
 
-        callback_t set_mtimecmp; // Machine-mode Timecmp Register
-        callback_t set_msip; // Machine-mode Software Interrupt Device
-        callback_t set_ssip; // Supervisor-mode Software Interrupt Device
+        bool msip;
+        bool ssip;
+
+        uint64_t mtimecmp;
+        unsigned int mtimerID;
+        unsigned int stimerID;
     };
+    CoreObject *cores;
+    uint64_t mtime;
 
     AClint();
     ~AClint();
 
-    void init(unsigned int coreCount);
-    void reset();
+    void init(RVCore *cores[], unsigned int coreCount);
+    void reset() override;
 
-    word_t read(word_t addr, int size, bool &success);
-    bool write(word_t addr, word_t value, int size);
+    word_t read(word_t addr, word_t size, bool &success) override;
+    bool write(word_t addr, word_t value, word_t size) override;
 
-    void register_core(unsigned int coreId, const CoreInfo &info);
+    void start_timer();
+    void stop_timer();
+    uint64_t get_uptime();
+    void register_stimer(unsigned int coreID, uint64_t stimecmp);
+
+    const char *get_type_name() const override;
 private:
     unsigned int coreCount;
 
-    CoreInfo *cores;
+    bool timerRunning;
+    uint64_t bootTime;
+
+    utils::TaskTimer taskTimer;
+    void update_core_mtimecmp(unsigned int coreID);
 };
 
 } // namespace kxemu::cpu

@@ -1,11 +1,9 @@
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
 #include "device/bus.h"
-#include "device/memory.h"
 #include "utils/utils.h"
-#include "log.h"
+#include "word.h"
 
-#include <exception>
 #include <fstream>
 #include <iomanip>
 #include <ostream>
@@ -16,7 +14,6 @@
 using namespace kxemu;
 using namespace kxemu::kdb;
 using kxemu::kdb::word_t;
-using kxemu::device::Memory;
 
 static int cmd_mem_create(const cmd::args_t &);
 static int cmd_mem_img   (const cmd::args_t &);
@@ -51,17 +48,21 @@ static int cmd_mem_create(const std::vector<std::string> &args) {
     std::string name;
     word_t start, size;
     name = args[2];
-    try {
-        start = utils::string_to_unsigned(args[3]);
-        size = utils::string_to_unsigned(args[4]);
-    } catch (std::exception &) {
-        std::cout << "Usage: mem create <name> <addr> <size> [type]" << std::endl;
+    bool s;
+    start = utils::string_to_unsigned(args[3], s);
+    if (!s) {
+        std::cout << "Invalid start address" << std::endl;
+        return cmd::InvalidArgs;
+    }
+    size = utils::string_to_unsigned(args[4], s);
+    if (!s) {
+        std::cout << "Invalid size" << std::endl;
         return cmd::InvalidArgs;
     }
     
-    bool s = kdb::bus->add_memory_map(name, start, size, new Memory(size));
+    s = kdb::bus->add_memory_map(name, start, size);
     if (s) {
-        std::cout << "Create new memory map " << name << " at " << FMT_STREAM_WORD(start) << " with size=" << size << std::endl;
+        std::cout << "Create new memory map " << name << " at " << FMT_STREAM_WORD(start) << " with size=" <<  FMT_STREAM_WORD(size) << std::endl;
         return cmd::Success;
     } else {
         return cmd::CmdError;
@@ -120,7 +121,14 @@ static int cmd_mem_map(const cmd::args_t &) {
         std::cout << std::setfill(' ')
         << std::setw(10) << m->name << " | "
         << FMT_STREAM_WORD(m->start)  << " | "
-        << FMT_STREAM_WORD(m->length) << " | "
+        << FMT_STREAM_WORD(m->size) << " | "
+        << std::setw(6) << "Memory" << std::endl;
+    }
+    for (auto &m : kdb::bus->mmioMaps) {
+        std::cout << std::setfill(' ')
+        << std::setw(10) << m->name << " | "
+        << FMT_STREAM_WORD(m->start)  << " | "
+        << FMT_STREAM_WORD(m->size) << " | "
         << std::setw(6) << m->map->get_type_name() << std::endl;
     }
     return cmd::Success;
@@ -134,14 +142,18 @@ static int cmd_mem_save(const cmd::args_t &args) {
 
     word_t start, length;
     std::string filename;
-    try {
-        start  = utils::string_to_unsigned(args[2]);
-        length = utils::string_to_unsigned(args[3]);
-        filename = args[4];
-    } catch (std::exception &) {
-        std::cout << "Usage: mem save <start> <length> <filename>" << std::endl;
+    bool s;
+    start  = utils::string_to_unsigned(args[2], s);
+    if (!s) {
+        std::cout << "Invalid start address" << std::endl;
         return cmd::InvalidArgs;
     }
+    length = utils::string_to_unsigned(args[3], s);
+    if (!s) {
+        std::cout << "Invalid length" << std::endl;
+        return cmd::InvalidArgs;
+    }
+    filename = args[4];
 
     std::ofstream f;
     f.open(filename, std::ios::out | std::ios::binary);
@@ -172,5 +184,3 @@ int cmd::mem(const cmd::args_t &args) {
     }
     return r;
 }
-
-

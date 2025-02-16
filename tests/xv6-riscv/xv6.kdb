@@ -1,0 +1,5 @@
+mem create mem 0x80000000 0x8000000
+log off DEBUG
+uart add 0x10000000
+load elf
+run

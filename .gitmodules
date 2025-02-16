@@ -1,3 +1,6 @@
 [submodule "utils/mini-gdbstub"]
 	path = utils/mini-gdbstub
 	url = https://github.com/RinHizakura/mini-gdbstub.git
+[submodule "tests/xv6-riscv/xv6-riscv"]
+	path = tests/xv6-riscv/xv6-riscv
+	url = https://github.com/mit-pdos/xv6-riscv

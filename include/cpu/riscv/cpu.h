@@ -6,28 +6,29 @@
 #include "cpu/riscv/core.h"
 #include "utils/task-timer.h"
 
-namespace kxemu::cpu {
+#include <thread>
 
-#ifdef KXEMU_ISA64
-    using word_t = uint64_t;
-#else
-    using word_t = uint32_t;
-#endif
+namespace kxemu::cpu {
 
 class RVCPU : public CPU<word_t> {
 private:    
     RVCore *cores;
     unsigned int coreCount;
+    std::thread *coreThread;
+    void core_thread_worker(unsigned int coreID, const word_t *breakpoints, unsigned int n);
     
     AClint aclint;
     utils::TaskTimer taskTimer;
     
 public:
+    RVCPU();
     ~RVCPU() override;
 
     void init(device::Bus *bus, int flags, unsigned int coreCount) override;
     void reset(word_t pc) override;
     void step() override;
+    void run(bool blocked=false, const word_t *breakpoints=nullptr, unsigned int n=0) override;
+    void join() override;
     bool is_running() override;
 
     unsigned int core_count() override;

@@ -19,6 +19,7 @@ namespace kxemu::isa {
     // ISA information
     const char *get_isa_name();
     int get_elf_expected_machine();
+    const char *get_gdb_target_desc();
 
     cpu::CPU<word_t> *new_cpu();
 

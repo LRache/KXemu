@@ -45,12 +45,22 @@ void TaskTimer::timer_thread() {
     }
 }
 
-void TaskTimer::start_thread() {
+void TaskTimer::start_timer() {
     if (this->running) {
         return;
     }
     this->running = true;
     this->timerThread = new std::thread(&TaskTimer::timer_thread, this);
+}
+
+void TaskTimer::stop_timer() {
+    if (!this->running) {
+        return;
+    }
+    this->running = false;
+    this->cv.notify_all();
+    this->timerThread->join();
+    delete this->timerThread;
 }
 
 unsigned int TaskTimer::add_task(uint64_t delay, task_t task) {

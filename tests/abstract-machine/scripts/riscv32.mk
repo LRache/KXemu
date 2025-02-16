@@ -1,4 +1,5 @@
 AM_ISA_NAME = riscv
+KXEMU_ISA = riscv32
 
 CROSS_COMPILE ?= riscv64-linux-gnu
 

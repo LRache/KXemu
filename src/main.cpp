@@ -19,20 +19,21 @@
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 
-#include <bits/getopt_core.h>
 #include <getopt.h>
 #include <vector>
 
 using namespace kxemu;
 
+static std::vector<std::string> sourceFiles;
+static unsigned int coreCount = 1;
+
 void parse_args(int argc, char **argv) {
     static struct option options[] = {
         {"source", required_argument, 0, 's'},
         {"elf"   , required_argument, 0, 'e'},
+        {"core"  , required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
-
-    std::vector<std::string> sourceFiles;
 
     int o;
     while((o = getopt_long(argc, argv, "s:", options, NULL)) != -1) {
@@ -43,20 +44,25 @@ void parse_args(int argc, char **argv) {
             case 'e':
                 kdb::cmd::elfFileName = optarg;
                 break;
+            case 'c':
+                coreCount = std::stoi(optarg);
+                break;
             default:
                 break;
         }
     }
-
-    for (auto sourceFileName: sourceFiles) {
-        kdb::run_source_file(sourceFileName);
-    }
 }
 
 int main(int argc, char **argv) {
-    kdb::init();
-    kdb::cmd_init();
     parse_args(argc, argv);
+    
+    kdb::init(coreCount);
+    for (auto sourceFileName: sourceFiles) {
+        kdb::run_source_file(sourceFileName);
+    }
+    
+    kdb::cmd_init();
     int r = kdb::run_cmd_mainloop();
+    kdb::deinit();
     return r;
 }

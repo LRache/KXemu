@@ -1,7 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
-#include "isa/word.h"
 #include "log.h"
 
 #include <ctime>
@@ -70,7 +69,7 @@ void RVCore::do_sret() {
 }
 
 void RVCore::do_ebreak() {
-    INFO("EBREAK at pc=" FMT_WORD, this->pc);
+    // INFO("EBREAK at pc=" FMT_WORD, this->pc);
     this->state = HALT;
     this->haltCode = this->gpr[10];
     this->haltPC = this->pc;
@@ -86,6 +85,13 @@ void RVCore::do_wfi() {
 }
 
 void RVCore::do_sfence_vma() {
+    if (this->privMode == PrivMode::USER) {
+        do_invalid_inst();
+        return;
+    } 
+}
+
+void RVCore::do_fence() {
     if (this->privMode == PrivMode::USER) {
         do_invalid_inst();
         return;

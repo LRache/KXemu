@@ -1,7 +1,8 @@
 #include "cpu/cpu.h"
-#include "isa/word.h"
+#include "word.h"
 #include "kdb/kdb.h"
 #include "kdb/cmd.h"
+#include "utils/utils.h"
 #include "macro.h"
 
 #include <cstdint>
@@ -58,19 +59,15 @@ int cmd::step(const args_t &args) {
     if (args.size() == 1) {
         n = 1;
     } else {
-        std::string ns = args[1];
-        try {
-            n = std::stoul(ns);
-        } catch (std::invalid_argument &) {
-            std::cout << "Invalid step count: " << ns << std::endl;
-            return cmd::InvalidArgs;
-        } catch (std::out_of_range &) {
-            std::cout << "Step count out of range: " << ns << std::endl;
+        bool s;
+        n = utils::string_to_unsigned(args[1], s);
+        if (!s) {
+            std::cout << "Invalid step count: " << args[1] << std::endl;
             return cmd::InvalidArgs;
         }
     }
 
-    auto core = cmd::currentCore;
+    auto core = kdb::cpu->get_core(cmd::currentCore);
     kdb::brkTriggered = false;
     for (unsigned long i = 0; i < n; i++) {
         if (core->is_halt()) {
@@ -80,7 +77,7 @@ int cmd::step(const args_t &args) {
         word_t pc = core->get_pc();
 
         // core step
-        kdb::step_core(core);
+        kdb::step_core(cmd::currentCore);
 
         // disassemble
         output_disassemble(pc);
@@ -94,12 +91,11 @@ int cmd::step(const args_t &args) {
 }
 
 int cmd::run(const args_t &) {
-    if (!kdb::cpu->is_running()) {
-        std::cout << "CPU is not running." << std::endl;
-    } else {
-        kdb::run_cpu();
-        if (kdb::brkTriggered) {
-            std::cout << "Breakpoint at " << FMT_STREAM_WORD(currentCore->get_pc()) << " triggered."<< std::endl;
+    kdb::run_cpu();
+    for (unsigned int i = 0; i < kdb::cpu->core_count(); i++) {
+        auto core = kdb::cpu->get_core(i);
+        if (core->is_break()) {
+            std::cout << "Core " << i << ": Breakpoint at " << FMT_STREAM_WORD(core->get_pc()) << " triggered."<< std::endl;
         }
     }
     return 0;

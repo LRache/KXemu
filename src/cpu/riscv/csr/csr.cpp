@@ -4,7 +4,7 @@
 #include "debug.h"
 #include "macro.h"
 #include "config/config.h"
-#include "isa/word.h"
+#include "word.h"
 #include <functional>
 
 #define MVENDORID 0x584b5343 // "CSKX" in little-endian

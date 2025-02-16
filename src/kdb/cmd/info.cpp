@@ -1,6 +1,7 @@
 #include "isa/isa.h"
-#include "isa/word.h"
+#include "word.h"
 #include "kdb/cmd.h"
+#include "kdb/kdb.h"
 
 #include <iostream>
 
@@ -16,8 +17,9 @@ static const cmd::cmd_map_t cmdMap = {
 };
 
 static int cmd_info_gpr(const cmd::args_t &) {
+    auto core = kdb::cpu->get_core(cmd::currentCore);
     for (unsigned int i = 0; i < isa::get_gpr_count(); i++) {
-        word_t value = cmd::currentCore->get_gpr(i);
+        word_t value = core->get_gpr(i);
         std::cout << isa::get_gpr_name(i) << " = " 
         << FMT_STREAM_WORD(value) 
         << "(" << value<< ")" << std::endl;
@@ -26,7 +28,8 @@ static int cmd_info_gpr(const cmd::args_t &) {
 }
 
 static int cmd_info_pc(const cmd::args_t &) {
-    word_t pc = cmd::currentCore->get_pc();
+    auto core = kdb::cpu->get_core(cmd::currentCore);
+    word_t pc = core->get_pc();
     std::cout << "pc = " << FMT_STREAM_WORD(pc) << std::endl;
     return cmd::Success;
 }

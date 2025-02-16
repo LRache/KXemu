@@ -1,4 +1,4 @@
-#include "log.h"
+#include "word.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "utils/utils.h"
@@ -23,7 +23,7 @@ static int cmd_uart_add(const cmd::args_t &args) {
         return cmd::InvalidArgs;
     }
     bool s;
-    word_t base = kdb::string_to_addr(args[2], s);
+    word_t base = utils::string_to_unsigned(args[2], s);
     if (!s) {
         std::cout << "Invalid address: " << args[2] << std::endl;
         return cmd::InvalidArgs;
@@ -36,13 +36,13 @@ static int cmd_uart_add(const cmd::args_t &args) {
             return cmd::CmdError;
         }
     } else {
-        int port = 0;
-        try {
-            port = std::stoi(args[3]);
-        } catch (std::exception &) {
+        bool s;
+        int port = utils::string_to_unsigned(args[3], s);
+        if (!s) {
             std::cout << "Invalid port: " << args[3] << std::endl;
             return cmd::InvalidArgs;
         }
+
         if (kdb::uart::add(base, "127.0.0.1", port)) {
             std::cout << "UART added at base " << FMT_STREAM_WORD(base) << " port " << port << std::endl;
             return cmd::Success;

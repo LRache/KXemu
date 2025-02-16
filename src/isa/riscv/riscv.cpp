@@ -33,6 +33,14 @@ int kxemu::isa::get_elf_expected_machine() {
     return EM_RISCV;
 }
 
+const char *kxemu::isa::get_gdb_target_desc() {
+    #ifdef KXEMU_ISA64
+        return "riscv:rv64";
+    #else
+        return "riscv:rv32";
+    #endif
+}
+
 extern void init_disasm();
 
 void kxemu::isa::init() {

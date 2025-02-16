@@ -28,7 +28,7 @@ LIBS += am klib
 LIBS_ARCHIVE = $(foreach name, $(LIBS), $(AM_DIR)/$(name)/build/$(ARCH)-$(name).a)
 
 # Kxemu configuration
-KXEMU = $(AM_DIR)/../../build/$(ISA)-kxemu
+KXEMU = $(AM_DIR)/../../build/$(KXEMU_ISA)-kxemu
 KXEMU_FLAGS += --elf $(abspath $(ELF)) --source $(AM_DIR)/scripts/kdb/init.kdb
 KXEMU_FLAGS += $(addprefix --source , $(KDB_INIT_SRC))
 
@@ -74,12 +74,12 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(OBJ_DIR)/%.o: %.S
 	$(info + AS $<)
 	@ mkdir -p $(dir $@)
-	@ $(AS) $(ASFLAGS) $(COMPILE_FLAGS) -c $< -o $@
+	$(AS) $(ASFLAGS) $(COMPILE_FLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
 	$(info + AS $<)
 	@ mkdir -p $(dir $@)
-	@ $(AS) $(COMPILE_FLAGS) -c $< -o $@
+	$(AS) $(ASFLAGS) $(COMPILE_FLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: %.cc
 	$(info + CC $<)

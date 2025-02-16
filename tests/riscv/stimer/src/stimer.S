@@ -37,10 +37,10 @@ main:
     add t0, t0, t1
     csrw stimecmp, t0
 
-    # li t0, (1 << 1)
-    # csrs mcounteren, t0
-    # li t0, (1 << 63)
-    # csrs menvcfg, t0
+    li t0, (1 << 1)
+    csrs mcounteren, t0
+    li t0, (1 << 63)
+    csrs menvcfg, t0
 
     la t0, m_mode_handle
     csrw mtvec, t0

@@ -1,48 +1,17 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
-#include "log.h"
 #include "macro.h"
-
-#include <cstdint>
 
 using namespace kxemu::cpu;
 
-void RVCore::update_mtimecmp() {
-    // Remove the previous task first
-    if (this->mtimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->mtimerTaskID);
-    }
-
-    uint64_t uptimecmp = MTIME_TO_UPTIME(this->mtimecmp);
-    uint64_t uptime = this->get_uptime();
-    uint64_t delay = uptimecmp - uptime;
-    this->taskTimer->add_task(delay, [this]() {
-        this->set_interrupt(INTERRUPT_TIMER_M);
-        this->mtimerTaskID = -1;
-    });
-}
-
 void RVCore::update_stimecmp() {
-    // Remove the previous task first
-    if (this->stimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->stimerTaskID);
-    }
-
-    uint64_t cmp = this->csr.read_csr(CSR_STIMECMP);
+    uint64_t stimecmp = this->csr.read_csr(CSR_STIMECMP);
 #ifdef KXEMU_ISA32
-    cmp &= 0xffffffff;
-    cmp |= (uint64_t)this->csr.read_csr(CSR_STIMECMPH) << 32;
+    stimecmp &= 0xffffffff;
+    stimecmp |= (uint64_t)this->csr.read_csr(CSR_STIMECMPH) << 32;
 #endif
-    uint64_t uptimecmp = MTIME_TO_UPTIME(cmp);
-    uint64_t uptime = this->get_uptime();
-    uint64_t delay = uptimecmp - uptime;
-    this->taskTimer->add_task(delay, [this]() {
-        this->set_interrupt(INTERRUPT_TIMER_S);
-        this->stimerTaskID = -1;
-        // INFO("STIMER interrupt triggered, mip=" FMT_WORD, this->csr.read_csr(CSR_MIP));
-    });
-    // INFO("Set STIMECMP, delay=" FMT_VARU, delay);
+    this->aclint->register_stimer(this->coreID, stimecmp);
 }
 
 void RVCore::set_interrupt(word_t code) {
@@ -57,18 +26,36 @@ void RVCore::clear_interrupt(word_t code) {
     this->csr.write_csr(CSR_MIP, mip);
 }
 
-bool RVCore::check_timer_interrupt() {
-    // if (unlikely(this->timerIntrruptNotTriggered && this->uptime >= this->uptimecmp)) {
-    //     this->set_interrupt(INTERRUPT_TIMER_M);
-    //     this->timerIntrruptNotTriggered = false;
-    //     return true;
-    // }
-    // if (unlikely(this->stimerIntrruptNotTriggered && this->uptime >= this->suptimecmp)) {
-    //     this->set_interrupt(INTERRUPT_TIMER_S);
-    //     this->stimerIntrruptNotTriggered = false;
-    //     return true;
-    // }
-    return false;
+void RVCore::set_timer_interrupt_m() {
+    set_interrupt(INTERRUPT_TIMER_M);
+}
+
+void RVCore::set_timer_interrupt_s() {
+    set_interrupt(INTERRUPT_TIMER_S);
+}
+
+void RVCore::clear_timer_interrupt_m() {
+    clear_interrupt(INTERRUPT_TIMER_M);
+}
+
+void RVCore::clear_timer_interrupt_s() {
+    clear_interrupt(INTERRUPT_TIMER_S);
+}
+
+void RVCore::set_software_interrupt_m() {
+    set_interrupt(INTERRUPT_SOFTWARE_M);
+}
+
+void RVCore::set_software_interrupt_s() {
+    set_interrupt(INTERRUPT_SOFTWARE_S);
+}
+
+void RVCore::clear_software_interrupt_m() {
+    clear_interrupt(INTERRUPT_SOFTWARE_M);
+}
+
+void RVCore::clear_software_interrupt_s() {
+    clear_interrupt(INTERRUPT_SOFTWARE_S);
 }
 
 void RVCore::set_external_interrupt_m() {
@@ -88,9 +75,6 @@ void RVCore::clear_external_interrupt_s() {
 }
 
 void RVCore::interrupt_m(word_t code) {
-    INFO("Machine level interrupt, code=" FMT_WORD, code);
-    clear_interrupt(code);
-    
     this->csr.write_csr(CSR_MEPC, this->pc);
     this->csr.write_csr(CSR_MCAUSE, code | CAUSE_INTERRUPT_MASK);
     this->csr.write_csr(CSR_MTVAL, 0);
@@ -112,10 +96,7 @@ void RVCore::interrupt_m(word_t code) {
     }
 }
 
-void RVCore::interrupt_s(word_t code) {
-    // INFO("Interrupt S, code=" FMT_WORD, code);
-    clear_interrupt(code);
-    
+void RVCore::interrupt_s(word_t code) {    
     this->csr.write_csr(CSR_SEPC, this->pc);
     this->csr.write_csr(CSR_SCAUSE, code | CAUSE_INTERRUPT_MASK);
     this->csr.write_csr(CSR_STVAL, 0);

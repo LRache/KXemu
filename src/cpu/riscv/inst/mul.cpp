@@ -1,7 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "./local-decoder.h"
 #include "cpu/word.h"
-#include "isa/word.h"
+#include "word.h"
 
 #define RD  unsigned int rd  = BITS(11, 7);
 #define RS1 unsigned int rs1 = BITS(19, 15);

@@ -1,8 +1,11 @@
+#include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
+#include "cpu/riscv/def.h"
 #include "cpu/word.h"
+#include "utils/utils.h"
 #include "log.h"
 #include "debug.h"
-#include "isa/word.h"
+#include "word.h"
 
 #define MSWI_BASE 0x0000
 #define MSWI_SIZE 0x4000
@@ -26,24 +29,35 @@ AClint::~AClint() {
     delete[] this->cores;
 }
 
-void AClint::init(unsigned int coreCount) {
+void AClint::init(RVCore *cores[], unsigned int coreCount) {
     SELF_PROTECT(this->cores == nullptr, "CLINT is already initialized.");
     this->coreCount = coreCount;
-    this->cores = new CoreInfo[coreCount];
+    this->cores = new CoreObject[coreCount];
+    for (unsigned int i = 0; i < coreCount; i++) {
+        this->cores[i].core = cores[i];
+        this->cores[i].mtimecmp = -1;
+        this->cores[i].mtimerID = -1;
+        this->cores[i].stimerID = -1;
+    }
 }
 
 void AClint::reset() {
     for (unsigned int i = 0; i < this->coreCount; i++) {
-        *this->cores[i].mtimecmp = -1;
+        this->cores[i].mtimecmp = -1;
+        if (this->cores[i].mtimerID != (unsigned int)-1) {
+            this->taskTimer.remove_task(this->cores[i].mtimerID);
+            this->cores[i].mtimerID = -1;
+        }
     }
+    this->timerRunning = false;
 }
 
-word_t AClint::read(word_t addr, int size, bool &success) {
+word_t AClint::read(word_t addr, word_t size, bool &valid) {
     if (IN_RANGE(addr, MSWI)) {
         // MSWI only supports 32-bit reads
         if (size != 4) {
             WARN("Unaligned access to MSWI.");
-            success = false;
+            valid = false;
             return 0;
         }
 
@@ -52,16 +66,18 @@ word_t AClint::read(word_t addr, int size, bool &success) {
         // CoreID is out of range
         if (coreID >= this->coreCount) {
             WARN("Invalid core ID %d", coreID);
-            success = false;
+            valid = false;
             return 0;
         }
-        success = true;
-        return *this->cores[coreID].msip;
+        
+        valid = true; 
+        return this->cores[coreID].msip;
+    
     } else if (IN_RANGE(addr, SSWI)) {
         // SSWI only supports 32-bit reads
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Unaligned access to SSWI.");
-            success = false;
+            valid = false;
             return 0;
         }
 
@@ -70,11 +86,13 @@ word_t AClint::read(word_t addr, int size, bool &success) {
         // CoreID is out of range
         if (coreID >= this->coreCount) {
             WARN("Invalid core ID %d", coreID);
-            success = false;
+            valid = false;
             return 0;
         }
-        success = true;
-        return *this->cores[coreID].ssip;
+        
+        valid = true;
+        return this->cores[coreID].ssip;
+    
     } else if (IN_RANGE(addr, MTIMECMP)) {
         // MTIMECMP only supports aligned reads
         unsigned int coreID = (addr - MTIMECMP_BASE) >> 3;
@@ -82,42 +100,66 @@ word_t AClint::read(word_t addr, int size, bool &success) {
         // CoreID is out of range
         if (coreID >= this->coreCount) {
             WARN("Invalid core ID %d", coreID);
-            success = false;
+            valid = false;
             return 0;
         }
 
-    #ifdef KXEMU_ISA64
+        #ifdef KXEMU_ISA64
         if (size != 8 || (addr & 0x7) != 0) {
             WARN("Unaligned access to MTIMECMP.");
-            success = false;
+            valid = false;
             return 0;
         }
-        success = true;
-        return *this->cores[coreID].mtimecmp;
-    #else
+        
+        valid = true;
+        return this->cores[coreID].mtimecmp;
+        #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %d for MTIMECMP", size);
-            success = false;
+            valid = false;
             return 0;
         }
+
         word_t offset = addr & 0b11;
-        success = true;
+        valid = true;
         if (offset == 0) {
-            return *this->cores[coreID].mtimecmp & 0xffffffffUL;
+            return this->cores[coreID].mtimecmp & 0xffffffffUL;
         } else {
-            return *this->cores[coreID].mtimecmp >> 32;
+            return this->cores[coreID].mtimecmp >> 32;
         }
-    #endif
+        #endif
     } else if (IN_RANGE(addr, MTIME)) {
-        PANIC("Do not access MTIME in ACLINT.");
+        #ifdef KXEMU_ISA64
+        if (size != 8 || (addr & 0x7) != 0) {
+            WARN("Unaligned access to MTIME.");
+            return false;
+        }
+
+        return UPTIME_TO_MTIME(this->get_uptime());
+        
+        #else
+        if (size != 4 || (addr & 0x3) != 0) {
+            WARN("Invalid size %d for MTIME", size);
+            return false;
+        }
+        
+        this->mtime = UPTIME_TO_MTIME(this->get_uptime());
+        
+        word_t offset = addr & 0b11;
+        if (offset == 0) {
+            return this->mtime & 0xffffffffUL;
+        } else {
+            return this->mtime >> 32;
+        }
+        #endif
     } else {
         WARN("Invalid address " FMT_WORD " for CLINT", addr);
-        success = false;
+        valid = false;
         return 0;
     }
 }
 
-bool AClint::write(word_t addr, word_t value, int size) {
+bool AClint::write(word_t addr, word_t value, word_t size) {
     if (IN_RANGE(addr, MSWI)) {
         // MSWI only supports 32-bit writes
         if (size != 4) {
@@ -138,10 +180,14 @@ bool AClint::write(word_t addr, word_t value, int size) {
             WARN("Invalid core ID %d", coreID);
             return false;
         }
-        *this->cores[coreID].msip = value;
-        if (this->cores[coreID].set_msip != nullptr) {
-            (this->cores[coreID].set_msip)(this->cores[coreID].core);
+        
+        this->cores[coreID].msip = value;
+        if (value) {
+            this->cores[coreID].core->set_software_interrupt_m();
+        } else {
+            this->cores[coreID].core->clear_software_interrupt_m();
         }
+
     } else if (IN_RANGE(addr, SSWI)) {
         // SSWI only supports 32-bit writes
         if (size != 4 || (addr & 0x3) != 0) {
@@ -162,10 +208,14 @@ bool AClint::write(word_t addr, word_t value, int size) {
             WARN("Invalid core ID %d", coreID);
             return false;
         }
-        *this->cores[coreID].ssip = value;
-        if (this->cores[coreID].set_ssip != nullptr) {
-            (this->cores[coreID].set_ssip)(this->cores[coreID].core);
+        
+        this->cores[coreID].ssip = value;
+        if (value) {
+            this->cores[coreID].core->set_software_interrupt_s();
+        } else {
+            this->cores[coreID].core->clear_software_interrupt_s();
         }
+    
     } else if (IN_RANGE(addr, MTIMECMP)) {
         // MTIMECMP only supports aligned writes
         unsigned int coreID = (addr - MTIMECMP_BASE) >> 3;
@@ -181,8 +231,9 @@ bool AClint::write(word_t addr, word_t value, int size) {
             WARN("Unaligned access to MTIMECMP.");
             return false;
         }
-        *this->cores[coreID].mtimecmp = value;
-        this->cores[coreID].set_mtimecmp(this->cores[coreID].core);
+        
+        this->cores[coreID].mtimecmp = value;
+        this->update_core_mtimecmp(coreID);
     #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %d for MTIMECMP", size);
@@ -199,7 +250,7 @@ bool AClint::write(word_t addr, word_t value, int size) {
         }
         #endif
     } else if (IN_RANGE(addr, MTIME)) {
-        PANIC("Do not access MTIME in ACLINT.");
+        return false;
     } else {
         WARN("Invalid address " FMT_WORD " for CLINT", addr);
         return false;
@@ -207,9 +258,79 @@ bool AClint::write(word_t addr, word_t value, int size) {
     return false;
 }
 
-void AClint::register_core(unsigned int coreId, const struct CoreInfo &info) {
-    SELF_PROTECT(this->cores != nullptr, "CLINT is not initialized.");
-    SELF_PROTECT(coreId < this->coreCount, "Core ID out of range %d", coreId);
+void AClint::start_timer() {
+    if (this->timerRunning) {
+        PANIC("Timer is already running.");
+        return ;
+    }
+    this->timerRunning = true;
+    this->bootTime = utils::get_current_time();
+    this->taskTimer.start_timer();
+}
 
-    this->cores[coreId] = info;
+void AClint::stop_timer() {
+    if (!this->timerRunning) {
+        PANIC("Timer is not running.");
+        return ;
+    }
+    this->timerRunning = false;
+    this->taskTimer.stop_timer();
+}
+
+uint64_t AClint::get_uptime() {
+    if (!this->timerRunning) {
+        return 0;
+    }
+    return utils::get_current_time() - this->bootTime;
+}
+
+void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {
+    if (coreID >= this->coreCount) {
+        PANIC("Invalid core ID %d", coreID);
+        return ;
+    }
+
+    const CoreObject &coreObj = this->cores[coreID];
+    
+    if (coreObj.stimerID != (unsigned int)-1) {
+        this->taskTimer.remove_task(coreObj.stimerID);
+    }
+
+    coreObj.core->clear_timer_interrupt_s();
+
+    uint64_t uptimecmp = MTIME_TO_UPTIME(stimecmp);
+    uint64_t uptime = this->get_uptime();
+    uint64_t delay = uptimecmp - uptime;
+    this->cores[coreID].stimerID = this->taskTimer.add_task(delay, [this, coreID]() {
+        this->cores[coreID].core->set_timer_interrupt_s();
+        this->cores[coreID].stimerID = -1;
+    });
+}
+
+void AClint::update_core_mtimecmp(unsigned int coreID) {
+    if (coreID >= this->coreCount) {
+        PANIC("Invalid core ID %d", coreID);
+        return ;
+    }
+
+    const CoreObject &coreObj = this->cores[coreID];
+
+    if (coreObj.mtimerID != (unsigned int)-1) {
+        this->taskTimer.remove_task(coreObj.mtimerID);
+    }
+
+    coreObj.core->clear_timer_interrupt_m();
+
+    uint64_t mtimecmp = coreObj.mtimecmp;
+    uint64_t uptimecmp = MTIME_TO_UPTIME(mtimecmp);
+    uint64_t uptime = this->get_uptime();
+    uint64_t delay = uptimecmp - uptime;
+    this->cores[coreID].mtimerID = this->taskTimer.add_task(delay, [this, coreID]() {
+        this->cores[coreID].core->set_timer_interrupt_m();
+        this->cores[coreID].mtimerID = -1;
+    });
+}
+
+const char *AClint::get_type_name() const {
+    return "RISC-V AClint";
 }

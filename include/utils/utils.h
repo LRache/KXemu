@@ -15,6 +15,7 @@ namespace kxemu::utils {
     using timepoint_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
     timepoint_t get_current_timepoint();
     uint64_t timepoint_to_ns(const timepoint_t &tp);
+    uint64_t get_current_time();
 }
 
 #endif // __UTILS_UTILS_H__

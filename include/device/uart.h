@@ -14,10 +14,11 @@
 
 namespace kxemu::device {
 
-class Uart16650: public MemoryMap {
+class Uart16650: public MMIOMap {
 public:
-    word_t read(word_t offset, int size) override;
-    bool write(word_t offset, word_t data, int size) override;
+    word_t read(word_t offset, word_t size, bool &valid) override;
+    bool  write(word_t offset, word_t data, word_t size) override;
+    void update() override;
     uint8_t *get_ptr(word_t offset) override;
     const char *get_type_name() const override;
 
@@ -44,9 +45,10 @@ private:
     std::thread *recvThread;
     void recv_thread_loop();
 
-    std::mutex mtx;
+    std::mutex queueMtx;
     std::queue<uint8_t> queue; // FIFO buffer
     
+    std::mutex senderMtx;
     void send_byte(uint8_t c);
 
     // Divisor Latch Register

@@ -20,6 +20,8 @@ public:
     virtual void init(device::Bus *memory, int flags, unsigned int coreCount) = 0;
     virtual void reset(word_t pc) = 0;
     virtual void step() = 0;
+    virtual void run(bool blocked=false, const word_t *breakpoints=nullptr, unsigned int n=0) = 0;
+    virtual void join() = 0;
     virtual bool is_running() = 0;
 
     virtual unsigned int core_count() = 0;

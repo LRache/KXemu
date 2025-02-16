@@ -37,7 +37,8 @@ public:
     TaskTimer();
     ~TaskTimer();
 
-    void start_thread();
+    void start_timer();
+    void stop_timer();
 
     unsigned int add_task(uint64_t delay, task_t task);
     void remove_task(unsigned int id);

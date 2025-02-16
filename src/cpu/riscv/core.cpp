@@ -3,22 +3,18 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "device/bus.h"
-#include "isa/word.h"
+#include "word.h"
 #include "log.h"
 #include "macro.h"
 
+#include <unordered_set>
 #include <cstdint>
 #include <cstring>
-#include <functional>
-#include <unordered_set>
 
 using namespace kxemu::cpu;
 using kxemu::utils::TaskTimer;
 
-RVCore::RVCore() {
-    this->mtimerTaskID = -1; // -1 means the task is not exist
-    this->stimerTaskID = -1;
-    
+RVCore::RVCore() {    
     this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
     this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
     this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
@@ -38,22 +34,9 @@ void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, AClint *alin
     this->bus = bus;
     this->flags = flags;
     this->aclint = alint;
-    this->taskTimer = timer;
     this->state = IDLE;
 
-    // this->build_decoder();
-
     this->init_csr();
-    
-    this->aclint->register_core(coreID, {
-        this,
-        &this->mtimecmp,
-        &this->msip,
-        &this->ssip,
-        std::bind(&RVCore::update_mtimecmp, this),
-        nullptr,
-        nullptr
-    });
 }
 
 void RVCore::reset(word_t entry) {
@@ -62,15 +45,6 @@ void RVCore::reset(word_t entry) {
     this->privMode = PrivMode::MACHINE;
     
     this->csr.reset();
-
-    if (this->mtimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->mtimerTaskID);
-        this->mtimerTaskID = -1;
-    }
-    if (this->stimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->stimerTaskID);
-        this->stimerTaskID = -1;
-    }
 
     std::memset(this->gpr, 0, sizeof(this->gpr));
 }
@@ -87,17 +61,12 @@ void RVCore::step() {
     }
 }
 
-void RVCore::run(word_t *breakpoints_, unsigned int n) {
+void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     std::unordered_set<word_t> breakpoints;
     for (unsigned int i = 0; i < n; i++) {
         breakpoints.insert(breakpoints_[i]);
     }
 
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    this->bootTime = ts.tv_sec * 1e9 + ts.tv_nsec;
-    this->taskTimer->start_thread();
-    
     this->state = RUNNING;
     while (this->state == RUNNING) {
         if (breakpoints.find(this->pc) != breakpoints.end()) {
@@ -107,7 +76,6 @@ void RVCore::run(word_t *breakpoints_, unsigned int n) {
             break;
         }
         
-        this->check_timer_interrupt();
         this->execute();
         this->pc = this->npc;
     }
@@ -115,6 +83,7 @@ void RVCore::run(word_t *breakpoints_, unsigned int n) {
 
 void RVCore::execute() {    
     // Interrupt
+    this->bus->update();
     if (unlikely(this->scan_interrupt())) return;
     
     if (unlikely(this->pc & 0x1)) {
@@ -123,7 +92,7 @@ void RVCore::execute() {
         return;
     }
     
-    if (!this->fetch_inst()) {
+    if (!this->memory_fetch()) {
         return;
     }
     
@@ -142,12 +111,7 @@ void RVCore::execute() {
 }
 
 uint64_t RVCore::get_uptime() {
-    if (unlikely(this->state != RUNNING)) {
-        return 0;
-    }
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1e9 + ts.tv_nsec - this->bootTime;
+    return this->aclint->get_uptime();
 }
 
 void RVCore::do_invalid_inst() {
@@ -157,12 +121,6 @@ void RVCore::do_invalid_inst() {
 
     // Illegal instruction trap
     this->trap(TRAP_ILLEGAL_INST, this->inst);
-}
-
-void RVCore::set_gpr(int index, word_t value) {
-    if (likely(index != 0)) {
-        this->gpr[index] = value;
-    }
 }
 
 bool RVCore::is_error() {
@@ -185,12 +143,21 @@ word_t RVCore::get_pc() {
     return this->pc;
 }
 
-word_t RVCore::get_gpr(int idx) {
+void RVCore::set_pc(word_t pc) {
+    this->pc = pc;
+}
+
+word_t RVCore::get_gpr(unsigned int idx) {
     if (idx >= 32 || idx < 0) {
         WARN("GPR index=%d out of range, return 0 instead.", idx);
         return 0;
     }
     return gpr[idx];
+}
+
+void RVCore::set_gpr(unsigned int index, word_t value) {
+    this->gpr[index] = value;
+    this->gpr[0] = 0;
 }
 
 word_t RVCore::get_register(const std::string &name, bool &success) {

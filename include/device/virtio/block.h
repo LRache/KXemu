@@ -1,0 +1,6 @@
+#ifndef __KXEMU_DEVICE_VIRTIO_BLOCK_H__
+#define __KXEMU_DEVICE_VIRTIO_BLOCK_H__
+
+
+
+#endif

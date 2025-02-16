@@ -2,7 +2,7 @@
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
-#include "isa/word.h"
+#include "word.h"
 #include "log.h"
 #include "macro.h"
 
@@ -15,10 +15,7 @@ word_t RVCore::vaddr_translate(word_t addr, MemType type, VMResult &result) {
     }
 #ifdef KXEMU_ISA32
     if (SATP_MODE(*this->satp) == SATP_MODE_SV32) {
-        word_t vaddr = addr;
-        (void)vaddr; 
         addr = this->vaddr_translate_sv32(addr, type, result);
-        DEBUG("Translate vaddr=" FMT_WORD ", type=%d to paddr=" FMT_WORD, vaddr, type, addr);
     }
 #else
     switch (SATP_MODE(*this->satp)) {
@@ -203,19 +200,19 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 
 #endif
 
-bool RVCore::fetch_inst() {
+bool RVCore::memory_fetch() {
     word_t addr = this->pc;
-    if (unlikely(this->privMode != PrivMode::MACHINE)) {
-        VMResult result;
-        addr = this->vaddr_translate(addr, MemType::FETCH, result);
-        switch (result) {
-            case VM_OK: break;
-            case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return false;
-            case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return false;
-        }
-        
+    VMResult result;
+    addr = this->vaddr_translate(addr, MemType::FETCH, result);
+    switch (result) {
+        case VM_OK: break;
+        case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return false;
+        case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return false;
+    }
+    
+    if (unlikely(this->privMode != PrivMode::MACHINE)) {    
         if (unlikely(!this->csr.pmp_check_x(addr, 4))) {
-            WARN("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
+            HINT("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
             this->trap(TRAP_LOAD_ACCESS_FAULT);
             return false;
         }
@@ -242,37 +239,15 @@ word_t RVCore::memory_load(word_t addr, int len) {
             return -1;
         }
     }
-    
-    // mtime memory mapped register
-    // Only allow aligned access
-    #ifdef KXEMU_ISA64
-    if (unlikely(addr == MTIME_BASE && len == 8)) {
-        mtime = UPTIME_TO_MTIME(get_uptime());
-        return mtime;
-    }
-    #else
-    if (unlikely(addr == MTIME_BASE && len == 4 )) {
-        mtime = UPTIME_TO_MTIME(get_uptime());
-        return mtime;
-    }
-    if (unlikely(addr == MTIME_BASE + 4 && len == 4)) {
-        return mtime >> 32;
-    }
-    #endif
-
-    // ACLINT memory mapped register
-    if (unlikely(addr - ACLINT_BASE <= ACLINT_SIZE)) {
-        bool valid;
-        word_t value = this->aclint->read(addr - ACLINT_BASE, len, valid);
-        if (unlikely(!valid)) {
-            this->trap(TRAP_LOAD_ACCESS_FAULT);
-            return -1;
-        }
-        return value;
-    }
 
     bool valid;
-    return this->bus->read(addr, len, valid);
+    word_t data = this->bus->read(addr, len, valid);
+    if (valid) {
+        return data;
+    }
+
+    WARN("Read memory failed when load, addr=" FMT_WORD ", len=%d, pc=" FMT_WORD, addr, len, this->pc);
+    return -1;
 }
 
 bool RVCore::memory_store(word_t addr, word_t data, int len) {
@@ -292,13 +267,19 @@ bool RVCore::memory_store(word_t addr, word_t data, int len) {
         }
     }
 
-    // ACLINT memory mapped register
-    if (unlikely(addr - ACLINT_BASE <= ACLINT_SIZE)) {
-        return this->aclint->write(addr - ACLINT_BASE, data, len);
-    }
+    return this->bus->write(addr, data, len);
     
-    this->bus->write(addr, data, len);
-    return true;
+    // bool valid = this->bus->write(addr, data, len);
+    // if (valid) {
+    //     return true;
+    // }
+
+    // // ACLINT memory mapped register
+    // if (unlikely(addr - ACLINT_BASE <= ACLINT_SIZE)) {
+    //     return this->aclint->write(addr - ACLINT_BASE, data, len);
+    // }
+
+    // return false;
 }
 
 bool RVCore::check_pmp(word_t addr, int len, MemType type) {

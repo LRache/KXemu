@@ -10,22 +10,34 @@ config ISA_riscv32
 config ISA_riscv64
     bool "riscv64"
 
+config ISA_loongarch32
+    bool "loongarch32"
+
+config ISA_loongarch64
+    bool "loongarch64"
+
 endchoice
 
 config ISA
     string
     default riscv32 if ISA_riscv32
     default riscv64 if ISA_riscv64
+    default loongarch32 if ISA_loongarch32
+    default loongarch64 if ISA_loongarch64
 
 config BASE_ISA
     string
     default riscv if ISA_riscv32
     default riscv if ISA_riscv64
+    default loongarch if ISA_loongarch32
+    default loongarch if ISA_loongarch64
 
 config SRC_CPU_ISA
     string
     default riscv if ISA_riscv32
     default riscv if ISA_riscv64
+    default loongarch if ISA_loongarch32
+    default loongarch if ISA_loongarch64
 
 config LOG
     bool "LOG"

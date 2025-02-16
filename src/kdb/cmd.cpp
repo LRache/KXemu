@@ -22,7 +22,6 @@
 
 using namespace kxemu;
 using namespace kxemu::kdb;
-using kxemu::cpu::Core;
 
 static const cmd::cmd_map_t cmdMap = {
     {"help" , cmd::help  },
@@ -44,12 +43,13 @@ static const cmd::cmd_map_t cmdMap = {
     {"info" , cmd::info },
     {"break", cmd::breakpoint},
     {"x"    , cmd::show_mem},
-    {"uart" , cmd::uart}
+    {"uart" , cmd::uart},
+    {"gdb"  , cmd::gdb}
 };
 
 static bool cmdRunning = true;
 
-Core<word_t> *cmd::currentCore;
+unsigned int cmd::currentCore;
 int cmd::coreCount;
 
 int cmd::help(const args_t &) {
@@ -106,20 +106,17 @@ void kdb::cmd_init() {
     }
 
     cmd::coreCount = cpu->core_count();
-    cmd::currentCore = cpu->get_core(0);
-    if (cmd::coreCount != 1) {
-        WARN("Multiple cores detected, only core 0 is used");
-    }
+    cmd::currentCore = 0;
 
     isa::init();
     cmd::init_completion();
-
-    std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
 }
 
 int kdb::run_cmd_mainloop() {
+    std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
+    
     char prompt[64];
-    snprintf(prompt, sizeof(prompt), SHELL_BULE "%s-kdb> " SHELL_RESET, isa::get_isa_name());
+    std::snprintf(prompt, sizeof(prompt), SHELL_BULE "%s-kdb> " SHELL_RESET, isa::get_isa_name());
 
     std::string lastCmd;
     char *inputLine;
@@ -128,11 +125,10 @@ int kdb::run_cmd_mainloop() {
         if (inputLine == nullptr) {
             break;
         }
-
         std::string cmd = inputLine;
         free(inputLine);
+        
         if (cmd.empty()) {
-            
             if (!lastCmd.empty()) {
                 run_command(lastCmd);
             }

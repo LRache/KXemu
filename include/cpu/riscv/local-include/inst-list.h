@@ -165,6 +165,7 @@ _INST(ebreak)
 _INST(wfi)
 
 _INST(sfence_vma)
+_INST(fence)
 
 // Zicsr exntension
 _INST(csrrw)

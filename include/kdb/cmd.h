@@ -13,8 +13,6 @@
 #ifndef __KXEMU_KDB_CMD_H__
 #define __KXEMU_KDB_CMD_H__
 
-#include "kdb/kdb.h"
-
 #include <cstddef>
 #include <unordered_map>
 #include <vector>
@@ -41,6 +39,7 @@ namespace kxemu::kdb::cmd {
     int uart    (const args_t &); // uart command
     int breakpoint(const args_t &); // set breakpoint
     int show_mem(const args_t &);
+    int gdb     (const args_t &); // run gdb rsp
 
     // do command return code
     enum Code {
@@ -55,14 +54,11 @@ namespace kxemu::kdb::cmd {
     // load source from args
     extern std::string elfFileName;
 
-    extern cpu::Core<word_t> *currentCore; // command line current cpu core
+    extern unsigned int currentCore; // command line current cpu core
     extern int coreCount; // core count of cpu
 
     using completion_func_t = std::vector<std::string> (*)(); // return possible list
     void init_completion();
-    namespace completion {
-        std::vector<std::string> log_off();
-    };
 } // cmd
 
 #endif // __KDB_CMD_H__

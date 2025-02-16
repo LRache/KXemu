@@ -1,0 +1,144 @@
+#include "isa/isa.h"
+#include "kdb/kdb.h"
+#include "log.h"
+
+#include <cerrno>
+#include <cstddef>
+#include <cstring>
+
+extern "C"  {
+    #include "gdbstub.h"
+}
+
+using namespace kxemu;
+
+static gdb_action_t check_action() {
+    gdb_action_t act = ACT_RESUME;
+    for (unsigned int i = 0; i < kdb::cpu->core_count(); i++) {
+        if (kdb::cpu->get_core(i)->is_halt() || kdb::cpu->get_core(i)->is_error()) {
+            act = ACT_SHUTDOWN;
+            break;
+        }
+    }
+    return act;
+}
+
+static gdb_action_t cont(void *) {
+    kdb::run_cpu();
+    return check_action();
+}
+
+static unsigned int currentCore = 0;
+
+static gdb_action_t stepi(void *) {
+    kdb::step_core(currentCore);
+    return check_action();
+}
+
+static int read_reg(void *args, int regno, size_t *value) {
+    if ((unsigned int)regno > kxemu::isa::get_gpr_count()) {
+        return EFAULT;
+    }
+
+    if ((unsigned int)regno == kxemu::isa::get_gpr_count()) {
+        *value = kdb::cpu->get_core(currentCore)->get_pc();
+    } else {
+        *value = kdb::cpu->get_core(currentCore)->get_gpr(regno);
+    }
+    
+    return 0;
+}
+
+static int write_reg(void *args, int regno, size_t value) {
+    if ((unsigned int)regno > kxemu::isa::get_gpr_count()) {
+        return EFAULT;
+    }
+    if ((unsigned int)regno == kxemu::isa::get_gpr_count()) {
+        kdb::cpu->get_core(currentCore)->set_pc(value);
+    } else {
+        kdb::cpu->get_core(currentCore)->set_gpr(regno, value);
+    }
+    return 0;
+}
+
+static int read_mem(void *, size_t addr, size_t len, void *val) {
+    bool s = kdb::bus->memcpy(addr, len, val);
+    if (s) {
+        return 0;
+    } else {
+        return EFAULT;
+    }
+}
+
+static int write_mem(void *, size_t addr, size_t len, void *val) {
+    bool s = kdb::bus->load_from_memory(val, addr, len);
+    if (s) {
+        return 0;
+    } else {
+        return EFAULT;
+    }
+}
+
+static bool set_bp(void *, size_t addr, bp_type_t) {
+    kdb::add_breakpoint(addr);
+    return true;
+}
+
+static bool del_bp(void *, size_t addr, bp_type_t) {
+    return kdb::remove_breakpoint(addr);
+}
+
+static void on_interrupt(void *) {
+    INFO("Interrupted by GDB");
+}
+
+static gdbstub_t gdbstub;
+
+static bool gdb_init(const std::string &addr) {
+    char s[32];
+    std::strcpy(s, addr.c_str());
+    char targetDesc[32];
+    std::strcpy(targetDesc, kxemu::isa::get_gdb_target_desc());
+    #ifdef KXEMU_ISA64
+    constexpr int xlen = 8;
+    #else
+    constexpr int xlen = 4;
+    #endif
+
+    static target_ops ops = {
+        cont,
+        stepi,
+        read_reg,
+        write_reg,
+        read_mem,
+        write_mem,
+        set_bp,
+        del_bp,
+        on_interrupt,
+    };
+    
+    bool v = gdbstub_init(
+        &gdbstub, 
+        &ops, 
+        {
+            targetDesc, 
+            (int)kxemu::isa::get_gpr_count() + 1, 
+            xlen
+        }, 
+        s
+    );
+    if (!v) {
+        return false;
+    }
+
+    return true;
+}
+
+bool kdb::run_gdb(const std::string &addr) {
+    if (!gdb_init(addr)) {
+        return false;
+    }
+    gdbstub_run(&gdbstub, nullptr);
+    gdbstub_close(&gdbstub);
+    return true;
+}

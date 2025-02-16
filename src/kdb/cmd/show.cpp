@@ -1,4 +1,4 @@
-#include "log.h"
+#include "word.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "macro.h"

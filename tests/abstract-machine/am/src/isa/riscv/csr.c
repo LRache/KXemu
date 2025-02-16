@@ -1,6 +1,12 @@
 #include "isa/riscv.h"
 #include <stdint.h>
 
+word_t csrr_mhartid() {
+    word_t x;
+    asm volatile("csrr %0, mhartid" : "=r"(x));
+    return x;
+}
+
 word_t csrr_mstatus() {
     uint32_t x;
     asm volatile("csrr %0, mstatus" : "=r"(x));

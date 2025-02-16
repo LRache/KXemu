@@ -1,12 +1,10 @@
 #include "kdb/kdb.h"
 #include "cpu/cpu.h"
 #include "isa/isa.h"
-#include "kdb/rsp.h"
 #include "log.h"
 #include "isa/isa.h"
 #include "utils/utils.h"
 
-#include <exception>
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -19,13 +17,13 @@ CPU<word_t> *kdb::cpu = nullptr;
 word_t kdb::programEntry;
 int kdb::returnCode = 0;
 
-void kdb::init() {
+void kdb::init(unsigned int coreCount) {
     init_bus();
 
     logFlag = DEBUG | INFO | WARN | PANIC;
 
     cpu = isa::new_cpu();
-    cpu->init(bus, -1, 1);
+    cpu->init(bus, -1, coreCount);
     cpu->reset(0x80000000);
     kdb::programEntry = 0x80000000;
 
@@ -35,6 +33,7 @@ void kdb::init() {
 void kdb::deinit() {
     delete cpu;
     cpu = nullptr;
+    deinit_bus();
 }
 
 // run .kdb source file to exec kdb command
@@ -55,12 +54,12 @@ int kdb::run_source_file(const std::string &filename) {
 
 word_t kdb::string_to_addr(const std::string &s, bool &success) {
     success = false;
-    word_t addr = -1;
-    try {
-        addr = utils::string_to_unsigned(s);
-        success = true;
+    word_t addr;
+    
+    addr = utils::string_to_unsigned(s, success);
+    if (success) {
         return addr;
-    } catch (std::exception &) {}
+    }
     
     for (auto iter : kdb::symbolTable) {
         if (iter.second == s) {
@@ -68,10 +67,6 @@ word_t kdb::string_to_addr(const std::string &s, bool &success) {
             success = true;
         }
     }
-    return addr;
-}
 
-bool kdb::start_rsp(int port) {
-    rsp::rsp_mainloop(port);
-    return true;
+    return addr;
 }

@@ -17,7 +17,7 @@
 namespace kxemu::kdb {
     using word_t = isa::word_t;
     
-    void init();
+    void init(unsigned int coreCount);
     void deinit();
 
     // kdb command line
@@ -26,12 +26,15 @@ namespace kxemu::kdb {
     int run_command(const std::string &cmd);
     int run_source_file(const std::string &filename);
 
+    // GDB connection
+    bool run_gdb(const std::string &addr);
+
     // CPU execution
     extern cpu::CPU<word_t> *cpu;
     extern int returnCode; // set when a core halt
     void reset_cpu();
     int run_cpu();
-    int step_core(cpu::Core<word_t> *core);
+    int step_core(unsigned int coreID);
 
     // Bus
     extern device::Bus *bus;
@@ -50,6 +53,7 @@ namespace kxemu::kdb {
     extern std::unordered_set<word_t> breakpointSet;
     extern bool brkTriggered;
     void add_breakpoint(word_t addr);
+    bool remove_breakpoint(word_t addr);
 
     // ELF format
     // Load ELF to memory, return 0 if failed and entry else.
@@ -59,10 +63,6 @@ namespace kxemu::kdb {
     extern word_t programEntry;
 
     word_t string_to_addr(const std::string &s, bool &success);
-
-    // GDB connection
-    bool start_rsp(int port);
-    
 } // kdb
 
 #endif

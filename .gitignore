@@ -9,5 +9,6 @@ compile_commands.json
 
 autogen
 autoconf.h
+/export
 
 __pycache__

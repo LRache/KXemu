@@ -37,6 +37,7 @@ def read_file(filename: str) -> List[List[InstPattern]]:
                 t = InstType.Only64
             else:
                 raise ValueError(f"Invalid type '{t}'")
+        name = name.replace(".", "_")
         group.append(InstPattern(pattern, name, t))
     groups.append(group)
 

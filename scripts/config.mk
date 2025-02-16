@@ -10,13 +10,12 @@ endif
 -include $(CONFIG_FILE)
 
 $(CONF):
-	@$(MAKE) -C ./tools/kconfig NAME=conf
+	@ make -C ./tools/kconfig NAME=conf
 
 $(MCONF):
-	@$(MAKE) -C ./tools/kconfig NAME=mconf
+	@ make -C ./tools/kconfig NAME=mconf
 
 menuconfig: $(CONF) $(MCONF)
 	@ cd $(CONFIG_DIR) && ../$(MCONF) -s Kconfig
 	@ cd $(CONFIG_DIR) && ../$(CONF) -s --syncconfig Kconfig
-	@ mkdir -p ./include/generated
 	@ cp $(CONFIG_DIR)/include/generated/autoconf.h ./include/config
