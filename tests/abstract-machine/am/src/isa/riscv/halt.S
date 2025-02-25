@@ -2,7 +2,8 @@
 
 __halt:
 #ifdef __QEMU__
-    mv a1, a0
+    mv a2, a0
+    csrr a1, mhartid
     la a0, ebreakMessage
     call printf
     j .
@@ -13,4 +14,4 @@ __halt:
 
 .section .data
 ebreakMessage:
-    .asciz "HALT with code %d.\n"
+    .asciz "Core%d HALT with code %d.\n"
