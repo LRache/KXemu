@@ -5,6 +5,8 @@
 
 namespace kxemu::device {
 
+class Bus;
+
 class MMIOMap {
 public:
     virtual ~MMIOMap() {};
@@ -13,6 +15,8 @@ public:
     virtual word_t read(word_t offset, word_t size, bool &valid) = 0;
     virtual bool write(word_t offset, word_t data, word_t size) = 0;
     virtual void update() {};
+
+    virtual void connect_to_bus(Bus *bus) {};
             
     virtual word_t do_atomic(word_t addr, word_t data, int size, AMO amo, bool &valid) {
         valid = false;

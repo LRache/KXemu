@@ -1,3 +1,4 @@
+#include "device/def.h"
 #include "log.h"
 #include "macro.h"
 #include "word.h"
@@ -68,6 +69,7 @@ bool Bus::add_mmio_map(const std::string &name, word_t start, word_t length, MMI
     m->size = length;
     m->map = map;
     mmioMaps.push_back(m);
+    map->connect_to_bus(this);
     return true;
 }
 
@@ -105,7 +107,6 @@ word_t Bus::read(word_t addr, word_t length, bool &valid) const {
     }
 
     valid = false;
-    // WARN("read addr: 0x%" PRIx64 ", size: " FMT_VARU64 ", out of range", addr, length);
     return 0;
 }
 
