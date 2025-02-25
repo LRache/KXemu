@@ -7,7 +7,11 @@
 
 using namespace kxemu;
 
-void isa::init() {}
+extern void init_disasm();
+
+void isa::init() {
+    init_disasm();
+}
 
 const char *isa::get_isa_name() {
 #ifdef KXEMU_ISA32
@@ -19,6 +23,10 @@ const char *isa::get_isa_name() {
 
 int isa::get_elf_expected_machine() {
     return EM_LOONGARCH;
+}
+
+const char *isa::get_gdb_target_desc() {
+    return "";
 }
 
 cpu::CPU<isa::word_t> *isa::new_cpu() {
@@ -47,7 +55,7 @@ unsigned int isa::get_max_inst_len() {
     return 4;
 }
 
-std::string isa::disassemble(const uint8_t *data, const uint64_t dataSize, const word_t pc, uint64_t &instLen) {
-    instLen = 4;
-    return "";
-}
+// std::string isa::disassemble(const uint8_t *data, const uint64_t dataSize, const word_t pc, uint64_t &instLen) {
+//     instLen = 4;
+//     return "";
+// }
