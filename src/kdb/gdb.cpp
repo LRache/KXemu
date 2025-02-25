@@ -2,7 +2,6 @@
 #include "kdb/kdb.h"
 #include "log.h"
 
-#include <cerrno>
 #include <cstddef>
 #include <cstring>
 
@@ -92,6 +91,14 @@ static void on_interrupt(void *) {
     INFO("Interrupted by GDB");
 }
 
+static void set_cpu(void *, int cpuid) {
+    currentCore = cpuid;
+}
+
+static int get_cpu(void *) {
+    return currentCore;
+}
+
 static gdbstub_t gdbstub;
 
 static bool gdb_init(const std::string &addr) {
@@ -115,6 +122,8 @@ static bool gdb_init(const std::string &addr) {
         set_bp,
         del_bp,
         on_interrupt,
+        set_cpu,
+        get_cpu,
     };
     
     bool v = gdbstub_init(
@@ -122,6 +131,7 @@ static bool gdb_init(const std::string &addr) {
         &ops, 
         {
             targetDesc, 
+            (int)kdb::cpu->core_count(),
             (int)kxemu::isa::get_gpr_count() + 1, 
             xlen
         }, 
