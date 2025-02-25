@@ -46,8 +46,12 @@ word_t LACore::get_pc() {
     return this->pc;
 }
 
-word_t LACore::get_gpr(int idx) {
-    return this->gpr[idx];
+void LACore::set_pc(word_t pc) {
+    this->pc = pc;
+}
+
+word_t LACore::get_gpr(unsigned int index) {
+    return this->gpr[index];
 }
 
 word_t LACore::get_register(const std::string &name, bool &success) {

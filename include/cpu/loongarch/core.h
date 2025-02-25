@@ -21,7 +21,6 @@ private:
     word_t haltCode;
 
     word_t gpr[32];
-    void set_gpr(unsigned int index, word_t value);
 
     // Memory
     device::Bus *bus;
@@ -54,9 +53,11 @@ public:
     void run(const word_t *breakpoints = nullptr, unsigned int n = 0) override;
 
     word_t get_pc() override;
-    word_t get_gpr(int idx) override;
+    void   set_pc(word_t pc) override;
+    word_t get_gpr(unsigned int index) override;
+    void   set_gpr(unsigned int index, word_t value) override;
     word_t get_register(const std::string &name, bool &success) override;
-
+    
     word_t get_halt_pc() override;
     word_t get_halt_code() override;
 
