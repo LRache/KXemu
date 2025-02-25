@@ -41,12 +41,14 @@ word_t csrr_mstatus();
 word_t csrr_mcause ();
 word_t csrr_mepc   ();
 word_t csrr_medeleg();
+word_t csrr_mie    ();
 
 void csrw_pmpcfg0(word_t value);
 void csrw_pmpaddr0(word_t value);
 
 void csrw_mstatus(word_t value);
 void csrw_mcause (word_t value);
+void csrw_mie    (word_t value);
 void csrw_mepc   (word_t value);
 void csrw_mtvec  (word_t value);
 void csrw_medeleg(word_t value);
