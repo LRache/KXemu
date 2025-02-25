@@ -1,9 +1,7 @@
 #include "cpu/riscv/core.h"
-
-#include <cstdint>
+#include "cpu/word.h"
 
 #include "./local-decoder.h"
-#include "cpu/word.h"
 
 #define RD  unsigned int rd  = BITS(11, 7);
 #define RS1 unsigned int rs1 = BITS(19, 15);
@@ -219,7 +217,8 @@ void RVCore::do_lwu() {
 void RVCore::do_ld() {
     RV64ONLY;
     RD; RS1; IMM_I;
-    this->set_gpr(rd, this->memory_load(this->gpr[rs1] + imm, 8));
+    word_t data = this->memory_load(this->gpr[rs1] + imm, 8);
+    this->set_gpr(rd, data);
 }
 #endif
 

@@ -1,24 +1,14 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
-#include "cpu/word.h"
 #include "utils/utils.h"
 #include "log.h"
 #include "debug.h"
-#include "word.h"
-
-#define MSWI_BASE 0x0000
-#define MSWI_SIZE 0x4000
-#define MTIMECMP_BASE 0x4000
-#define MTIMECMP_SIZE 0x4000
-#define MTIME_BASE 0xbff8
-#define MTIME_SIZE 0x8
-#define SSWI_BASE 0xc000
-#define SSWI_SIZE 0x4000
 
 #define IN_RANGE(addr, name) (addr >= name##_BASE && addr < name##_BASE + name##_SIZE)
 
-using namespace kxemu::cpu;
+using namespace kxemu::device;
+using kxemu::cpu::RVCore;
 
 AClint::AClint() {
     this->coreCount = 0;
@@ -58,7 +48,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         if (size != 4) {
             WARN("Unaligned access to MSWI.");
             valid = false;
-            return 0;
+            return -1;
         }
 
         unsigned int coreID = (addr - MSWI_BASE) >> 2;
@@ -67,7 +57,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         if (coreID >= this->coreCount) {
             WARN("Invalid core ID %d", coreID);
             valid = false;
-            return 0;
+            return -1;
         }
         
         valid = true; 
@@ -78,7 +68,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Unaligned access to SSWI.");
             valid = false;
-            return 0;
+            return -1;
         }
 
         unsigned int coreID = (addr - SSWI_BASE) >> 2;
@@ -87,7 +77,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         if (coreID >= this->coreCount) {
             WARN("Invalid core ID %d", coreID);
             valid = false;
-            return 0;
+            return -1;
         }
         
         valid = true;
@@ -101,23 +91,23 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         if (coreID >= this->coreCount) {
             WARN("Invalid core ID %d", coreID);
             valid = false;
-            return 0;
+            return -1;
         }
 
         #ifdef KXEMU_ISA64
         if (size != 8 || (addr & 0x7) != 0) {
             WARN("Unaligned access to MTIMECMP.");
             valid = false;
-            return 0;
+            return -1;
         }
         
         valid = true;
         return this->cores[coreID].mtimecmp;
         #else
         if (size != 4 || (addr & 0x3) != 0) {
-            WARN("Invalid size %d for MTIMECMP", size);
+            WARN("Invalid size %lu for MTIMECMP", size);
             valid = false;
-            return 0;
+            return -1;
         }
 
         word_t offset = addr & 0b11;
@@ -132,30 +122,33 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         #ifdef KXEMU_ISA64
         if (size != 8 || (addr & 0x7) != 0) {
             WARN("Unaligned access to MTIME.");
-            return false;
+            return -1;
         }
 
+        valid = true;
         return UPTIME_TO_MTIME(this->get_uptime());
         
         #else
         if (size != 4 || (addr & 0x3) != 0) {
-            WARN("Invalid size %d for MTIME", size);
-            return false;
+            WARN("Invalid size %lu for MTIME", size);
+            return -1;
         }
         
-        this->mtime = UPTIME_TO_MTIME(this->get_uptime());
-        
-        word_t offset = addr & 0b11;
+        valid = true;
+        word_t offset = addr - MTIME_BASE;
         if (offset == 0) {
+            this->mtime = UPTIME_TO_MTIME(this->get_uptime());
+            // INFO("mtime low=" FMT_WORD64, this->mtime & 0xffffffffUL);
             return this->mtime & 0xffffffffUL;
         } else {
+            // INFO("mtime high=" FMT_WORD64, (this->mtime >> 32))
             return this->mtime >> 32;
         }
         #endif
     } else {
-        WARN("Invalid address " FMT_WORD " for CLINT", addr);
+        WARN("Invalid address " FMT_WORD64 " for CLINT", addr);
         valid = false;
-        return 0;
+        return -1;
     }
 }
 
@@ -169,7 +162,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
 
         // MSWI only supports to write 1
         if (value != 0 && value != 1) {
-            WARN("Invalid value " FMT_VARU " for MSWI", value);
+            WARN("Invalid value " FMT_VARU64 " for MSWI", value);
             return false;
         }
 
@@ -197,7 +190,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
 
         // SSWI only supports to write 1
         if (value != 0 && value != 1) {
-            WARN("Invalid value " FMT_VARU " for SSWI", value);
+            WARN("Invalid value " FMT_VARU64 " for SSWI", value);
             return false;
         }
 
@@ -236,23 +229,23 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
         this->update_core_mtimecmp(coreID);
     #else
         if (size != 4 || (addr & 0x3) != 0) {
-            WARN("Invalid size %d for MTIMECMP", size);
+            WARN("Invalid size %lu for MTIMECMP", size);
             return false;
         }
         word_t offset = addr & 0b100;
         if (offset == 0) {
-            *this->cores[coreID].mtimecmp &= ~0xffffffffUL;
-            *this->cores[coreID].mtimecmp |= value;
+            this->cores[coreID].mtimecmp &= ~0xffffffffUL;
+            this->cores[coreID].mtimecmp |= value;
         } else {
-            *this->cores[coreID].mtimecmp &= 0xffffffffUL;
-            *this->cores[coreID].mtimecmp |= (uint64_t)value << 32;
-            this->cores[coreID].set_mtimecmp(this->cores[coreID].core);
+            this->cores[coreID].mtimecmp &= 0xffffffffUL;
+            this->cores[coreID].mtimecmp |= (uint64_t)value << 32;
+            this->update_core_mtimecmp(coreID);
         }
         #endif
     } else if (IN_RANGE(addr, MTIME)) {
         return false;
     } else {
-        WARN("Invalid address " FMT_WORD " for CLINT", addr);
+        WARN("Invalid address " FMT_WORD64 " for CLINT", addr);
         return false;
     }
     return false;
@@ -281,7 +274,8 @@ uint64_t AClint::get_uptime() {
     if (!this->timerRunning) {
         return 0;
     }
-    return utils::get_current_time() - this->bootTime;
+    uint64_t uptime = utils::get_current_time() - this->bootTime;
+    return uptime;
 }
 
 void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {

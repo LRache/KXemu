@@ -3,10 +3,17 @@
 
 #include "config/config.h"
 
+// AClint
 #define ACLINT_BASE   0x02000000
 #define ACLINT_SIZE   0x00010000
-// #define MTIME_BASE    0x0200BFF8
-// #define MTIME_SIZE    0x00000008
+#define MSWI_BASE     0x0000
+#define MSWI_SIZE     0x4000
+#define MTIMECMP_BASE 0x4000
+#define MTIMECMP_SIZE 0x4000
+#define MTIME_BASE    0xbff8
+#define MTIME_SIZE    0x0008
+#define SSWI_BASE     0xc000
+#define SSWI_SIZE     0x4000
 
 #define CSR_READ_ONLY  0b110000000000
 #define IS_CSR_READ_ONLY(addr) ((addr & CSR_READ_ONLY) == CSR_READ_ONLY)

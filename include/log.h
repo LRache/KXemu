@@ -15,6 +15,7 @@ do { \
 } while(0);
 
 #ifdef CONFIG_LOG
+    #include "word.h"
 
     #define DEBUG(...) \
         PUTLOG(FMT_FG_YELLOW_BLOD, DEBUG, __VA_ARGS__) \
