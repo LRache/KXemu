@@ -3,7 +3,6 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "device/bus.h"
-#include "word.h"
 #include "log.h"
 #include "macro.h"
 
@@ -29,7 +28,7 @@ RVCore::RVCore() {
     this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
 }
 
-void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, AClint *alint, TaskTimer *timer) {
+void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, TaskTimer *timer) {
     this->coreID = coreID;
     this->bus = bus;
     this->flags = flags;
@@ -54,6 +53,10 @@ void RVCore::step() {
         this->state = RUNNING;
     }
     if (likely(this->state == RUNNING)) {
+        // Interrupt
+        this->bus->update();
+        this->scan_interrupt();
+        
         this->execute();
         this->pc = this->npc;
     } else {
@@ -67,6 +70,7 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
         breakpoints.insert(breakpoints_[i]);
     }
 
+    unsigned int i = 0;
     this->state = RUNNING;
     while (this->state == RUNNING) {
         if (breakpoints.find(this->pc) != breakpoints.end()) {
@@ -76,16 +80,20 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
             break;
         }
         
+        // Interrupt
+        if (unlikely(i & 0x2000)) {
+            this->bus->update();
+            this->scan_interrupt();
+            i = 0;
+        }
+        
         this->execute();
         this->pc = this->npc;
+        i++;
     }
 }
 
 void RVCore::execute() {    
-    // Interrupt
-    this->bus->update();
-    if (unlikely(this->scan_interrupt())) return;
-    
     if (unlikely(this->pc & 0x1)) {
         // Instruction address misaligned
         this->trap(TRAP_INST_ADDR_MISALIGNED);

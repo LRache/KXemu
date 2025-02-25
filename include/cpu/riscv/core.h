@@ -38,7 +38,7 @@ private:
         AMO   = 1 << 6,
     };
     device::Bus *bus;
-    AClint *aclint;
+    device::AClint *aclint;
     bool   memory_fetch();
     word_t memory_load (word_t addr, int len);
     bool   memory_store(word_t addr, word_t data, int len);
@@ -125,7 +125,7 @@ public:
     RVCore();
     ~RVCore();
 
-    void init(unsigned int coreID, device::Bus *bus, int flags, AClint *aclint, utils::TaskTimer *timer);
+    void init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *aclint, utils::TaskTimer *timer);
     
     void reset(word_t entry) override;
     void step() override;

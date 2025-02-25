@@ -1,16 +1,16 @@
 #ifndef __KXEMU_CPU_RISCV_CLINT_H__
 #define __KXEMU_CPU_RISCV_CLINT_H__
 
-#include "cpu/word.h"
 #include "device/mmio.h"
 #include "utils/task-timer.h"
 
-#include <functional>
 #include <cstdint>
 
 namespace kxemu::cpu {
+    class RVCore;
+}
 
-class RVCore;
+namespace kxemu::device {
 
 // This is an implementation of the Advanced Core Local Interruptor (ACLINT) for RISC-V.
 // See https://github.com/riscv/riscv-aclint/releases/download/v1.0-rc4/riscv-aclint-1.0-rc4.pdf
@@ -21,13 +21,13 @@ class RVCore;
 // 0xc000 - 0xffff | SSWI     | Supervisor-mode Software Interrupt Device
 class AClint : public device::MMIOMap {
 public:
-    using callback_t = std::function<void(void *)>;
     struct CoreObject {
-        RVCore *core;         // Pointer to the core object
+        cpu::RVCore *core;         // Pointer to the core object
 
         bool msip;
         bool ssip;
 
+        uint64_t mtime;
         uint64_t mtimecmp;
         unsigned int mtimerID;
         unsigned int stimerID;
@@ -38,7 +38,7 @@ public:
     AClint();
     ~AClint();
 
-    void init(RVCore *cores[], unsigned int coreCount);
+    void init(cpu::RVCore *cores[], unsigned int coreCount);
     void reset() override;
 
     word_t read(word_t addr, word_t size, bool &success) override;

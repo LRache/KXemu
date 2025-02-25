@@ -17,7 +17,7 @@ private:
     std::thread *coreThread;
     void core_thread_worker(unsigned int coreID, const word_t *breakpoints, unsigned int n);
     
-    AClint aclint;
+    device::AClint aclint;
     utils::TaskTimer taskTimer;
     
 public:
