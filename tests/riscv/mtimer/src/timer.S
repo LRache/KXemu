@@ -47,10 +47,6 @@ m_mode_handle:
     mv a1, s0
     call printf
 
-    la a0, str3
-    csrr a1, mip
-    call printf
-
     li t1, MTIMECMP_BASE
     li t2, 10000000
 #if __riscv_xlen == 32
@@ -64,10 +60,6 @@ m_mode_handle:
     add t0, t0, t2
     sd t0, 0(t1)
 #endif
-
-    la a0, str3
-    csrr a1, mip
-    call printf
 
     mret
 
@@ -86,5 +78,3 @@ str1:
     .string "Machine Timer interrupt."
 str2:
     .string "%ds\n"
-str3:
-    .string "mip: %x\n"
