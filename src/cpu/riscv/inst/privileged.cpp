@@ -80,7 +80,7 @@ void RVCore::do_ebreak() {
 
 void RVCore::do_wfi() {
     while (!this->scan_interrupt()) {
-        // wait for interrupt
+        this->bus->update();
     }
 }
 
