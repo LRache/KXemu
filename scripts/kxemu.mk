@@ -20,7 +20,7 @@ $(MINIGDBSTUB):
 $(TARGET): $(OBJS) $(UTILS_LIB)
 	$(info + LD $@)
 	@ mkdir -p $(BUILD_DIR)
-	$(LD) $^ -o $(TARGET) $(LDFLAGS)
+	@ $(LD) $^ -o $(TARGET) $(LDFLAGS)
 
 kxemu: $(TARGET)
 
