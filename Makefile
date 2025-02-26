@@ -1,9 +1,8 @@
 include ./scripts/config.mk
 
+CXX = clang++
 ifeq ($(shell which ccache > /dev/null 2>&1; echo $$?), 0)
 	CXX := ccache $(CXX)
-else
-	CXX := clang++
 endif
 LD  = clang++
 

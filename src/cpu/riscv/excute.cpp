@@ -2,6 +2,8 @@
 #include "cpu/riscv/def.h"
 #include "macro.h"
 #include "debug.h"
+#include "word.h"
+
 #include <cstdint>
 
 using namespace kxemu::cpu;
