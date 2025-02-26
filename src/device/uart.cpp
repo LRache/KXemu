@@ -1,5 +1,4 @@
 #include "device/uart.h"
-#include "device/bus.h"
 #include "log.h"
 #include "word.h"
 
@@ -161,6 +160,10 @@ void Uart16650::update() {
 
 }
 
+bool Uart16650::has_interrupt() {
+    return false;
+}
+
 bool Uart16650::putch(uint8_t data) {
     std::lock_guard<std::mutex> lock(queueMtx);
     if (queue.size() >= BUFFER_SIZE) {
@@ -216,10 +219,6 @@ void Uart16650::send_byte(uint8_t c) {
             WARN("Failed to send data to socket.");
         }
     }
-}
-
-uint8_t *Uart16650::get_ptr(word_t) {
-    return nullptr;
 }
 
 const char *Uart16650::get_type_name() const {
