@@ -15,6 +15,10 @@ public:
     virtual word_t read(word_t offset, word_t size, bool &valid) = 0;
     virtual bool write(word_t offset, word_t data, word_t size) = 0;
     virtual void update() {};
+    
+    virtual bool has_interrupt() { 
+        return false; 
+    }
 
     virtual void connect_to_bus(Bus *bus) {};
             

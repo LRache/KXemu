@@ -1,7 +1,7 @@
 #ifndef __KXEMU_DEVICE_UART_H__
 #define __KXEMU_DEVICE_UART_H__
 
-#include "device/bus.h"
+#include "device/mmio.h"
 
 #include <atomic>
 #include <cstdint>
@@ -19,7 +19,8 @@ public:
     word_t read(word_t offset, word_t size, bool &valid) override;
     bool  write(word_t offset, word_t data, word_t size) override;
     void update() override;
-    uint8_t *get_ptr(word_t offset) override;
+    bool has_interrupt() override;
+    
     const char *get_type_name() const override;
 
     bool putch(uint8_t data);
