@@ -121,7 +121,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
     } else if (IN_RANGE(addr, MTIME)) {
         #ifdef KXEMU_ISA64
         if (size != 8 || (addr & 0x7) != 0) {
-            WARN("Unaligned access to MTIME.");
+            WARN("Unaligned access to MTIME. size=%lu, addr=" FMT_WORD64, size, addr);
             return -1;
         }
 
