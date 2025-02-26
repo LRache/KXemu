@@ -19,9 +19,19 @@ void RVCore::decode_i() {
     this->decodeInfo.imm = SEXT(BITS(31, 20), 12);
 }
 
-void RVCore::decode_s() {
+void RVCore::decode_shifti() {
     this->decodeInfo.rd  = BITS(11,  7);
     this->decodeInfo.rs1 = BITS(19, 15);
+#ifdef KXEMU_ISA64
+    this->decodeInfo.imm = BITS(25, 20);
+#else
+    this->decodeInfo.imm = BITS(24, 20);
+#endif
+}
+
+void RVCore::decode_s() {
+    this->decodeInfo.rs1 = BITS(19, 15);
+    this->decodeInfo.rs2 = BITS(24, 20);
     this->decodeInfo.imm = SEXT((BITS(31, 25) << 5) | BITS(11, 7), 12);
 }
 
@@ -44,18 +54,17 @@ void RVCore::decode_u() {
 void RVCore::decode_csrr() {
     this->decodeInfo.rd  = BITS(11,  7);
     this->decodeInfo.rs1 = BITS(19, 15);
-    this->decodeInfo.rs2 = BITS(31, 20);
+    this->decodeInfo.csr = BITS(31, 20);
 }
 
 void RVCore::decode_csri() {
     this->decodeInfo.rd  = BITS(11,  7);
-    this->decodeInfo.rs2 = BITS(31, 20);
+    this->decodeInfo.csr = BITS(31, 20);
     this->decodeInfo.imm = BITS(19, 15);
 }
 
 void RVCore::decode_c_lwsp() {
     this->decodeInfo.rd  = BITS(11, 7);
-    this->decodeInfo.rs1 = 2;
     this->decodeInfo.imm = BITS(12, 12) << 5 | BITS(3, 2) << 6 | BITS(6, 4) << 2;
 }
 
@@ -135,6 +144,15 @@ void RVCore::decode_c_slli() {
 void RVCore::decode_c_i() {
     this->decodeInfo.rd  = BITS(9, 7) + 8;
     this->decodeInfo.imm = SEXT(BITS(12, 12) << 5 | BITS(6, 2), 6);
+}
+
+void RVCore::decode_c_shifti() {
+    this->decodeInfo.rd  = BITS(9, 7) + 8;
+#ifdef KXEMU_ISA64
+    this->decodeInfo.imm = BITS(12, 12) << 5 | BITS(6, 2);
+#else
+    this->decodeInfo.imm = BITS(6, 2);
+#endif
 }
 
 void RVCore::decode_c_mvadd() {

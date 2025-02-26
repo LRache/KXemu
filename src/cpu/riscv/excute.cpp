@@ -2,9 +2,10 @@
 #include "cpu/riscv/def.h"
 #include "macro.h"
 #include "debug.h"
-#include "word.h"
+#include "log.h"
 
 #include <cstdint>
+#include <cstring>
 
 using namespace kxemu::cpu;
 
@@ -22,7 +23,7 @@ bool RVCore::decode_and_exec() {
     do_inst_t do_inst = this->decode();
     if (likely(do_inst != nullptr)) {
         (this->*do_inst)(this->decodeInfo);
-        this->add_to_icache(this->pc, this->inst, do_inst, 4);
+        this->add_to_icache(do_inst, 4);
         return true;
     } else {
         return false;
@@ -33,21 +34,13 @@ bool RVCore::decode_and_exec_c() {
     do_inst_t do_inst = this->decode_c();
     if (likely(do_inst != nullptr)) {
         (this->*do_inst)(this->decodeInfo);
-        this->add_to_icache(this->pc, this->inst & 0xffff, do_inst, 2);
+        #ifdef CONFIG_ICache
+        this->add_to_icache(do_inst, 2);
+        #endif
         return true;
     } else {
         return false;
     }
-}
-
-void RVCore::add_to_icache(word_t pc, uint32_t inst, do_inst_t do_inst, uint8_t instLen) {
-    word_t set = ICACHE_SET(pc);
-    SELF_PROTECT(set < sizeof(this->icache) / sizeof(this->icache[0]), "icache set index out of range");
-    this->icache[set].valid = true;
-    this->icache[set].inst = this->inst;
-    this->icache[set].tag = ICACHE_TAG(pc);
-    this->icache[set].do_inst = do_inst;
-    this->icache[set].instLen = instLen;
 }
 
 void RVCore::step() {
@@ -95,14 +88,26 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     }
 }
 
+#ifdef CONFIG_ICache
+
+void RVCore::add_to_icache(do_inst_t do_inst, uint8_t instLen) {
+    word_t set = ICACHE_SET(pc);
+    // SELF_PROTECT(set < sizeof(this->icache) / sizeof(this->icache[0]), "icache set index out of range");
+    this->icache[set].valid = true;
+    this->icache[set].tag = ICACHE_TAG(this->pc);
+    this->icache[set].do_inst = do_inst;
+    this->icache[set].instLen = instLen;
+    this->icache[set].decodeInfo = this->decodeInfo;
+}
+
 bool RVCore::icache_hit_and_exec(word_t pc) {
     word_t set = ICACHE_SET(pc);
-    if (this->icache[set].valid && this->icache[set].tag == ICACHE_TAG(pc)) {
+    const ICacheBlock &block = this->icache[set];
+    if (block.tag == ICACHE_TAG(pc) && block.valid) {
         
-        this->npc = this->pc + this->icache[set].instLen;
+        this->npc = this->pc + block.instLen;
 
-        this->inst = this->icache[set].inst;
-        (this->*this->icache[set].do_inst)();
+        (this->*block.do_inst)(block.decodeInfo);
         
         return true;
     
@@ -111,21 +116,27 @@ bool RVCore::icache_hit_and_exec(word_t pc) {
     }
 }
 
-void RVCore::execute() {    
+#endif
+
+void RVCore::execute() {
     if (unlikely(this->pc & 0x1)) {
         // Instruction address misaligned
         this->trap(TRAP_INST_ADDR_MISALIGNED);
         return;
     }
 
+    #ifdef CONFIG_ICache
     if (this->icache_hit_and_exec(this->pc)) {
         return;
     }
+    #endif
     
     if (!this->memory_fetch()) {
         return;
     }
     
+    std::memset(&this->decodeInfo, -1, sizeof(this->decodeInfo));
+
     bool valid;
     if (likely((this->inst & 0x3) == 0x3)) {
         this->npc = this->pc + 4;

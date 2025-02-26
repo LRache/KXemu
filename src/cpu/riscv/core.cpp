@@ -2,12 +2,10 @@
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
+#include "debug.h"
 #include "device/bus.h"
 #include "log.h"
-#include "macro.h"
 
-#include <cassert>
-#include <unordered_set>
 #include <cstdint>
 #include <cstring>
 
@@ -50,9 +48,11 @@ void RVCore::reset(word_t entry) {
 
     std::memset(this->gpr, 0, sizeof(this->gpr));
 
+    #ifdef CONFIG_ICache
     for (unsigned int i = 0; i < sizeof(this->icache) / sizeof(this->icache[0]); i++) {
         this->icache[i].valid = false;
     }
+    #endif
 }
 
 uint64_t RVCore::get_uptime() {
@@ -66,6 +66,10 @@ void RVCore::do_invalid_inst() {
 
     // Illegal instruction trap
     this->trap(TRAP_ILLEGAL_INST, this->inst);
+}
+
+void RVCore::do_invalid_inst(const DecodeInfo &) {
+    this->do_invalid_inst();
 }
 
 bool RVCore::is_error() {
@@ -92,15 +96,13 @@ void RVCore::set_pc(word_t pc) {
     this->pc = pc;
 }
 
-word_t RVCore::get_gpr(unsigned int idx) {
-    if (idx >= 32 || idx < 0) {
-        WARN("GPR index=%d out of range, return 0 instead.", idx);
-        return 0;
-    }
-    return gpr[idx];
+word_t RVCore::get_gpr(unsigned int index) {
+    SELF_PROTECT(index < 32, "GPR index out of range");
+    return gpr[index];
 }
 
 void RVCore::set_gpr(unsigned int index, word_t value) {
+    SELF_PROTECT(index < 32, "GPR index out of range");
     this->gpr[index] = value;
     this->gpr[0] = 0;
 }

@@ -5,10 +5,15 @@
 
 #include <functional>
 
-#define CSR unsigned int csrAddr = BITS(31, 20)
-#define RD  unsigned int rd  = BITS(11, 7)
-#define RS1 unsigned int rs1 = BITS(19, 15)
-#define IMM word_t imm = BITS(19, 15)
+// #define CSR unsigned int csrAddr = BITS(31, 20)
+// #define RD  unsigned int rd  = BITS(11, 7)
+// #define RS1 unsigned int rs1 = BITS(19, 15)
+// #define IMM word_t imm = BITS(19, 15)
+
+#define CSR unsigned int csrAddr = decodeInfo.csr
+#define RD  unsigned int rd  = decodeInfo.rd
+#define RS1 unsigned int rs1 = decodeInfo.rs1
+#define IMM word_t imm = decodeInfo.imm
 
 #define REQUIRE_WRITABLE do {if (IS_CSR_READ_ONLY(csrAddr)) {do_invalid_inst(); return;}} while(0);
 #define CHECK_SUCCESS do{if (!s) {do_invalid_inst(); return;}} while(0);
@@ -28,7 +33,7 @@ bool RVCore::write_csr(unsigned int addr, word_t value) {
     return this->csr.write_csr(addr, value);
 }
 
-void RVCore::do_csrrw() {
+void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {
     CSR; RD; RS1;
     
     REQUIRE_WRITABLE;
@@ -44,7 +49,7 @@ void RVCore::do_csrrw() {
     CHECK_SUCCESS;
 }
 
-void RVCore::do_csrrs() {
+void RVCore::do_csrrs(const DecodeInfo &decodeInfo) {
     CSR; RD; RS1;
     bool s;
     word_t value = this->read_csr(csrAddr, s);
@@ -57,7 +62,7 @@ void RVCore::do_csrrs() {
     }
 }
 
-void RVCore::do_csrrc() {
+void RVCore::do_csrrc(const DecodeInfo &decodeInfo) {
     CSR; RD; RS1;
     bool s;
     word_t value = this->read_csr(csrAddr, s);
@@ -70,7 +75,7 @@ void RVCore::do_csrrc() {
     }
 }
 
-void RVCore::do_csrrwi() {
+void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {
     CSR; RD; IMM;
     
     REQUIRE_WRITABLE;
@@ -86,7 +91,7 @@ void RVCore::do_csrrwi() {
     CHECK_SUCCESS;
 }
 
-void RVCore::do_csrrsi() {
+void RVCore::do_csrrsi(const DecodeInfo &decodeInfo) {
     CSR; RD; IMM;
     bool s;
     word_t value = this->read_csr(csrAddr, s);
@@ -99,7 +104,7 @@ void RVCore::do_csrrsi() {
     }
 }
 
-void RVCore::do_csrrci() {
+void RVCore::do_csrrci(const DecodeInfo &decodeInfo) {
     CSR; RD; IMM;
     bool s;
     word_t value = this->read_csr(csrAddr, s);

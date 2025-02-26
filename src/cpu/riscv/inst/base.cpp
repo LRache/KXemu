@@ -2,6 +2,7 @@
 #include "cpu/word.h"
 
 #include "./local-decoder.h"
+#include "log.h"
 
 #define RD  unsigned int rd  = decodeInfo.rd
 #define RS1 unsigned int rs1 = decodeInfo.rs1

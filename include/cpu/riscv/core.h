@@ -6,8 +6,6 @@
 #include "cpu/word.h"
 #include "cpu/riscv/csr.h"
 #include "device/bus.h"
-#include "utils/task-timer.h"
-#include "utils/decoder.h"
 
 #include <unordered_map>
 #include <cstdint>
@@ -66,8 +64,11 @@ private:
     // decoder
     struct DecodeInfo {
         unsigned int rd;
-        unsigned int rs1; // or csr
-        unsigned int rs2;
+        unsigned int rs1;
+        union {
+            unsigned int rs2;
+            unsigned int csr;
+        };
         word_t imm;
     };
     DecodeInfo decodeInfo;
@@ -83,7 +84,7 @@ private:
 
     void decode_r();
     void decode_i();
-    void decode_shift_i();
+    void decode_shifti();
     void decode_s();
     void decode_b();
     void decode_j();
@@ -102,6 +103,7 @@ private:
     void decode_c_addi4spn();
     void decode_c_slli();
     void decode_c_i();
+    void decode_c_shifti();
     void decode_c_mvadd();
     void decode_c_r();
 #ifdef KXEMU_ISA64
@@ -132,6 +134,7 @@ private:
 
     // do instructions
     void do_invalid_inst();
+    void do_invalid_inst(const DecodeInfo &decodeInfo);
     #include "./local-include/inst-list.h"
 
     RVCSR csr;
@@ -162,17 +165,19 @@ private:
     template<int len> void do_store_conditional(const DecodeInfo &deocdeInfo);
     template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &deocdeInfo);
 
-    // Experimental
+    // Experimental ICache
+    #ifdef CONFIG_ICache
     struct ICacheBlock {
         bool valid;
         uint8_t instLen;
-        uint32_t inst;
         word_t tag;
         do_inst_t do_inst;
+        DecodeInfo decodeInfo;
     };
     ICacheBlock icache[512];
-    void add_to_icache(word_t pc, uint32_t inst, do_inst_t do_inst, uint8_t instLen);
+    void add_to_icache(do_inst_t do_inst, uint8_t instLen);
     bool icache_hit_and_exec(word_t pc);
+    #endif
 
 public:
     RVCore();

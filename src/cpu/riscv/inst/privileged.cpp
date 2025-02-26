@@ -7,7 +7,7 @@
 
 using namespace kxemu::cpu;
 
-void RVCore::do_ecall() {
+void RVCore::do_ecall(const DecodeInfo &) {
     word_t code;
     switch (this->privMode) {
         case PrivMode::MACHINE:    code = TRAP_ECALL_M; break;
@@ -22,7 +22,7 @@ void RVCore::do_ecall() {
 // executing an xRET instruction, supposing xPP holds the value y, xIE is set to xPIE; the privilege mode is
 // changed to y; xPIE is set to 1; and xPP is set to the least-privileged supported mode (U if U-mode is
 // implemented, else M). If y≠M, xRET also sets MPRV=0.
-void RVCore::do_mret() {
+void RVCore::do_mret(const DecodeInfo &) {
     word_t mstatus = *this->mstatus;
     
     // change to previous privilege mode
@@ -44,7 +44,7 @@ void RVCore::do_mret() {
     this->npc = this->csr.read_csr(CSR_MEPC);
 }
 
-void RVCore::do_sret() {    
+void RVCore::do_sret(const DecodeInfo &) {    
     word_t mstatus = *this->mstatus;
 
     // change to previous privilege mode
@@ -68,7 +68,7 @@ void RVCore::do_sret() {
     this->npc = this->csr.read_csr(CSR_SEPC);
 }
 
-void RVCore::do_ebreak() {
+void RVCore::do_ebreak(const DecodeInfo &) {
     // INFO("EBREAK at pc=" FMT_WORD, this->pc);
     this->state = HALT;
     this->haltCode = this->gpr[10];
@@ -78,20 +78,20 @@ void RVCore::do_ebreak() {
     this->trap(TRAP_BREAKPOINT); 
 }
 
-void RVCore::do_wfi() {
+void RVCore::do_wfi(const DecodeInfo &) {
     while (!this->scan_interrupt()) {
         this->bus->update();
     }
 }
 
-void RVCore::do_sfence_vma() {
+void RVCore::do_sfence_vma(const DecodeInfo &) {
     if (this->privMode == PrivMode::USER) {
         do_invalid_inst();
         return;
     } 
 }
 
-void RVCore::do_fence() {
+void RVCore::do_fence(const DecodeInfo &) {
     if (this->privMode == PrivMode::USER) {
         do_invalid_inst();
         return;

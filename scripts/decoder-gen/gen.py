@@ -61,7 +61,7 @@ def build_decode_table(groups: List[List[InstPattern]]) -> List[Dict[int, List[I
     return cases
 
 
-def gen_code(tables: List[Dict[int, List[InstPattern]]], functionPrefix: str, instType: str = "uint32_t") -> str:
+def gen_code(tables: List[Dict[int, List[InstPattern]]], format: str) -> str:
     code = """#ifdef KXEMU_ISA32
     #define __INST32(x) x
     #define __INST64(x) 
@@ -74,12 +74,14 @@ def gen_code(tables: List[Dict[int, List[InstPattern]]], functionPrefix: str, in
         for key in table:
             code += "switch (inst & " + hex(key) + ") {\n"
             for inst in table[key]:
+                s = format.replace("{name}", inst.arg0)
+                s = s.replace("{arg1}", inst.arg1)
                 if inst.t == InstType.Only32:
-                    code += f"    __INST32(case {hex(inst.key)}: return {functionPrefix}{inst.name};)\n"
+                    code += f"    __INST32(case {hex(inst.key)}: {s})\n"
                 elif inst.t == InstType.Only64:
-                    code += f"    __INST64(case {hex(inst.key)}: return {functionPrefix}{inst.name};)\n"
+                    code += f"    __INST64(case {hex(inst.key)}: {s})\n"
                 else:
-                    code += f"    case {hex(inst.key)}: return {functionPrefix}{inst.name};\n"
+                    code += f"    case {hex(inst.key)}: {s}\n"
             code += "}\n"
 
     code += """
