@@ -2,9 +2,9 @@
 #include <stdint.h>
 
 #define MTIME_BASE 0x0200BFF8
+#define MTIME      (*(volatile uint64_t *)(MTIME_BASE + 0))
 #define MTIME_LOW  (*(volatile uint32_t *)(MTIME_BASE + 0))
 #define MTIME_HIGH (*(volatile uint32_t *)(MTIME_BASE + 4))
-#define MTIME MTIME_LOW
 
 uint64_t __am_timer_uptime() {
 #if __riscv_xlen == 32
