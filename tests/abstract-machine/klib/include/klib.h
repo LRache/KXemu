@@ -5,6 +5,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+#include "klib-macros.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
