@@ -303,6 +303,13 @@
 #define UPTIME_TO_MTIME(uptime) (uptime / 100)
 #define MTIME_TO_UPTIME(mtime)  (mtime * 100)
 
+#define ICACHE_SET_BITS 8
+#define ICACHE_TAG_BITS (WORD_BITS - ICACHE_SET_BITS - 1)
+#define ICACHE_SET_MASK ((word_t)((1ULL << ICACHE_SET_BITS) - 1) << 1)
+#define ICACHE_TAG_MASK ((word_t)(((1ULL << ICACHE_TAG_BITS) - 1)) << (ICACHE_SET_BITS + 1))
+#define ICACHE_SET(pc) ((pc & ICACHE_SET_MASK) >> 1)
+#define ICACHE_TAG(pc)  (pc & ICACHE_TAG_MASK)
+
 namespace kxemu::cpu {
 
 enum PrivMode {

@@ -6,6 +6,7 @@
 #include "log.h"
 #include "macro.h"
 
+#include <cassert>
 #include <unordered_set>
 #include <cstdint>
 #include <cstring>
@@ -26,6 +27,8 @@ RVCore::RVCore() {
 #endif
 
     this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
+
+    INFO("icache tag mask = " FMT_WORD ", set mask = " FMT_WORD, ICACHE_TAG_MASK, ICACHE_SET_MASK);
 }
 
 void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, TaskTimer *timer) {
@@ -46,75 +49,9 @@ void RVCore::reset(word_t entry) {
     this->csr.reset();
 
     std::memset(this->gpr, 0, sizeof(this->gpr));
-}
 
-void RVCore::step() {
-    if (unlikely(this->state == BREAKPOINT)) {
-        this->state = RUNNING;
-    }
-    if (likely(this->state == RUNNING)) {
-        // Interrupt
-        this->bus->update();
-        this->scan_interrupt();
-        
-        this->execute();
-        this->pc = this->npc;
-    } else {
-        WARN("Core is not running, nothing to do.");
-    }
-}
-
-void RVCore::run(const word_t *breakpoints_, unsigned int n) {
-    std::unordered_set<word_t> breakpoints;
-    for (unsigned int i = 0; i < n; i++) {
-        breakpoints.insert(breakpoints_[i]);
-    }
-
-    unsigned int i = 0;
-    this->state = RUNNING;
-    while (this->state == RUNNING) {
-        if (breakpoints.find(this->pc) != breakpoints.end()) {
-            this->haltCode = 0;
-            this->haltPC = this->pc;
-            this->state = BREAKPOINT;
-            break;
-        }
-        
-        // Interrupt
-        if (unlikely(i & 0x2000)) {
-            this->bus->update();
-            this->scan_interrupt();
-            i = 0;
-        }
-        
-        this->execute();
-        this->pc = this->npc;
-        i++;
-    }
-}
-
-void RVCore::execute() {    
-    if (unlikely(this->pc & 0x1)) {
-        // Instruction address misaligned
-        this->trap(TRAP_INST_ADDR_MISALIGNED);
-        return;
-    }
-    
-    if (!this->memory_fetch()) {
-        return;
-    }
-    
-    bool valid;
-    if (likely((this->inst & 0x3) == 0x3)) {
-        this->npc = this->pc + 4;
-        valid = this->decode_and_exec();
-    } else {
-        this->npc = this->pc + 2;
-        valid = this->decode_and_exec_c();
-    }
-
-    if (unlikely(!valid)) {
-        this->do_invalid_inst();
+    for (unsigned int i = 0; i < sizeof(this->icache) / sizeof(this->icache[0]); i++) {
+        this->icache[i].valid = false;
     }
 }
 

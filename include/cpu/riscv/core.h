@@ -64,9 +64,12 @@ private:
     bool check_pmp(word_t addr, int len, MemType type);
 
     // decoder
+    typedef void (RVCore::*do_inst_t)();
     utils::Decoder<RVCore>  decoder; // UNUSED
     utils::Decoder<RVCore> cdecoder; // UNUSED
     void build_decoder(); // UNUSED
+    do_inst_t decode();
+    do_inst_t decode_c();
     bool decode_and_exec();
     bool decode_and_exec_c(); // for compressed instructions
 
@@ -120,6 +123,18 @@ private:
     template<int len> void do_load_reserved();
     template<int len> void do_store_conditional();
     template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst();
+
+    // Experimental
+    struct ICacheBlock {
+        bool valid;
+        uint8_t instLen;
+        uint32_t inst;
+        word_t tag;
+        do_inst_t do_inst;
+    };
+    ICacheBlock icache[512];
+    void add_to_icache(word_t pc, uint32_t inst, do_inst_t do_inst, uint8_t instLen);
+    bool icache_hit_and_exec(word_t pc);
 
 public:
     RVCore();
