@@ -64,14 +64,52 @@ private:
     bool check_pmp(word_t addr, int len, MemType type);
 
     // decoder
-    typedef void (RVCore::*do_inst_t)();
-    utils::Decoder<RVCore>  decoder; // UNUSED
-    utils::Decoder<RVCore> cdecoder; // UNUSED
-    void build_decoder(); // UNUSED
+    struct DecodeInfo {
+        unsigned int rd;
+        unsigned int rs1; // or csr
+        unsigned int rs2;
+        word_t imm;
+    };
+    DecodeInfo decodeInfo;
+    
+    typedef void (RVCore::*do_inst_t)(const DecodeInfo &decodeInfo);
+    // utils::Decoder<RVCore>  decoder; // UNUSED
+    // utils::Decoder<RVCore> cdecoder; // UNUSED
+    // void build_decoder(); // UNUSED
     do_inst_t decode();
     do_inst_t decode_c();
     bool decode_and_exec();
     bool decode_and_exec_c(); // for compressed instructions
+
+    void decode_r();
+    void decode_i();
+    void decode_shift_i();
+    void decode_s();
+    void decode_b();
+    void decode_j();
+    void decode_u();
+    void decode_csrr();
+    void decode_csri();
+    void decode_c_lwsp();
+    void decode_c_swsp();
+    void decode_c_lwsw();
+    void decode_c_j();
+    void decode_c_b();
+    void decode_c_li();
+    void decode_c_lui();
+    void decode_c_addi();
+    void decode_c_addi16sp();
+    void decode_c_addi4spn();
+    void decode_c_slli();
+    void decode_c_i();
+    void decode_c_mvadd();
+    void decode_c_r();
+#ifdef KXEMU_ISA64
+    void decode_c_ldsp();
+    void decode_c_sdsp();
+    void decode_c_ldsd();
+#endif
+    void decode_n();
 
     // running
     uint32_t inst;
@@ -120,9 +158,9 @@ private:
     // Atomic extension
     std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
     word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid);
-    template<int len> void do_load_reserved();
-    template<int len> void do_store_conditional();
-    template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst();
+    template<int len> void do_load_reserved(const DecodeInfo &decodeInfo);
+    template<int len> void do_store_conditional(const DecodeInfo &deocdeInfo);
+    template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &deocdeInfo);
 
     // Experimental
     struct ICacheBlock {

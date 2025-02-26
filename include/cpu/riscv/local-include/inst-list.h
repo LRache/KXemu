@@ -1,6 +1,6 @@
 #include "config/config.h"
 
-#define _INST(name) void do_##name();
+#define _INST(name) void do_##name(const DecodeInfo &);
 
 _INST(add)
 _INST(sub)

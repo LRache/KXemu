@@ -6,8 +6,9 @@ class InstType(Enum):
     Both = 2
 
 class InstPattern():
-    def __init__(self, pattern: str, name: str, t: InstType):
-        self.name = name
+    def __init__(self, pattern: str, arg0: str, arg1: str, t: InstType):
+        self.arg0 = arg0
+        self.arg1 = arg1
         self.t = t
 
         mask = 0

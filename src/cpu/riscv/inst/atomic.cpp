@@ -9,9 +9,9 @@
 using namespace kxemu::cpu;
 using kxemu::device::AMO;
 
-#define RD  unsigned int rd  = BITS(11, 7);
-#define RS1 unsigned int rs1 = BITS(19, 15);
-#define RS2 unsigned int rs2 = BITS(24, 20);
+#define RD  unsigned int rd  = decodeInfo.rd
+#define RS1 unsigned int rs1 = decodeInfo.rs1
+#define RS2 unsigned int rs2 = decodeInfo.rs2
 
 word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid) {
     valid = false;
@@ -44,7 +44,7 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
 }
 
 template<int len>
-void RVCore::do_load_reserved() {
+void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     RD; RS1;
 
     bool valid;
@@ -63,7 +63,7 @@ void RVCore::do_load_reserved() {
 }
 
 template<int len>
-void RVCore::do_store_conditional() {
+void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     RD; RS1; RS2;
 
     bool valid;
@@ -90,7 +90,7 @@ void RVCore::do_store_conditional() {
 }
 
 template<kxemu::device::AMO amo, typename sw_t>
-void RVCore::do_amo_inst() {
+void RVCore::do_amo_inst(const DecodeInfo &decodeInfo) {
     RS1; RS2; RD;
     constexpr int len = sizeof(sw_t);
 
@@ -110,94 +110,94 @@ void RVCore::do_amo_inst() {
     this->set_gpr(rd, (sword_t)oldValue);
 }
 
-void RVCore::do_lr_w() {
-   this->do_load_reserved<4>();
+void RVCore::do_lr_w(const DecodeInfo &decodeInfo) {
+   this->do_load_reserved<4>(decodeInfo);
 }
 
-void RVCore::do_sc_w() {
-    this->do_store_conditional<4>();
+void RVCore::do_sc_w(const DecodeInfo &decodeInfo) {
+    this->do_store_conditional<4>(decodeInfo);
 }
 
-void RVCore::do_amoswap_w() {
-    this->do_amo_inst<AMO::AMO_SWAP, int32_t>();
+void RVCore::do_amoswap_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_SWAP, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amoadd_w() {
-    this->do_amo_inst<AMO::AMO_ADD, int32_t>();
+void RVCore::do_amoadd_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_ADD, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amoxor_w() {
-    this->do_amo_inst<AMO::AMO_XOR, int32_t>();
+void RVCore::do_amoxor_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_XOR, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amoand_w() {
-    this->do_amo_inst<AMO::AMO_AND, int32_t>();
+void RVCore::do_amoand_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_AND, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amoor_w() {
-    this->do_amo_inst<AMO::AMO_OR, int32_t>();
+void RVCore::do_amoor_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_OR, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amomin_w() {
-    this->do_amo_inst<AMO::AMO_MIN, int32_t>();
+void RVCore::do_amomin_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MIN, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amomax_w() {
-    this->do_amo_inst<AMO::AMO_MAX, int32_t>();
+void RVCore::do_amomax_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MAX, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amominu_w() {
-    this->do_amo_inst<AMO::AMO_MINU, int32_t>();
+void RVCore::do_amominu_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MINU, int32_t>(decodeInfo);
 }
 
-void RVCore::do_amomaxu_w() {
-    this->do_amo_inst<AMO::AMO_MAXU, int32_t>();
+void RVCore::do_amomaxu_w(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MAXU, int32_t>(decodeInfo);
 }
 
 #ifdef KXEMU_ISA64
 
-void RVCore::do_lr_d() {
-    this->do_load_reserved<8>();
+void RVCore::do_lr_d(const DecodeInfo &decodeInfo) {
+    this->do_load_reserved<8>(decodeInfo);
 }
 
-void RVCore::do_sc_d() {
-    this->do_store_conditional<8>();
+void RVCore::do_sc_d(const DecodeInfo &decodeInfo) {
+    this->do_store_conditional<8>(decodeInfo);
 }
 
-void RVCore::do_amoswap_d() {
-    this->do_amo_inst<AMO::AMO_SWAP, int64_t>();
+void RVCore::do_amoswap_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_SWAP, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amoadd_d() {
-    this->do_amo_inst<AMO::AMO_ADD, int64_t>();
+void RVCore::do_amoadd_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_ADD, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amoxor_d() {
-    this->do_amo_inst<AMO::AMO_XOR, int64_t>();
+void RVCore::do_amoxor_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_XOR, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amoand_d() {
-    this->do_amo_inst<AMO::AMO_AND, int64_t>();
+void RVCore::do_amoand_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_AND, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amoor_d() {
-    this->do_amo_inst<AMO::AMO_OR, int64_t>();
+void RVCore::do_amoor_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_OR, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amomin_d() {
-    this->do_amo_inst<AMO::AMO_MIN, int64_t>();
+void RVCore::do_amomin_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MIN, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amomax_d() {
-    this->do_amo_inst<AMO::AMO_MAX, int64_t>();
+void RVCore::do_amomax_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MAX, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amominu_d() {
-    this->do_amo_inst<AMO::AMO_MINU, int64_t>();
+void RVCore::do_amominu_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MINU, int64_t>(decodeInfo);
 }
 
-void RVCore::do_amomaxu_d() {
-    this->do_amo_inst<AMO::AMO_MAXU, int64_t>();
+void RVCore::do_amomaxu_d(const DecodeInfo &decodeInfo) {
+    this->do_amo_inst<AMO::AMO_MAXU, int64_t>(decodeInfo);
 }
 
 #endif

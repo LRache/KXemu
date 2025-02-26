@@ -21,7 +21,7 @@ RVCore::do_inst_t RVCore::decode_c() {
 bool RVCore::decode_and_exec() {
     do_inst_t do_inst = this->decode();
     if (likely(do_inst != nullptr)) {
-        (this->*do_inst)();
+        (this->*do_inst)(this->decodeInfo);
         this->add_to_icache(this->pc, this->inst, do_inst, 4);
         return true;
     } else {
@@ -32,7 +32,7 @@ bool RVCore::decode_and_exec() {
 bool RVCore::decode_and_exec_c() {
     do_inst_t do_inst = this->decode_c();
     if (likely(do_inst != nullptr)) {
-        (this->*do_inst)();
+        (this->*do_inst)(this->decodeInfo);
         this->add_to_icache(this->pc, this->inst & 0xffff, do_inst, 2);
         return true;
     } else {

@@ -2,7 +2,9 @@ import re
 from typing import List, Dict
 from instpat import *
 
-INST_PATTERN = re.compile(r'INSTPAT\s*\(\s*"([^"]+)"\s*,\s*([^,\s]+)\s*(?:,\s*(\d+))?\s*\)\s*;')
+INST_PATTERN = re.compile(
+    r'INSTPAT\s*\(\s*"([^"]+)"\s*,\s*([^,\s]+)\s*,\s*([^,\s]+)\s*(?:,\s*(\d+))?\s*\)\s*;'
+)
 
 def read_file(filename: str) -> List[List[InstPattern]]:
     f = open(filename, 'r')
@@ -26,7 +28,8 @@ def read_file(filename: str) -> List[List[InstPattern]]:
         
         pattern = m.group(1)
         name = m.group(2)
-        t = m.group(3)
+        arg1 = m.group(3)
+        t = m.group(4)
 
         if t is None:
             t = InstType.Both
@@ -38,7 +41,7 @@ def read_file(filename: str) -> List[List[InstPattern]]:
             else:
                 raise ValueError(f"Invalid type '{t}'")
         name = name.replace(".", "_")
-        group.append(InstPattern(pattern, name, t))
+        group.append(InstPattern(pattern, name, arg1, t))
     groups.append(group)
 
     f.close()
