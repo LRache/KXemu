@@ -72,15 +72,15 @@ def gen_code(tables: List[Dict[int, List[InstPattern]]], functionPrefix: str, in
             code += "switch (inst & " + hex(key) + ") {\n"
             for inst in table[key]:
                 if inst.t == InstType.Only32:
-                    code += f"    __INST32(case {hex(inst.key)}: {functionPrefix}{inst.name}(); return true;)\n"
+                    code += f"    __INST32(case {hex(inst.key)}: return {functionPrefix}{inst.name};)\n"
                 elif inst.t == InstType.Only64:
-                    code += f"    __INST64(case {hex(inst.key)}: {functionPrefix}{inst.name}(); return true;)\n"
+                    code += f"    __INST64(case {hex(inst.key)}: return {functionPrefix}{inst.name};)\n"
                 else:
-                    code += f"    case {hex(inst.key)}: {functionPrefix}{inst.name}(); return true;\n"
+                    code += f"    case {hex(inst.key)}: return {functionPrefix}{inst.name};\n"
             code += "}\n"
 
     code += """
-return false;
+return nullptr;
 
 #undef __INST32
 #undef __INST64

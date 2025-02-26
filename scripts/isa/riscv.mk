@@ -8,10 +8,10 @@ INSTPAT_DST_FILES = $(addprefix $(INSTPAT_DST_DIR)/, $(addsuffix -decoder.h, $(I
 
 DECODE_GEN_SCRIPT = ./scripts/decoder-gen/main.py
 
-$(INSTPAT_DST_DIR)/%-decoder.h: $(INSTPAT_SRC_DIR)/%.instpat
+$(INSTPAT_DST_DIR)/%-decoder.h: $(INSTPAT_SRC_DIR)/%.instpat $(DECODE_GEN_SCRIPT)
 	$(info + GEN $@)
 	@ mkdir -p $(INSTPAT_DST_DIR)
-	@ python3 $(DECODE_GEN_SCRIPT) --input $< --output $@ --prefix "this->do_"
+	@ python3 $(DECODE_GEN_SCRIPT) --input $< --output $@ --prefix "&RVCore::do_"
 
 instpat: $(INSTPAT_DST_FILES)
 
