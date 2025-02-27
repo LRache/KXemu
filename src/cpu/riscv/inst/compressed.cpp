@@ -7,11 +7,6 @@
 #define REQUIRE(cond) do {if (!(cond)) { this->do_invalid_inst(); return; }} while(0);
 #define REQUIRE_NOT_ZERO(v) REQUIRE(v != 0)
 
-#define RD  unsigned int rd  = decodeInfo.rd
-#define RS1 unsigned int rs1 = decodeInfo.rs1
-#define RS2 unsigned int rs2 = decodeInfo.rs2
-#define IMM word_t imm = decodeInfo.imm
-
 using namespace kxemu::cpu;
 
 void RVCore::do_c_lwsp(const DecodeInfo &decodeInfo) {

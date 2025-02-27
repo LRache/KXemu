@@ -9,10 +9,6 @@
 using namespace kxemu::cpu;
 using kxemu::device::AMO;
 
-#define RD  unsigned int rd  = decodeInfo.rd
-#define RS1 unsigned int rs1 = decodeInfo.rs1
-#define RS2 unsigned int rs2 = decodeInfo.rs2
-
 word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid) {
     valid = false;
     

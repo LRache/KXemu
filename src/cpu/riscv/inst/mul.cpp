@@ -3,10 +3,6 @@
 #include "cpu/word.h"
 #include "word.h"
 
-#define RD  unsigned int rd  = decodeInfo.rd
-#define RS1 unsigned int rs1 = decodeInfo.rs1
-#define RS2 unsigned int rs2 = decodeInfo.rs2
-
 using namespace kxemu::cpu;
 
 void RVCore::do_mul(const DecodeInfo &decodeInfo) {

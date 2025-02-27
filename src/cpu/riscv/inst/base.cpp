@@ -4,11 +4,6 @@
 #include "./local-decoder.h"
 #include "log.h"
 
-#define RD  unsigned int rd  = decodeInfo.rd
-#define RS1 unsigned int rs1 = decodeInfo.rs1
-#define RS2 unsigned int rs2 = decodeInfo.rs2
-#define IMM word_t imm = decodeInfo.imm
-
 #ifdef KXEMU_ISA64
     #define SHAMT_MASK 0x3f
 #else

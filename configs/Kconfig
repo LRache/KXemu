@@ -45,6 +45,9 @@ config LOG
 config HINT
     bool "Show hints"
 
+config DEBUG
+    bool "DEBUG mode"
+
 menu "Cache"
 
 config ICache

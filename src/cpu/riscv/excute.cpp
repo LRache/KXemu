@@ -141,7 +141,14 @@ void RVCore::execute() {
         return;
     }
     
+    #ifdef CONFIG_DEBUG
     std::memset(&this->gDecodeInfo, 0xac, sizeof(this->gDecodeInfo));
+    this->gDecodeInfo.rd_set  = false;
+    this->gDecodeInfo.rs1_set = false;
+    this->gDecodeInfo.rs2_set = false;
+    this->gDecodeInfo.csr_set = false;
+    this->gDecodeInfo.imm_set = false;
+    #endif
 
     bool valid;
     if (likely((this->inst & 0x3) == 0x3)) {

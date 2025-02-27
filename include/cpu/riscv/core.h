@@ -70,6 +70,14 @@ private:
             unsigned int csr;
         };
         word_t imm;
+
+    #ifdef CONFIG_DEBUG
+        bool rd_set;
+        bool rs1_set;
+        bool rs2_set;
+        bool csr_set;
+        bool imm_set;
+    #endif
     };
     DecodeInfo gDecodeInfo;
     

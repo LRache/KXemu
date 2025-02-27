@@ -10,12 +10,12 @@
 // #define RS1 unsigned int rs1 = BITS(19, 15)
 // #define IMM word_t imm = BITS(19, 15)
 
-#define CSR unsigned int csrAddr = decodeInfo.csr
-#define RD  unsigned int rd  = decodeInfo.rd
-#define RS1 unsigned int rs1 = decodeInfo.rs1
-#define IMM word_t imm = decodeInfo.imm
+// #define CSR unsigned int csrAddr = decodeInfo.csr
+// #define RD  unsigned int rd  = decodeInfo.rd
+// #define RS1 unsigned int rs1 = decodeInfo.rs1
+// #define IMM word_t imm = decodeInfo.imm
 
-#define REQUIRE_WRITABLE do {if (IS_CSR_READ_ONLY(csrAddr)) {do_invalid_inst(); return;}} while(0);
+#define REQUIRE_WRITABLE do {if (IS_CSR_READ_ONLY(csr)) {do_invalid_inst(); return;}} while(0);
 #define CHECK_SUCCESS do{if (!s) {do_invalid_inst(); return;}} while(0);
 
 using namespace kxemu::cpu;
@@ -40,24 +40,24 @@ void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {
     
     bool s;
     if (rd != 0) {
-        word_t value = this->read_csr(csrAddr, s);
+        word_t value = this->read_csr(csr, s);
         CHECK_SUCCESS;
         this->set_gpr(rd, value);
     }
 
-    s = this->write_csr(csrAddr, this->get_gpr(rs1));
+    s = this->write_csr(csr, this->get_gpr(rs1));
     CHECK_SUCCESS;
 }
 
 void RVCore::do_csrrs(const DecodeInfo &decodeInfo) {
     CSR; RD; RS1;
     bool s;
-    word_t value = this->read_csr(csrAddr, s);
+    word_t value = this->read_csr(csr, s);
     CHECK_SUCCESS;
     this->set_gpr(rd, value);
     if (rs1 != 0) {
         REQUIRE_WRITABLE;
-        s = this->write_csr(csrAddr, value | this->get_gpr(rs1));
+        s = this->write_csr(csr, value | this->get_gpr(rs1));
         CHECK_SUCCESS;
     }
 }
@@ -65,12 +65,12 @@ void RVCore::do_csrrs(const DecodeInfo &decodeInfo) {
 void RVCore::do_csrrc(const DecodeInfo &decodeInfo) {
     CSR; RD; RS1;
     bool s;
-    word_t value = this->read_csr(csrAddr, s);
+    word_t value = this->read_csr(csr, s);
     CHECK_SUCCESS;
     this->set_gpr(rd, value);
     if (rs1 != 0) {
         REQUIRE_WRITABLE;
-        s = this->write_csr(csrAddr, value & (~this->get_gpr(rs1)));
+        s = this->write_csr(csr, value & (~this->get_gpr(rs1)));
         CHECK_SUCCESS;
     }
 }
@@ -82,24 +82,24 @@ void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {
     
     bool s;
     if (rd != 0) {
-        word_t value = this->read_csr(csrAddr, s);
+        word_t value = this->read_csr(csr, s);
         CHECK_SUCCESS;
         this->set_gpr(rd, value);
     }
 
-    s = this->write_csr(csrAddr, imm);
+    s = this->write_csr(csr, imm);
     CHECK_SUCCESS;
 }
 
 void RVCore::do_csrrsi(const DecodeInfo &decodeInfo) {
     CSR; RD; IMM;
     bool s;
-    word_t value = this->read_csr(csrAddr, s);
+    word_t value = this->read_csr(csr, s);
     CHECK_SUCCESS;
     this->set_gpr(rd, value);
     if (imm != 0) {
         REQUIRE_WRITABLE;
-        s = this->write_csr(csrAddr, value | imm);
+        s = this->write_csr(csr, value | imm);
         CHECK_SUCCESS;
     }
 }
@@ -107,12 +107,12 @@ void RVCore::do_csrrsi(const DecodeInfo &decodeInfo) {
 void RVCore::do_csrrci(const DecodeInfo &decodeInfo) {
     CSR; RD; IMM;
     bool s;
-    word_t value = this->read_csr(csrAddr, s);
+    word_t value = this->read_csr(csr, s);
     CHECK_SUCCESS;
     this->set_gpr(rd, value);
     if (imm != 0) {
         REQUIRE_WRITABLE;
-        s = this->write_csr(csrAddr, value & (~imm));
+        s = this->write_csr(csr, value & (~imm));
         CHECK_SUCCESS;
     }
 }
