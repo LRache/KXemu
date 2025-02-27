@@ -16,6 +16,12 @@ OBJ_DIR = $(BUILD_DIR)/$(ISA)
 OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
+ifeq ($(MAKECMDGOALS), export)
+	include ./scripts/export.mk
+else
+	include ./scripts/kxemu.mk
+endif
+
 INCPATH += $(abspath ./include)
 INCFLAGS = $(addprefix -I,$(INCPATH))
 
@@ -30,13 +36,9 @@ LDFLAGS += $(LIBFLAGS)
 CXXFLAGS += $(shell llvm-config --cxxflags) -fexceptions # for expection handling
 LDFLAGS  += $(shell llvm-config --libs)
 
--include ./scripts/isa/$(BASE_ISA).mk
+override CXXFLAGS := $(subst -std=c++14,-std=c++17,$(CXXFLAGS))
 
-ifeq ($(MAKECMDGOALS), export)
-	include ./scripts/export.mk
-else
-	include ./scripts/kxemu.mk
-endif
+-include ./scripts/isa/$(BASE_ISA).mk
 
 -include $(DEPS)
 include ./scripts/build.mk
