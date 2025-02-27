@@ -15,7 +15,7 @@ using namespace kxemu::device;
 
 Bus::MemoryBlock *Bus::match_memory(word_t addr, word_t length) const {
     for (auto &m : memoryMaps) {
-        if (m->start <= addr && addr + length <= m->start + m->size) {
+        if (m->start <= addr && addr + length <= m->end) {
             return m;
         }
     }
@@ -34,7 +34,7 @@ Bus::MMIOMapBlock *Bus::match_mmio(word_t addr, word_t length) const {
 bool Bus::add_memory_map(const std::string &name, word_t start, word_t size) {
     // check if overlap
     for (auto &m : memoryMaps) {
-        if (m->start <= start && start < m->start + m->size) {
+        if (m->start <= start && start < m->end) {
             return false;
         }
         if (start <= m->start && m->start < start + size) {
@@ -45,7 +45,7 @@ bool Bus::add_memory_map(const std::string &name, word_t start, word_t size) {
     auto m = new MemoryBlock;
     m->name = name;
     m->start = start;
-    m->size = size;
+    m->end = start + size;
     m->data = new((std::align_val_t)8) uint8_t[size];
     memoryMaps.push_back(m);
     
@@ -331,7 +331,7 @@ uint8_t *Bus::get_ptr(word_t addr) const{
 word_t Bus::get_ptr_length(word_t addr) const {
     auto mem = match_memory(addr);
     if (mem != nullptr) {
-        return mem->size - (addr - mem->start);
+        return mem->end - addr;
     }
 
     auto map = match_mmio(addr);

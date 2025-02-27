@@ -1,10 +1,13 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/cache-def.h"
 #include "cpu/word.h"
+#include "debug.h"
 #include "word.h"
 #include "log.h"
 #include "macro.h"
+#include <cstdint>
 
 using namespace kxemu::cpu;
 
@@ -223,6 +226,41 @@ bool RVCore::memory_fetch() {
     return valid;
 }
 
+bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
+    if (unlikely(DCACHE_SET(addr) != DCACHE_SET(addr + len))) {
+        return false;
+    }
+    
+    word_t tag = DCACHE_TAG(addr);
+    word_t set = DCACHE_SET(addr);
+    DCacheBlock &block = this->dcache[set];
+    if (block.tag != tag || !block.valid) {
+        auto mem = this->bus->match_memory(addr, len);
+        
+        if (mem == nullptr) {
+            return false;
+        }
+        if (mem->end - addr < DCACHE_BLOCK_SIZE) {
+            return false;
+        }
+
+        block.tag = tag;
+        block.valid = true;
+        block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
+    } 
+    
+    uint8_t *ptr = block.data + DCACHE_OFF(addr);
+    switch (len) {
+        case 1: data = *( uint8_t *)ptr; break;
+        case 2: data = *(uint16_t *)ptr; break;
+        case 4: data = *(uint32_t *)ptr; break;
+        case 8: data = *(uint64_t *)ptr; break;
+        default: PANIC("Invalid length");
+    }
+
+    return true;
+}
+
 word_t RVCore::memory_load(word_t addr, int len) {
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
         VMResult result;
@@ -240,8 +278,21 @@ word_t RVCore::memory_load(word_t addr, int len) {
         }
     }
 
+    word_t data;
+    // #ifdef CONFIG_DCache
+    // if (this->dcache_load(addr, len, data)) {
+    //     dc_data = data;
+    //     // return data;
+    // }
+    // #endif
+
     bool valid;
-    word_t data = this->bus->read(addr, len, valid);
+    data = this->bus->read(addr, len, valid);
+
+    word_t dc_data;
+    if (valid && dcache_load(addr, len, dc_data)) {
+        SELF_PROTECT(dc_data == data, "DCache difftest failed, addr=" FMT_WORD, addr);
+    }
     if (valid) {
         return data;
     }

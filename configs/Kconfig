@@ -45,5 +45,12 @@ config LOG
 config HINT
     bool "Show hints"
 
+menu "Cache"
+
 config ICache
     bool "Enable ICache"
+
+config DCache
+    bool "Enable DCache"
+
+endmenu

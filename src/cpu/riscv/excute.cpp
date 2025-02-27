@@ -1,5 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/cache-def.h"
 #include "macro.h"
 #include "debug.h"
 #include "log.h"
@@ -23,7 +24,9 @@ bool RVCore::decode_and_exec() {
     do_inst_t do_inst = this->decode();
     if (likely(do_inst != nullptr)) {
         (this->*do_inst)(this->decodeInfo);
+        #ifdef CONFIG_ICache
         this->add_to_icache(do_inst, 4);
+        #endif
         return true;
     } else {
         return false;
@@ -31,6 +34,7 @@ bool RVCore::decode_and_exec() {
 }
 
 bool RVCore::decode_and_exec_c() {
+    NOT_IMPLEMENTED();
     do_inst_t do_inst = this->decode_c();
     if (likely(do_inst != nullptr)) {
         (this->*do_inst)(this->decodeInfo);
@@ -91,8 +95,7 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
 #ifdef CONFIG_ICache
 
 void RVCore::add_to_icache(do_inst_t do_inst, uint8_t instLen) {
-    word_t set = ICACHE_SET(pc);
-    // SELF_PROTECT(set < sizeof(this->icache) / sizeof(this->icache[0]), "icache set index out of range");
+    word_t set = ICACHE_SET(this->pc);
     this->icache[set].valid = true;
     this->icache[set].tag = ICACHE_TAG(this->pc);
     this->icache[set].do_inst = do_inst;
@@ -135,7 +138,7 @@ void RVCore::execute() {
         return;
     }
     
-    std::memset(&this->decodeInfo, -1, sizeof(this->decodeInfo));
+    // std::memset(&this->decodeInfo, -1, sizeof(this->decodeInfo));
 
     bool valid;
     if (likely((this->inst & 0x3) == 0x3)) {

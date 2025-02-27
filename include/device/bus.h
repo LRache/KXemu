@@ -17,7 +17,7 @@ public:
     struct MemoryBlock {
         std::string name;
         word_t start;
-        word_t size;
+        word_t end;
         uint8_t *data;
     };
     std::vector<MemoryBlock *> memoryMaps;

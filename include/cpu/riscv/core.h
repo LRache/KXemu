@@ -131,6 +131,8 @@ private:
     void interrupt_s(word_t code);
     
     word_t gpr[32];
+    word_t get_gpr_core(unsigned index);
+    void   set_gpr_core(unsigned index, word_t v);
 
     // do instructions
     void do_invalid_inst();
@@ -167,6 +169,7 @@ private:
 
     // Experimental ICache
     #ifdef CONFIG_ICache
+    static constexpr unsigned int ICACHE_SET_BITS = 11;
     struct ICacheBlock {
         bool valid;
         uint8_t instLen;
@@ -174,9 +177,26 @@ private:
         do_inst_t do_inst;
         DecodeInfo decodeInfo;
     };
-    ICacheBlock icache[512];
+    ICacheBlock icache[1 << ICACHE_SET_BITS];
     void add_to_icache(do_inst_t do_inst, uint8_t instLen);
     bool icache_hit_and_exec(word_t pc);
+    #endif
+
+    // Experimental DCache
+    #ifdef CONFIG_DCache
+    static constexpr unsigned int DCACHE_BLOCK_BITS = 5;
+    static constexpr unsigned int DCACHE_BLOCK_SIZE = 1 << DCACHE_BLOCK_BITS;
+    static constexpr unsigned int DCACHE_SET_BITS = 5;
+    struct DCacheBlock {
+        bool valid;
+        // bool dirty;
+        word_t tag;
+        // word_t addr;
+        // __attribute__((aligned(sizeof(word_t)))) uint8_t data[DCACHE_BLOCK_SIZE];
+        uint8_t *data;
+    };
+    DCacheBlock dcache[1 << DCACHE_SET_BITS];
+    bool dcache_load(word_t addr, int len, word_t &data);
     #endif
 
 public:

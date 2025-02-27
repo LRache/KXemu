@@ -121,7 +121,7 @@ static int cmd_mem_map(const cmd::args_t &) {
         std::cout << std::setfill(' ')
         << std::setw(10) << m->name << " | "
         << FMT_STREAM_WORD(m->start)  << " | "
-        << FMT_STREAM_WORD(m->size) << " | "
+        << FMT_STREAM_WORD(m->start - m->end) << " | "
         << std::setw(6) << "Memory" << std::endl;
     }
     for (auto &m : kdb::bus->mmioMaps) {

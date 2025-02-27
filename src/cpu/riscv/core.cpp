@@ -1,5 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
+#include "cpu/riscv/cache-def.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "debug.h"
@@ -26,7 +27,9 @@ RVCore::RVCore() {
 
     this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
 
-    INFO("icache tag mask = " FMT_WORD ", set mask = " FMT_WORD, ICACHE_TAG_MASK, ICACHE_SET_MASK);
+    INFO("dcache off mask = " FMT_WORD, DCACHE_OFF_MASK);
+    INFO("dcache set mask = " FMT_WORD, DCACHE_SET_MASK);
+    INFO("dcache tag mask = " FMT_WORD, DCACHE_TAG_MASK);
 }
 
 void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, TaskTimer *timer) {
@@ -97,12 +100,21 @@ void RVCore::set_pc(word_t pc) {
 }
 
 word_t RVCore::get_gpr(unsigned int index) {
+    return gpr[index];
+}
+
+word_t RVCore::get_gpr_core(unsigned int index) {
     SELF_PROTECT(index < 32, "GPR index out of range");
     return gpr[index];
 }
 
 void RVCore::set_gpr(unsigned int index, word_t value) {
-    SELF_PROTECT(index < 32, "GPR index out of range");
+    this->gpr[index] = value;
+    this->gpr[0] = 0;
+}
+
+void RVCore::set_gpr_core(unsigned int index, word_t value) {
+    SELF_PROTECT(index < 32, "GPR index out of range: %u", index);
     this->gpr[index] = value;
     this->gpr[0] = 0;
 }
