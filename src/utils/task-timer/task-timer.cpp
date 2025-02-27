@@ -1,5 +1,4 @@
 #include "utils/task-timer.h"
-#include "log.h"
 #include <chrono>
 #include <thread>
 
@@ -24,7 +23,6 @@ void TaskTimer::timer_thread() {
     std::unique_lock<std::mutex> lock(this->mtx);
     while (this->running) {
         if (this->tasks.empty()) {
-            // INFO("waiting");
             this->cv.wait(lock);
             continue;
         }
@@ -61,6 +59,7 @@ void TaskTimer::stop_timer() {
     if (!this->running) {
         return;
     }
+
     this->running = false;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     this->cv.notify_all();
@@ -70,8 +69,7 @@ void TaskTimer::stop_timer() {
 }
 
 unsigned int TaskTimer::add_task(uint64_t delay, task_t task) {
-    INFO("add task");
-    // std::lock_guard<std::mutex> lock(this->mtx);
+    std::lock_guard<std::mutex> lock(this->mtx);
     auto timepoint = std::chrono::high_resolution_clock::now() + std::chrono::nanoseconds(delay);
     unsigned int id = this->counter++;
     this->tasks.push({timepoint, task, id});
@@ -80,7 +78,7 @@ unsigned int TaskTimer::add_task(uint64_t delay, task_t task) {
 }
 
 void TaskTimer::remove_task(unsigned int id) {
-    // std::lock_guard<std::mutex> lock(this->mtx);
+    std::lock_guard<std::mutex> lock(this->mtx);
     this->removedTasks.insert(id);
     this->cv.notify_all();
 }
