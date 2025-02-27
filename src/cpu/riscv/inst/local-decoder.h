@@ -12,5 +12,5 @@
     #define RS1 unsigned int rs1 = decodeInfo.rs1;
     #define RS2 unsigned int rs2 = decodeInfo.rs2;
     #define CSR unsigned int csr = decodeInfo.csr;
-    #define IMM unsigned int csr = decodeInfo.imm;
+    #define IMM unsigned int imm = decodeInfo.imm;
 #endif
