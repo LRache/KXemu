@@ -27,9 +27,11 @@ RVCore::RVCore() {
 
     this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
 
+    #ifdef CONFIG_DCache
     INFO("dcache off mask = " FMT_WORD, DCACHE_OFF_MASK);
     INFO("dcache set mask = " FMT_WORD, DCACHE_SET_MASK);
     INFO("dcache tag mask = " FMT_WORD, DCACHE_TAG_MASK);
+    #endif
 }
 
 void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, TaskTimer *timer) {

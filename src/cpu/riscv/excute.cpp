@@ -26,7 +26,6 @@ bool RVCore::decode_and_exec() {
     do_inst_t do_inst = this->decode();
     if (likely(do_inst != nullptr)) {
         (this->*do_inst)(this->gDecodeInfo);
-        std::cout << ".";
         #ifdef CONFIG_ICache
         this->add_to_icache(do_inst, 4);
         #endif
