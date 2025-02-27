@@ -226,6 +226,8 @@ bool RVCore::memory_fetch() {
     return valid;
 }
 
+#ifdef CONFIG_DCache
+
 bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
     if (unlikely(DCACHE_SET(addr) != DCACHE_SET(addr + len))) {
         return false;
@@ -261,6 +263,8 @@ bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
     return true;
 }
 
+#endif
+
 word_t RVCore::memory_load(word_t addr, int len) {
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
         VMResult result;
@@ -289,10 +293,10 @@ word_t RVCore::memory_load(word_t addr, int len) {
     bool valid;
     data = this->bus->read(addr, len, valid);
 
-    word_t dc_data;
-    if (valid && dcache_load(addr, len, dc_data)) {
-        SELF_PROTECT(dc_data == data, "DCache difftest failed, addr=" FMT_WORD, addr);
-    }
+    // word_t dc_data;
+    // if (valid && dcache_load(addr, len, dc_data)) {
+    //     SELF_PROTECT(dc_data == data, "DCache difftest failed, addr=" FMT_WORD, addr);
+    // }
     if (valid) {
         return data;
     }

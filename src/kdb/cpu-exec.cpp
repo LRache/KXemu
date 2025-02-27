@@ -58,6 +58,10 @@ int kdb::run_cpu() {
         breakpoints[i++] = *it;
     }
     cpu->run(true, breakpoints, n);
+    // auto core = cpu->get_core(0);
+    // while (core->is_running()) {
+    //     core->step();
+    // }
     delete[] breakpoints;
 
     for (unsigned int i = 0; i < cpu->core_count(); i++) {

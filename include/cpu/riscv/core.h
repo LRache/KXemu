@@ -71,7 +71,7 @@ private:
         };
         word_t imm;
     };
-    DecodeInfo decodeInfo;
+    DecodeInfo gDecodeInfo;
     
     typedef void (RVCore::*do_inst_t)(const DecodeInfo &decodeInfo);
     // utils::Decoder<RVCore>  decoder; // UNUSED

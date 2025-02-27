@@ -86,6 +86,8 @@ void Bus::free_all() {
 }
 
 word_t Bus::read(word_t addr, word_t length, bool &valid) const {
+    valid = true;
+    
     auto mem = this->match_memory(addr, length);
     if (likely(mem != nullptr)) {
         word_t offset = addr - mem->start;
@@ -97,7 +99,6 @@ word_t Bus::read(word_t addr, word_t length, bool &valid) const {
             case 8: data = *(uint64_t *)(mem->data + offset); break;
             default: PANIC("Invalid length=" FMT_VARU64, length);
         }
-        valid = true;
         return data;
     }
 

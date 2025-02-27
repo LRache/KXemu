@@ -21,7 +21,7 @@ INCFLAGS = $(addprefix -I,$(INCPATH))
 
 LIBFLAGS = $(addprefix -l,$(LIBS))
 
-CXXFLAGS = -Wall -Wextra -Werror -pedantic -Ofast -O3 -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field
+CXXFLAGS = -Wall -Wextra -Werror -pedantic -Og -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field
 CXXFLAGS += $(INCFLAGS)
 
 LDFLAGS += $(LIBFLAGS)

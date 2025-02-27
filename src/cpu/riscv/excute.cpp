@@ -4,7 +4,9 @@
 #include "macro.h"
 #include "debug.h"
 #include "log.h"
+#include "word.h"
 
+#include <iostream>
 #include <cstdint>
 #include <cstring>
 
@@ -23,7 +25,8 @@ RVCore::do_inst_t RVCore::decode_c() {
 bool RVCore::decode_and_exec() {
     do_inst_t do_inst = this->decode();
     if (likely(do_inst != nullptr)) {
-        (this->*do_inst)(this->decodeInfo);
+        (this->*do_inst)(this->gDecodeInfo);
+        std::cout << ".";
         #ifdef CONFIG_ICache
         this->add_to_icache(do_inst, 4);
         #endif
@@ -37,7 +40,7 @@ bool RVCore::decode_and_exec_c() {
     NOT_IMPLEMENTED();
     do_inst_t do_inst = this->decode_c();
     if (likely(do_inst != nullptr)) {
-        (this->*do_inst)(this->decodeInfo);
+        (this->*do_inst)(this->gDecodeInfo);
         #ifdef CONFIG_ICache
         this->add_to_icache(do_inst, 2);
         #endif
@@ -69,26 +72,27 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
         breakpoints.insert(breakpoints_[i]);
     }
 
-    unsigned int i = 0;
+    // unsigned int i = 0;
     this->state = RUNNING;
     while (this->state == RUNNING) {
-        if (breakpoints.find(this->pc) != breakpoints.end()) {
-            this->haltCode = 0;
-            this->haltPC = this->pc;
-            this->state = BREAKPOINT;
-            break;
-        }
+        // if (breakpoints.find(this->pc) != breakpoints.end()) {
+        //     this->haltCode = 0;
+        //     this->haltPC = this->pc;
+        //     this->state = BREAKPOINT;
+        //     break;
+        // }
         
         // Interrupt
-        if (unlikely(i & 0x2000)) {
-            this->bus->update();
-            this->scan_interrupt();
-            i = 0;
-        }
+        // if (unlikely(i & 0x2000)) {
+        //     this->bus->update();
+        //     this->scan_interrupt();
+        //     i = 0;
+        // }
         
         this->execute();
+        
         this->pc = this->npc;
-        i++;
+        // i++;
     }
 }
 
@@ -138,7 +142,7 @@ void RVCore::execute() {
         return;
     }
     
-    // std::memset(&this->decodeInfo, -1, sizeof(this->decodeInfo));
+    std::memset(&this->gDecodeInfo, 0xac, sizeof(this->gDecodeInfo));
 
     bool valid;
     if (likely((this->inst & 0x3) == 0x3)) {

@@ -9,6 +9,12 @@
 #define RS2 unsigned int rs2 = decodeInfo.rs2
 #define IMM word_t imm = decodeInfo.imm
 
+#ifdef KXEMU_ISA64
+    #define SHAMT_MASK 0x3f
+#else
+    #define SHAMT_MASK 0x1f
+#endif
+
 // #define ADDR (MODE32 ? (this->gpr[rs1] + imm) & 0xffffffff : this->gpr[rs1] + imm)
 #define ADDR (this->get_gpr_core(rs1) + imm)
 // #define RV64ONLY do { if (this->mode32) { this->do_invalid_inst(); return; }} while(0);
@@ -43,17 +49,17 @@ void RVCore::do_xor(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_sll(const DecodeInfo &decodeInfo) {
     RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] << (this->gpr[rs2] & 0x1F));
+    this->set_gpr(rd, this->gpr[rs1] << (this->gpr[rs2] & SHAMT_MASK));
 }
 
 void RVCore::do_srl(const DecodeInfo &decodeInfo) {
     RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] >> (this->gpr[rs2] & 0x1F));
+    this->set_gpr(rd, this->gpr[rs1] >> (this->gpr[rs2] & SHAMT_MASK));
 }
 
 void RVCore::do_sra(const DecodeInfo &decodeInfo) {
     RD; RS1; RS2;
-    this->set_gpr(rd, (sword_t)this->gpr[rs1] >> (this->gpr[rs2] & 0x1F));
+    this->set_gpr(rd, (sword_t)this->gpr[rs1] >> (this->gpr[rs2] & SHAMT_MASK));
 }
 
 void RVCore::do_slt(const DecodeInfo &decodeInfo) {
@@ -119,12 +125,6 @@ void RVCore::do_xori(const DecodeInfo &decodeInfo) {
     RD; RS1; IMM;
     this->set_gpr(rd, this->gpr[rs1] ^ imm);
 }
-
-#ifdef KXEMU_ISA64
-    #define SHAMT_MASK 0x3f
-#else
-    #define SHAMT_MASK 0x1f
-#endif
 
 void RVCore::do_slli(const DecodeInfo &decodeInfo) {
     RD; RS1; IMM;
@@ -216,6 +216,7 @@ void RVCore::do_ld(const DecodeInfo &decodeInfo) {
     RD; RS1; IMM;
     word_t data = this->memory_load(this->gpr[rs1] + imm, 8);
     this->set_gpr(rd, data);
+    // INFO("LD " FMT_WORD, this->pc);
 }
 #endif
 
@@ -239,6 +240,7 @@ void RVCore::do_sd(const DecodeInfo &decodeInfo) {
     RV64ONLY;
     RS1; RS2; IMM;
     this->memory_store(this->get_gpr_core(rs1) + imm, this->get_gpr_core(rs2), 8);
+    // INFO("SD " FMT_WORD, this->pc);
 }
 #endif
 
