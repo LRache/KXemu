@@ -96,7 +96,6 @@ word_t RVCSR::write_sstatus(unsigned int addr, word_t value, bool &valid) {
 
 word_t RVCSR::write_stimecmp(unsigned int addr, word_t value, bool &valid) {
     this->csr[CSR_STIMECMP].value = value;
-    this->update_stimecmp();
     valid = true;
     return value;
 }

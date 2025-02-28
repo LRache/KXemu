@@ -9,19 +9,23 @@
 
 namespace kxemu::cpu {
 
+class RVCore;
+
 class RVCSR {
 private:
     using csr_rw_func_t = word_t (RVCSR::*)(unsigned int addr, word_t value, bool &valid);
+    using callback_t = std::function<void ()>;
     struct CSR {
         csr_rw_func_t  readFunc;
         csr_rw_func_t writeFunc;
         word_t value;
         word_t resetValue;
+
+        callback_t writeCallback;
     };
     std::unordered_map<unsigned int, CSR> csr;
     void add_csr(unsigned int addr, word_t resetValue = 0, csr_rw_func_t readFunc = nullptr, csr_rw_func_t writeFunc = nullptr);
 
-    using callback_t = std::function<void()>;
     callback_t update_stimecmp;
 
     struct PMPCfg {
@@ -81,7 +85,7 @@ public:
     int privMode;
 
     void init(unsigned int hartId, std::function<uint64_t()> get_uptime);
-    void init_callbacks(callback_t update_stimecmp);
+    void set_write_callbacks(unsigned int addr, callback_t callback);
     void reset();
 
     word_t read_csr(unsigned int addr, bool &valid);

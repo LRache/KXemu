@@ -16,6 +16,7 @@ OBJ_DIR = $(BUILD_DIR)/$(ISA)
 OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
+-include ./scripts/isa/$(BASE_ISA).mk
 ifeq ($(MAKECMDGOALS), export)
 	include ./scripts/export.mk
 else
@@ -39,8 +40,6 @@ LDFLAGS  += $(shell llvm-config --libs)
 
 override CXXFLAGS := $(subst -std=c++14,-std=c++17,$(CXXFLAGS))
 
--include ./scripts/isa/$(BASE_ISA).mk
-
 -include $(DEPS)
 include ./scripts/build.mk
 
@@ -52,7 +51,7 @@ clean:
 
 count:
 	$(info Counting lines in src and include directories...)
-	@ find $(SRC_DIR) ./include -name '*.c' -or -name "*.cpp" -or -name "*.h" | xargs cat | sed '/^\s*$$/d' | wc -l
+	@ find $(SRC_DIR) ./include ./scripts -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.py" | xargs cat | sed '/^\s*$$/d' | wc -l
 
 tidy:
 	clang-tidy $(SRCS)

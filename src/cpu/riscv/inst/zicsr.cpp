@@ -22,7 +22,8 @@ using namespace kxemu::cpu;
 
 void RVCore::init_csr() {
     this->csr.init(this->coreID, std::bind(&RVCore::get_uptime, this));
-    this->csr.init_callbacks(std::bind(&RVCore::update_stimecmp, this));
+    this->csr.set_write_callbacks(CSR_STIMECMP, std::bind(&RVCore::update_stimecmp, this));
+    // this->csr.set_write_callbacks(CSR_SATP    , std::bind(&RVCore::update_satp    , this));
 }
 
 word_t RVCore::read_csr(unsigned int addr, bool &valid) {

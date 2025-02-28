@@ -201,10 +201,12 @@ std::optional<std::string> kdb::addr_match_symbol(word_t addr, word_t &offset) {
         }
     }
 
-    if (addr - iter->first < 0x100) {
-        offset = addr - iter->first;
-        return iter->second;
-    } else {
-        return std::nullopt;
-    }
+    // if (addr - iter->first) {
+    //     offset = addr - iter->first;
+    //     return iter->second;
+    // } else {
+    //     return std::nullopt;
+    // }
+    offset = addr - iter->first;
+    return iter->second;
 }

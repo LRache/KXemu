@@ -11,7 +11,7 @@ DECODE_GEN_SCRIPT = ./scripts/decoder-gen/main.py
 $(INSTPAT_DST_DIR)/%-decoder.h: $(INSTPAT_SRC_DIR)/%.instpat $(DECODE_GEN_SCRIPT)
 	$(info + GEN $@)
 	@ mkdir -p $(INSTPAT_DST_DIR)
-	@ python3 $(DECODE_GEN_SCRIPT) --input $< --output $@ --format "this->decode_{arg1}(); return &RVCore::do_{name};"
+	@ python3 $(DECODE_GEN_SCRIPT) --input $< --output $@ --format "this->decode_{arg1}(); this->do_{name}(this->gDecodeInfo); return &RVCore::do_{name};"
 
 instpat: $(INSTPAT_DST_FILES)
 

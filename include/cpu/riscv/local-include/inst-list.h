@@ -167,7 +167,10 @@ _INST(wfi)
 _INST(sfence_vma)
 _INST(fence)
 
-// Zicsr exntension
+// Zifenci extenstion
+_INST(fence_i)
+
+// Zicsr extension
 _INST(csrrw)
 _INST(csrrs)
 _INST(csrrc)

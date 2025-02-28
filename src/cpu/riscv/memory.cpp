@@ -7,7 +7,9 @@
 #include "word.h"
 #include "log.h"
 #include "macro.h"
+#include <cstdarg>
 #include <cstdint>
+#include <cstring>
 
 using namespace kxemu::cpu;
 
@@ -203,55 +205,139 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 
 #endif
 
+// word_t RVCore::vm_fetch_translate(word_t addr, bool &success) {
+//     success = false;
+    
+//     VMResult result;
+//     addr = this->vaddr_translate(addr, MemType::FETCH, result);
+//     switch (result) {
+//         case VM_OK: break;
+//         case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return -1;
+//         case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return -1;
+//     }
+    
+//     if (unlikely(this->privMode != PrivMode::MACHINE)) {    
+//         if (unlikely(!this->csr.pmp_check_x(addr, 4))) {
+//             HINT("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
+//             this->trap(TRAP_LOAD_ACCESS_FAULT);
+//             return -1;
+//         }
+//     }
+
+//     success = true;
+//     return addr;
+// }
+
 bool RVCore::memory_fetch() {
     word_t addr = this->pc;
     VMResult result;
     addr = this->vaddr_translate(addr, MemType::FETCH, result);
     switch (result) {
         case VM_OK: break;
-        case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return false;
-        case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return false;
+        case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return -1;
+        case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return -1;
     }
     
     if (unlikely(this->privMode != PrivMode::MACHINE)) {    
         if (unlikely(!this->csr.pmp_check_x(addr, 4))) {
             HINT("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
             this->trap(TRAP_LOAD_ACCESS_FAULT);
-            return false;
+            return -1;
         }
     }
-    
-    bool valid;
+
+    bool valid;    
     this->inst = this->bus->read(addr, 4, valid);
     return valid;
 }
 
 #ifdef CONFIG_DCache
 
+RVCore::DCacheBlock *RVCore::dcache_hit(word_t addr, int len) {
+    word_t set = DCACHE_SET(addr);
+    if (unlikely(set != DCACHE_SET(addr + len))) {
+        return nullptr;
+    }
+    
+    word_t tag = DCACHE_TAG(addr);
+    DCacheBlock *block = &this->dcache[set];
+    if (block->valid) {
+        if (block->tag == tag) {
+            // INFO("DCache hit, addr=" FMT_WORD64 ", pc=" FMT_WORD, addr, this->pc);
+            return block;
+        } else {
+            if (block->dirty) {
+                std::memcpy(block->raw, block->data, DCACHE_BLOCK_SIZE);
+                // INFO("WriteBack " FMT_WORD, block->addr);
+            }
+        }
+    }
+
+    if (!block->valid || block->tag != tag) {
+        // INFO("DCache miss, addr=" FMT_WORD64 ", pc=" FMT_WORD, addr, this->pc);
+    }
+
+    auto mem = this->bus->match_memory(addr, len);
+        
+    if (mem == nullptr) {
+        return nullptr;
+    }
+    if (mem->end - addr < DCACHE_BLOCK_SIZE) {
+        return nullptr;
+    }
+
+    block->tag = tag;
+    block->valid = true;
+    block->dirty = false;
+    block->raw = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
+    // block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
+    std::memcpy(block->data, block->raw, DCACHE_BLOCK_SIZE);
+
+    return block;
+}
+
 bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
     if (unlikely(DCACHE_SET(addr) != DCACHE_SET(addr + len))) {
         return false;
     }
     
-    word_t tag = DCACHE_TAG(addr);
-    word_t set = DCACHE_SET(addr);
-    DCacheBlock &block = this->dcache[set];
-    if (block.tag != tag || !block.valid) {
-        auto mem = this->bus->match_memory(addr, len);
+    // word_t tag = DCACHE_TAG(addr);
+    // word_t set = DCACHE_SET(addr);
+    // DCacheBlock &block = this->dcache[set];
+    // bool hit = block.tag == tag && block.valid;
+    // if (block.tag != tag) {
+    //     if (block.valid && block.dirty) {
+    //         std::memcpy(block.raw, block.data, sizeof(block.data));
+    //         INFO("WriteBack " FMT_WORD, block.addr);
+    //     } 
         
-        if (mem == nullptr) {
-            return false;
-        }
-        if (mem->end - addr < DCACHE_BLOCK_SIZE) {
-            return false;
-        }
+    //     auto mem = this->bus->match_memory(addr, len);
+        
+    //     if (mem == nullptr) {
+    //         return false;
+    //     }
+    //     if (mem->end - addr < DCACHE_BLOCK_SIZE) {
+    //         return false;
+    //     }
 
-        block.tag = tag;
-        block.valid = true;
-        block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
-    } 
+    //     block.tag = tag;
+    //     block.valid = true;
+    //     block.raw = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
+    //     block.dirty = false;
+    //     // block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
+    //     std::memcpy(block.data, block.raw, sizeof(block.data));
+    // } 
+
+    // if (hit) {
+    //     INFO("DCache hit, addr=" FMT_WORD ", pc=" FMT_WORD, addr, this->pc);
+    // }
     
-    uint8_t *ptr = block.data + DCACHE_OFF(addr);
+    DCacheBlock *block = this->dcache_hit(addr, len);
+    if (block == nullptr) {
+        return false;
+    }
+
+    void *ptr = block->data + DCACHE_OFF(addr);
     switch (len) {
         case 1: data = *( uint8_t *)ptr; break;
         case 2: data = *(uint16_t *)ptr; break;
@@ -259,6 +345,62 @@ bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
         case 8: data = *(uint64_t *)ptr; break;
         default: PANIC("Invalid length");
     }
+
+    return true;
+}
+
+bool RVCore::dcache_store(word_t addr, word_t data, int len) {
+    // if (unlikely(DCACHE_SET(addr) != DCACHE_SET(addr + len))) {
+    //     return false;
+    // }
+    
+    // word_t tag = DCACHE_TAG(addr);
+    // word_t set = DCACHE_SET(addr);
+    // DCacheBlock &block = this->dcache[set];
+    // bool hit = block.tag == tag && block.valid;
+    // if (block.tag != tag) {
+    //     if (block.valid && block.dirty) {
+    //         std::memcpy(block.raw, block.data, sizeof(block.data));
+    //         INFO("WriteBack " FMT_WORD, block.addr);
+    //     } 
+
+    //     auto mem = this->bus->match_memory(addr, len);
+        
+    //     if (mem == nullptr) {
+    //         return false;
+    //     }
+    //     if (mem->end - addr < DCACHE_BLOCK_SIZE) {
+    //         return false;
+    //     }
+
+    //     block.tag = tag;
+    //     block.valid = true;
+    //     block.raw = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
+    //     // block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
+    //     std::memcpy(block.data, block.raw, sizeof(block.data));
+    //     #ifdef CONFIG_DEBUG
+    //     block.addr = addr & ~DCACHE_OFF_MASK;
+    //     #endif
+    // } 
+
+    DCacheBlock *block = this->dcache_hit(addr, len);
+    if (block == nullptr) {
+        return false;
+    }
+    
+    void *ptr = block->data + DCACHE_OFF(addr);
+    switch (len) {
+        case 1: *( uint8_t *)ptr = data; break;
+        case 2: *(uint16_t *)ptr = data; break;
+        case 4: *(uint32_t *)ptr = data; break;
+        case 8: *(uint64_t *)ptr = data; break;
+        default: PANIC("Invalid length");
+    }
+    block->dirty = true;
+
+    // if (hit) {
+    //     INFO("DCache hit, addr=" FMT_WORD ", pc=" FMT_WORD, addr, this->pc);
+    // }
 
     return true;
 }
@@ -285,12 +427,12 @@ word_t RVCore::memory_load(word_t addr, int len) {
     word_t data;
     #ifdef CONFIG_DCache
     if (this->dcache_load(addr, len, data)) {
-        #ifdef CONFIG_DEBUG
-        bool valid;
-        word_t ref = this->bus->read(addr, len, valid);
-        SELF_PROTECT(valid, "DCache difftest failed, bus.read in invalid, addr=" FMT_WORD, addr);
-        SELF_PROTECT(ref == data, "DCache difftest failed, addr=" FMT_WORD ", ref=" FMT_WORD ", dut=" FMT_WORD, addr, ref, data);
-        #endif
+        // #ifdef CONFIG_DEBUG
+        // bool valid;
+        // word_t ref = this->bus->read(addr, len, valid);
+        // SELF_PROTECT(valid, "DCache difftest failed, bus.read in invalid, addr=" FMT_WORD, addr);
+        // SELF_PROTECT(ref == data, "DCache difftest failed, pc=" FMT_WORD ", addr=" FMT_WORD ", ref=" FMT_WORD ", dut=" FMT_WORD, this->pc, addr, ref, data);
+        // #endif
         return data;
     }
     #endif
@@ -321,6 +463,12 @@ bool RVCore::memory_store(word_t addr, word_t data, int len) {
             return false;
         }
     }
+
+    #ifdef CONFIG_DCache
+    if (this->dcache_store(addr, data, len)) {
+        return true;
+    }
+    #endif
 
     return this->bus->write(addr, data, len);
     

@@ -93,14 +93,16 @@ RVCSR::RVCSR() {
 #endif
 }
 
-void RVCSR::init(unsigned int hartId, std::function<uint64_t()> get_uptime) {    
+void RVCSR::init(unsigned int hartId, std::function<uint64_t()> get_uptime) {
     this->csr[CSR_MHARTID].resetValue = hartId; // mhartid
 
     this->get_uptime = get_uptime;
 }
 
-void RVCSR::init_callbacks(callback_t update_stimecmp) {
-    this->update_stimecmp = update_stimecmp;
+void RVCSR::set_write_callbacks(unsigned int addr, callback_t callback) {
+    auto iter = this->csr.find(addr);
+    SELF_PROTECT(iter != this->csr.end(), "CSR not found");
+    iter->second.writeCallback = callback;
 }
 
 void RVCSR::reset() {
@@ -113,7 +115,7 @@ void RVCSR::reset() {
 
 void RVCSR::add_csr(unsigned int addr, word_t resetValue, csr_rw_func_t readFunc, csr_rw_func_t writeFunc) {
     SELF_PROTECT(this->csr.find(addr) == this->csr.end(), "CSR 0x%03x already exists", addr);
-    this->csr[addr] = {readFunc, writeFunc, 0, resetValue};
+    this->csr[addr] = {readFunc, writeFunc, 0, resetValue, nullptr};
 }
 
 void RVCSR::reload_pmpcfg() {
@@ -262,6 +264,7 @@ bool RVCSR::write_csr(unsigned int addr, word_t value) {
     }
     if (valid) {
         iter->second.value = value;
+        iter->second.writeCallback();
     }
     return valid;
 }

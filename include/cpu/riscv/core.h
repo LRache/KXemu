@@ -57,11 +57,12 @@ private:
     word_t vaddr_translate_sv48(word_t addr, MemType type, VMResult &result);
     word_t vaddr_translate_sv57(word_t addr, MemType type, VMResult &result);
     #endif
+    void update_satp();
 
     // Physical memory protection
     bool check_pmp(word_t addr, int len, MemType type);
 
-    // decoder
+    // Decoder
     struct DecodeInfo {
         unsigned int rd;
         unsigned int rs1;
@@ -82,12 +83,9 @@ private:
     DecodeInfo gDecodeInfo;
     
     typedef void (RVCore::*do_inst_t)(const DecodeInfo &decodeInfo);
-    // utils::Decoder<RVCore>  decoder; // UNUSED
-    // utils::Decoder<RVCore> cdecoder; // UNUSED
-    // void build_decoder(); // UNUSED
-    do_inst_t decode();
-    do_inst_t decode_c();
-    bool decode_and_exec();
+    do_inst_t __decode_inst  ();
+    do_inst_t __decode_inst_c();
+    bool decode_and_exec  ();
     bool decode_and_exec_c(); // for compressed instructions
 
     void decode_r();
@@ -142,11 +140,12 @@ private:
     word_t get_gpr_core(unsigned index);
     void   set_gpr_core(unsigned index, word_t v);
 
-    // do instructions
+    // Do instructions
     void do_invalid_inst();
     void do_invalid_inst(const DecodeInfo &decodeInfo);
     #include "./local-include/inst-list.h"
 
+    // Zicsr and Privilleged
     RVCSR csr;
     int &privMode = csr.privMode; // Priviledge mode
     void init_csr();
@@ -180,31 +179,38 @@ private:
     static constexpr unsigned int ICACHE_SET_BITS = 11;
     struct ICacheBlock {
         bool valid;
-        uint8_t instLen;
         word_t tag;
+        
         do_inst_t do_inst;
         DecodeInfo decodeInfo;
+        unsigned int instLen;
     };
     ICacheBlock icache[1 << ICACHE_SET_BITS];
-    void add_to_icache(do_inst_t do_inst, uint8_t instLen);
-    bool icache_hit_and_exec(word_t pc);
+    void icache_push(do_inst_t do_inst, unsigned int instLen);
+    bool icache_decode_and_exec();
     #endif
 
     // Experimental DCache
     #ifdef CONFIG_DCache
-    static constexpr unsigned int DCACHE_BLOCK_BITS = 5;
+    static constexpr unsigned int DCACHE_BLOCK_BITS = 10;
     static constexpr unsigned int DCACHE_BLOCK_SIZE = 1 << DCACHE_BLOCK_BITS;
     static constexpr unsigned int DCACHE_SET_BITS = 5;
     struct DCacheBlock {
         bool valid;
-        // bool dirty;
+        bool dirty;
         word_t tag;
-        // word_t addr;
-        // __attribute__((aligned(sizeof(word_t)))) uint8_t data[DCACHE_BLOCK_SIZE];
-        uint8_t *data;
+        void *raw;
+        __attribute__((aligned(sizeof(word_t)))) 
+        uint8_t data[DCACHE_BLOCK_SIZE];
+        
+        #ifdef CONFIG_DEBUG
+        word_t addr;
+        #endif
     };
     DCacheBlock dcache[1 << DCACHE_SET_BITS];
-    bool dcache_load(word_t addr, int len, word_t &data);
+    DCacheBlock *dcache_hit(word_t addr, int len);
+    bool dcache_load (word_t addr, int len, word_t &data);
+    bool dcache_store(word_t addr, word_t data, int len);
     #endif
 
 public:

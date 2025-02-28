@@ -1,33 +1,34 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
 #include "cpu/riscv/cache-def.h"
+#include "cpu/word.h"
 #include "macro.h"
 #include "debug.h"
 #include "log.h"
 #include "word.h"
 
+#include <cstddef>
 #include <iostream>
 #include <cstdint>
 #include <cstring>
 
 using namespace kxemu::cpu;
 
-RVCore::do_inst_t RVCore::decode() {
+RVCore::do_inst_t RVCore::__decode_inst() {
     uint32_t inst = this->inst;
     #include "./autogen/base-decoder.h"
 }
 
-RVCore::do_inst_t RVCore::decode_c() {
+RVCore::do_inst_t RVCore::__decode_inst_c() {
     uint32_t inst = this->inst & 0xffff;
     #include "./autogen/compressed-decoder.h"
 }
 
 bool RVCore::decode_and_exec() {
-    do_inst_t do_inst = this->decode();
+    do_inst_t do_inst = this->__decode_inst();
     if (likely(do_inst != nullptr)) {
-        (this->*do_inst)(this->gDecodeInfo);
         #ifdef CONFIG_ICache
-        this->add_to_icache(do_inst, 4);
+        this->icache_push(do_inst, 4);
         #endif
         return true;
     } else {
@@ -37,11 +38,10 @@ bool RVCore::decode_and_exec() {
 
 bool RVCore::decode_and_exec_c() {
     NOT_IMPLEMENTED();
-    do_inst_t do_inst = this->decode_c();
+    do_inst_t do_inst = this->__decode_inst_c();
     if (likely(do_inst != nullptr)) {
-        (this->*do_inst)(this->gDecodeInfo);
         #ifdef CONFIG_ICache
-        this->add_to_icache(do_inst, 2);
+        this->icache_push(do_inst, 2);
         #endif
         return true;
     } else {
@@ -71,33 +71,49 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
         breakpoints.insert(breakpoints_[i]);
     }
 
-    // unsigned int i = 0;
+    unsigned int i = 0;
     this->state = RUNNING;
-    while (this->state == RUNNING) {
-        // if (breakpoints.find(this->pc) != breakpoints.end()) {
-        //     this->haltCode = 0;
-        //     this->haltPC = this->pc;
-        //     this->state = BREAKPOINT;
-        //     break;
-        // }
-        
-        // Interrupt
-        // if (unlikely(i & 0x2000)) {
-        //     this->bus->update();
-        //     this->scan_interrupt();
-        //     i = 0;
-        // }
-        
-        this->execute();
-        
-        this->pc = this->npc;
-        // i++;
+    if (n == 0) {
+        while (this->state == RUNNING) {            
+            // Interrupt
+            if (unlikely(i & 0x2000)) {
+                this->bus->update();
+                this->scan_interrupt();
+                i = 0;
+            }
+            
+            this->execute();
+            
+            this->pc = this->npc;
+            i++;
+        }
+    } else {
+        while (this->state == RUNNING) {
+            if (breakpoints.find(this->pc) != breakpoints.end()) {
+                this->haltCode = 0;
+                this->haltPC = this->pc;
+                this->state = BREAKPOINT;
+                break;
+            }
+            
+            // Interrupt
+            if (unlikely(i & 0x2000)) {
+                this->bus->update();
+                this->scan_interrupt();
+                i = 0;
+            }
+            
+            this->execute();
+            
+            this->pc = this->npc;
+            i++;
+        }
     }
 }
 
 #ifdef CONFIG_ICache
 
-void RVCore::add_to_icache(do_inst_t do_inst, uint8_t instLen) {
+void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen) {
     word_t set = ICACHE_SET(this->pc);
     this->icache[set].valid = true;
     this->icache[set].tag = ICACHE_TAG(this->pc);
@@ -106,17 +122,15 @@ void RVCore::add_to_icache(do_inst_t do_inst, uint8_t instLen) {
     this->icache[set].decodeInfo = this->gDecodeInfo;
 }
 
-bool RVCore::icache_hit_and_exec(word_t pc) {
+bool RVCore::icache_decode_and_exec() {
     word_t set = ICACHE_SET(pc);
     const ICacheBlock &block = this->icache[set];
     if (block.tag == ICACHE_TAG(pc) && block.valid) {
-        
         this->npc = this->pc + block.instLen;
 
         (this->*block.do_inst)(block.decodeInfo);
         
         return true;
-    
     } else {
         return false;
     }
@@ -132,7 +146,7 @@ void RVCore::execute() {
     }
 
     #ifdef CONFIG_ICache
-    if (this->icache_hit_and_exec(this->pc)) {
+    if (this->icache_decode_and_exec()) {
         return;
     }
     #endif
@@ -150,14 +164,15 @@ void RVCore::execute() {
     this->gDecodeInfo.imm_set = false;
     #endif
 
-    bool valid;
+    bool valid = false;
     if (likely((this->inst & 0x3) == 0x3)) {
         this->npc = this->pc + 4;
         valid = this->decode_and_exec();
-    } else {
-        this->npc = this->pc + 2;
-        valid = this->decode_and_exec_c();
-    }
+    } 
+    // else {
+    //     this->npc = this->pc + 2;
+    //     valid = this->decode_and_exec_c();
+    // }
 
     if (unlikely(!valid)) {
         this->do_invalid_inst();
