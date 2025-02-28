@@ -169,8 +169,6 @@ void RVCSR::reload_pmpcfg() {
             index ++;
         }
     }
-    DEBUG("Reload PMP config, count=%d", this->pmpCfgCount);
-    DEBUG("PMP config: " FMT_WORD ", " FMT_WORD, this->pmpCfgArray[0].start, this->pmpCfgArray[0].end);
 }
 
 RVCSR::PMPCfg *RVCSR::pmp_check(word_t addr, int len) {
@@ -188,7 +186,6 @@ bool RVCSR::pmp_check_r(word_t addr, int len) {
     if (pmpConfig == nullptr) {
         return false;
     }
-    // DEBUG("PMP check r, addr=" FMT_WORD ", len=%d, start=" FMT_WORD ", end=" FMT_WORD, addr, len, pmpConfig->start, pmpConfig->end);
     return pmpConfig->r;
 }
 
@@ -197,7 +194,6 @@ bool RVCSR::pmp_check_w(word_t addr, int len) {
     if (pmpConfig == nullptr) {
         return false;
     }
-    // DEBUG("PMP check w, addr=" FMT_WORD ", len=%d, start=" FMT_WORD ", end=" FMT_WORD, addr, len, pmpConfig->start, pmpConfig->end);
     return pmpConfig->w;
 }
 
@@ -225,7 +221,6 @@ const word_t *RVCSR::get_csr_ptr_readonly(unsigned int addr) const {
     auto iter = this->csr.find(addr);
 
     SELF_PROTECT(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
-    // SELF_PROTECT(iter->second.readFunc == nullptr, "Access to CSR 0x%03x with read function", addr);
     
     return &iter->second.value;
 }
