@@ -14,7 +14,7 @@
 #define DCACHE_SET_MASK ((word_t)((1ULL << DCACHE_SET_BITS) - 1) << DCACHE_OFF_BITS)
 #define DCACHE_TAG_MASK ((word_t)(((word_t)-1) & ~DCACHE_OFF_MASK & ~DCACHE_SET_MASK))
 #define DCACHE_OFF(addr)  ((addr) & DCACHE_OFF_MASK)
-#define DCACHE_SET(addr) (((addr) & DCACHE_SET_BITS) >> DCACHE_OFF_BITS)
+#define DCACHE_SET(addr) (((addr) & DCACHE_SET_MASK) >> DCACHE_OFF_BITS)
 #define DCACHE_TAG(addr)  ((addr) & DCACHE_TAG_MASK)
 
 #endif

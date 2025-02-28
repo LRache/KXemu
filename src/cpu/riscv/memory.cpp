@@ -283,20 +283,20 @@ word_t RVCore::memory_load(word_t addr, int len) {
     }
 
     word_t data;
-    // #ifdef CONFIG_DCache
-    // if (this->dcache_load(addr, len, data)) {
-    //     dc_data = data;
-    //     // return data;
-    // }
-    // #endif
+    #ifdef CONFIG_DCache
+    if (this->dcache_load(addr, len, data)) {
+        #ifdef CONFIG_DEBUG
+        bool valid;
+        word_t ref = this->bus->read(addr, len, valid);
+        SELF_PROTECT(valid, "DCache difftest failed, bus.read in invalid, addr=" FMT_WORD, addr);
+        SELF_PROTECT(ref == data, "DCache difftest failed, addr=" FMT_WORD ", ref=" FMT_WORD ", dut=" FMT_WORD, addr, ref, data);
+        #endif
+        return data;
+    }
+    #endif
 
     bool valid;
     data = this->bus->read(addr, len, valid);
-
-    // word_t dc_data;
-    // if (valid && dcache_load(addr, len, dc_data)) {
-    //     SELF_PROTECT(dc_data == data, "DCache difftest failed, addr=" FMT_WORD, addr);
-    // }
     if (valid) {
         return data;
     }

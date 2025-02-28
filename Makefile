@@ -1,10 +1,10 @@
 include ./scripts/config.mk
 
-CXX = clang++-14
+CXX = clang++
 ifeq ($(shell which ccache > /dev/null 2>&1; echo $$?), 0)
 	CXX := ccache $(CXX)
 endif
-LD  = clang++-14
+LD  = clang++
 
 remove_quote = $(patsubst "%",%,$(1))
 ISA := $(call remove_quote,$(CONFIG_ISA))
@@ -27,7 +27,7 @@ INCFLAGS = $(addprefix -I,$(INCPATH))
 
 LIBFLAGS = $(addprefix -l,$(LIBS))
 
-CXXFLAGS += -Wall -Wextra -Werror -pedantic -Og -std=c++17
+CXXFLAGS += -Wall -Wextra -Werror -pedantic -Ofast -O3 -std=c++17
 CXXFLAGS += -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field
 CXXFLAGS += $(INCFLAGS)
 

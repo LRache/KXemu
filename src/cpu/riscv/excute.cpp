@@ -103,7 +103,7 @@ void RVCore::add_to_icache(do_inst_t do_inst, uint8_t instLen) {
     this->icache[set].tag = ICACHE_TAG(this->pc);
     this->icache[set].do_inst = do_inst;
     this->icache[set].instLen = instLen;
-    this->icache[set].decodeInfo = this->decodeInfo;
+    this->icache[set].decodeInfo = this->gDecodeInfo;
 }
 
 bool RVCore::icache_hit_and_exec(word_t pc) {
