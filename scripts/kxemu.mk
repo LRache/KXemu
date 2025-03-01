@@ -4,8 +4,10 @@ SRCS += $(EMU_SRCS) $(KDB_SRCS)
 LIBS += readline
 INCPATH += utils/mini-gdbstub/include
 
-CXXFLAGS += -flto
-LDFLAGS  += -flto
+ifneq ($(CONFIG_DEBUG), y)
+	CXXFLAGS += -flto
+	LDFLAGS  += -flto
+endif
 
 TARGET = $(BUILD_DIR)/$(ISA)-kxemu
 
