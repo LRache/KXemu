@@ -4,3 +4,6 @@
 [submodule "tests/xv6-riscv/xv6-riscv"]
 	path = tests/xv6-riscv/xv6-riscv
 	url = https://github.com/mit-pdos/xv6-riscv
+[submodule "utils/LA-disassembler"]
+	path = utils/LA-disassembler
+	url = git@github.com:LRache/LA-disassembler.git
