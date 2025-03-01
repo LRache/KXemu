@@ -1,6 +1,10 @@
 #ifndef __KXEMU_RISCV_CSR_DEF_H__
 #define __KXEMU_RISCV_CSR_DEF_H__
 
+// ATTENTION: DO NOT include this file in any header file
+// This file is only for internal use
+
+#include "cpu/riscv/namespace.h"
 #include "config/config.h"
 #include "word.h"
 
@@ -303,15 +307,5 @@
 
 #define UPTIME_TO_MTIME(uptime) (uptime / 100)
 #define MTIME_TO_UPTIME(mtime)  (mtime * 100)
-
-namespace kxemu::cpu {
-
-enum PrivMode {
-    MACHINE = 3,
-    SUPERVISOR = 1,
-    USER = 0,
-};
-
-}
 
 #endif

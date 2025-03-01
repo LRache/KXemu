@@ -3,14 +3,19 @@
 
 #include "device/mmio.h"
 #include "device/def.h"
+#include "utils/spinlock.h"
 
 #include <vector>
 #include <string>
+
 #include <cstdint>
 
 namespace kxemu::device {
 
 class Bus {
+private:
+    utils::SpinLock updateLock;
+
 public:
     ~Bus();
 
@@ -26,6 +31,7 @@ public:
         std::string name;
         word_t start;
         word_t size;
+        unsigned int id;
         MMIOMap *map;
     };
     std::vector<MMIOMapBlock *> mmioMaps;

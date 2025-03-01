@@ -31,6 +31,8 @@ public:
         uint64_t mtimecmp;
         unsigned int mtimerID;
         unsigned int stimerID;
+
+        unsigned int pendingInterrupts;
     };
     CoreObject *cores;
     uint64_t mtime;
@@ -43,6 +45,7 @@ public:
 
     word_t read(word_t addr, word_t size, bool &success) override;
     bool write(word_t addr, word_t value, word_t size) override;
+    // void update_core_interrupts(unsigned int coreID);
 
     void start_timer();
     void stop_timer();

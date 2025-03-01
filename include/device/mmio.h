@@ -16,11 +16,13 @@ public:
     virtual bool write(word_t offset, word_t data, word_t size) = 0;
     virtual void update() {};
     
-    virtual bool has_interrupt() { 
+    // This function is called by the CPU to check if the device has an interrupt.
+    virtual bool interrupt_pending() { 
         return false; 
     }
+    virtual void clear_interrupt() {}
 
-    virtual void connect_to_bus(Bus *bus) {};
+    virtual void connect_to_bus(Bus *bus) {}
             
     virtual word_t do_atomic(word_t addr, word_t data, int size, AMO amo, bool &valid) {
         valid = false;

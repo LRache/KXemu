@@ -3,11 +3,9 @@
 
 #include "device/mmio.h"
 
-#include <atomic>
 #include <cstdint>
 #include <ostream>
 #include <queue>
-#include <thread>
 #include <mutex>
 
 #define UART_LENGTH 8
@@ -19,7 +17,8 @@ public:
     word_t read(word_t offset, word_t size, bool &valid) override;
     bool  write(word_t offset, word_t data, word_t size) override;
     void update() override;
-    bool has_interrupt() override;
+    bool interrupt_pending() override;
+    void clear_interrupt() override;
     
     const char *get_type_name() const override;
 
@@ -42,12 +41,13 @@ private:
     int sendSocket = -1;
     int recvSocket = -1;
 
-    std::atomic<bool> uartSocketRunning;
-    std::thread *recvThread;
-    void recv_thread_loop();
+    // std::atomic<bool> uartSocketRunning;
+    // std::thread *recvThread;
+    // void recv_thread_loop();
 
     std::mutex queueMtx;
     std::queue<uint8_t> queue; // FIFO buffer
+    void recv_byte(uint8_t c);
     
     std::mutex senderMtx;
     void send_byte(uint8_t c);
@@ -98,7 +98,7 @@ private:
     // [5] R - Transmitter Holding Register Empty
     // [6] R - Transmitter Empty
     // [7] R - FIFO Data Error
-    uint8_t lsr;
+    uint8_t lsr = 0b00100000; // reset value
 
     // NOTE: The following registers are not implemented
     // Modem Status Register
@@ -107,6 +107,9 @@ private:
     // [2] R - Trailing Edge Ring Indicator
     // [3] R - Delta Data Carrier Detect
     uint8_t msr;
+
+    bool interrput;
+    unsigned int recvFIFOTriggerByteCount = 1;
 };
 
 } // namespace kxemu::device

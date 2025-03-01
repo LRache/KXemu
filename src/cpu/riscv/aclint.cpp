@@ -10,6 +10,10 @@
 using namespace kxemu::device;
 using kxemu::cpu::RVCore;
 
+#define INTER_MSWI (1 << 0)
+#define INTER_SSWI (1 << 1)
+#define INTER_MTI  (1 << 2)
+
 AClint::AClint() {
     this->coreCount = 0;
     this->cores = nullptr;
@@ -174,6 +178,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
         
+        value = value & 1;
         this->cores[coreID].msip = value;
         if (value) {
             this->cores[coreID].core->set_software_interrupt_m();

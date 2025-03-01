@@ -1,16 +1,82 @@
 #include "cpu/riscv/plic.h"
+#include "cpu/riscv/core.h"
+#include "cpu/riscv/namespace.h"
 #include "device/bus.h"
 #include "device/def.h"
+#include "device/mmio.h"
+
+#include <cstdint>
+
+#define PLIC_PRIORITY_BASE 0x000000
+#define PLIC_PRIORITY_SIZE 0x001000
+#define PLIC_PENDING_BASE  0x001000
+#define PLIC_PENDING_SIZE  0x000080
+#define PLIC_ENABLE_BASE   0x002000
+#define PLIC_ENABLE_SIZE   0x1f0000
+#define PLIC_CONTEXT_BASE  0x200000
+#define PLIC_CONTEXT_SIZE  0x100000
+
+#define IN_RANGE(addr, name) (addr) >= PLIC_##name##_BASE && (addr) < PLIC_##name##_BASE + PLIC_##name##_SIZE
 
 using namespace kxemu::device;
 
-void PLIC::reset() {
-
-}
+void PLIC::reset() {}
 
 word_t PLIC::read(word_t offset, word_t size, bool &valid) {
-    valid = false;
-    return 0;
+    if (size != 4) {
+        valid = false;
+        return 0;
+    }
+
+    valid = true;
+    if (IN_RANGE(offset, PRIORITY)) {
+        unsigned int source = offset / 4;
+        if (source < 32) {
+            return this->interruptSources[source].priority;
+        } else {
+            return 0;
+        }
+    } else if (IN_RANGE(offset, PENDING)) {
+        unsigned int t = (offset - PLIC_PENDING_BASE) / 4;
+        if (t < 4) {
+            uint32_t pending = 0;
+            for (unsigned int i = 0; i < 32; i++) {
+                if (this->interruptSources[t * 8 + i].pending) {
+                    pending |= 1 << i;
+                }
+            }
+            return pending;
+        } else {
+            return 0;
+        }
+    } else if (IN_RANGE(offset, ENABLE)) {
+        unsigned int contextID = (offset - PLIC_ENABLE_BASE) / 0x80;
+        if ((offset - PLIC_ENABLE_BASE) % 0x80 == 0) { // Only 32 interrupt sources
+            uint32_t enable = 0;
+            for (unsigned int i = 0; i < 32; i++) {
+                if (this->interruptSources[i].enable[contextID]) {
+                    enable |= 1 << i;
+                }
+            }
+            return enable;
+        } else {
+            return 0;
+        }
+    } else if (IN_RANGE(offset, CONTEXT)) {
+        unsigned int contextID = (offset - PLIC_CONTEXT_BASE) / 0x1000;
+        if (contextID >= 32) {
+            return 0;
+        }
+        if ((offset - PLIC_CONTEXT_BASE) % 0x1000 == 0) {
+            return this->targetContexts[contextID].threshold;
+        } else if ((offset - PLIC_CONTEXT_BASE) % 0x1000 == 4) {
+            return this->targetContexts[contextID].claim;
+        }
+        return 0;
+    } else {
+        valid = false;
+        return 0;
+    }
 }
 
 bool PLIC::write(word_t offset, word_t data, word_t size) {
@@ -21,11 +87,40 @@ void PLIC::connect_to_bus(Bus *bus) {
     this->bus = bus;
 }
 
-bool PLIC::scan_interrupt() {
-    for (auto &dev : this->bus->mmioMaps) {
-        if (dev->map->has_interrupt()) {
-            return true;
+void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
+    unsigned int contextID;
+    if (privMode == cpu::PrivMode::MACHINE) {
+        contextID = hartid * 2;
+    } else {
+        contextID = hartid * 2 + 1;
+    }
+    
+    TargetContext &target = this->targetContexts[contextID];
+    
+    uint32_t priority = target.threshold;
+    uint32_t claim = 0;
+    
+    for (auto &map : this->bus->mmioMaps) {
+        auto &dev = map->map;
+        if (dev->interrupt_pending()) {
+            auto &source = this->interruptSources[map->id];
+            
+            source.pending = true;
+            dev->clear_interrupt();
+            
+            if (source.enable[contextID] && source.priority > priority) {
+                priority = source.priority;
+                claim = map->id;
+            }
         }
     }
-    return false;
+
+    if (claim != 0) {
+        target.claim = claim;
+        if (privMode == cpu::PrivMode::MACHINE) {
+            target.core->set_external_interrupt_m();
+        } else {
+            target.core->set_external_interrupt_s();
+        }
+    }
 }

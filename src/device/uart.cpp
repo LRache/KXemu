@@ -62,6 +62,12 @@ word_t Uart16650::read(word_t offset, word_t size, bool &valid) {
                 lsr &= ~LSR_RX_READY;
             }
             queueMtx.unlock();
+            
+            // Clear Receiver Data Available Interrupt
+            if (ier & 0x01 && (iir & 0b00111111) == 0b10) {
+                iir = 0b11000000; // Clear Interrupt
+            }
+            
             return c;
         }
     } else if (offset == 1) {
@@ -116,6 +122,26 @@ bool Uart16650::write(word_t offset, word_t data, word_t size) {
             ier = data;
             return true;
         }
+    } else if (offset == 2) {
+        // FCR: FIFO Control Register
+        if (data & (1 << 1)) {
+            // Clear Receive FIFO
+            queueMtx.lock();
+            while (!queue.empty()) {
+                queue.pop();
+            }
+            lsr &= ~LSR_RX_READY;
+            queueMtx.unlock();
+        }
+
+        switch ((data & 0b11000000) >> 6) {
+            case 0b00: recvFIFOTriggerByteCount = 1; break;
+            case 0b01: recvFIFOTriggerByteCount = 4; break;
+            case 0b10: recvFIFOTriggerByteCount = 8; break;
+            case 0b11: recvFIFOTriggerByteCount = 14; break;
+        }
+
+        return true;
     } else if (offset == 3) {
         // LCR: Line Control Register
         lcr = data;
@@ -145,23 +171,25 @@ void Uart16650::update() {
     if (r == 0) {
         return;
     }
+
     char buffer[64];
     ssize_t n = ::read(recvSocket, buffer, sizeof(buffer));
     if (n <= 0) {
         WARN("Failed to receive data from socket.");
         return;
     }
-    queueMtx.lock();
-    for (int i = 0; i < n; i++) {
-        queue.push(buffer[i]);
-    }
-    lsr |= LSR_RX_READY;
-    queueMtx.unlock();
 
+    for (int i = 0; i < n; i++) {
+        recv_byte(buffer[i]);
+    }
 }
 
-bool Uart16650::has_interrupt() {
-    return false;
+bool Uart16650::interrupt_pending() {
+    return this->interrput;
+}
+
+void Uart16650::clear_interrupt() {
+    this->interrput = false;
 }
 
 bool Uart16650::putch(uint8_t data) {
@@ -202,6 +230,23 @@ bool Uart16650::open_socket(const std::string &ip, int port) {
     return true;
 }
 
+void Uart16650::recv_byte(uint8_t c) {
+    std::lock_guard<std::mutex> lock(queueMtx);
+    if (queue.size() >= BUFFER_SIZE) {
+        WARN("uart buffer is full, drop data.");
+        return;
+    }
+    queue.push(c);
+    lsr |= LSR_RX_READY;
+
+    if (queue.size() >= this->recvFIFOTriggerByteCount) {
+        if (ier & 0x01) {
+            iir = 0b10 | 0b11000000; // Interrupt Pending
+            this->interrput = true;
+        }
+    }
+}
+
 void Uart16650::send_byte(uint8_t c) {
     std::lock_guard<std::mutex> lock(senderMtx);
     if (mode == Mode::STREAM) {
@@ -225,53 +270,53 @@ const char *Uart16650::get_type_name() const {
     return "uart16650";
 }
 
-void Uart16650::recv_thread_loop() {
-    struct timeval timeout;
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 0;
+// void Uart16650::recv_thread_loop() {
+//     struct timeval timeout;
+//     timeout.tv_sec = 1;
+//     timeout.tv_usec = 0;
 
-    fd_set read_fds;
+//     fd_set read_fds;
     
-    uint8_t buffer[64];
-    while (uartSocketRunning) {
-        FD_ZERO(&read_fds);
-        FD_SET(recvSocket, &read_fds);
+//     uint8_t buffer[64];
+//     while (uartSocketRunning) {
+//         FD_ZERO(&read_fds);
+//         FD_SET(recvSocket, &read_fds);
 
-        int r = select(recvSocket + 1, &read_fds, NULL, NULL, &timeout);
+//         int r = select(recvSocket + 1, &read_fds, NULL, NULL, &timeout);
 
-        if (r == -1) {
-            WARN("Failed to select socket.");
-            break;
-        }
-        if (r == 0) {
-            continue;
-        }
+//         if (r == -1) {
+//             WARN("Failed to select socket.");
+//             break;
+//         }
+//         if (r == 0) {
+//             continue;
+//         }
 
-        ssize_t n = ::read(recvSocket, buffer, sizeof(buffer));
-        if (n <= 0) {
-            WARN("Failed to receive data from socket.");
-            break;
-        }
+//         ssize_t n = ::read(recvSocket, buffer, sizeof(buffer));
+//         if (n <= 0) {
+//             WARN("Failed to receive data from socket.");
+//             break;
+//         }
 
-        queueMtx.lock();
-        for (int i = 0; i < n; i++) {
-            queue.push(buffer[i]);
-        }
-        lsr |= LSR_RX_READY;
-        queueMtx.unlock();
-    }
-    // close socket
-    close(recvSocket);
-    close(sendSocket);
-    mode = Mode::NONE;
-}
+//         queueMtx.lock();
+//         for (int i = 0; i < n; i++) {
+//             queue.push(buffer[i]);
+//         }
+//         lsr |= LSR_RX_READY;
+//         queueMtx.unlock();
+//     }
+//     // close socket
+//     close(recvSocket);
+//     close(sendSocket);
+//     mode = Mode::NONE;
+// }
 
 Uart16650::~Uart16650() {
-    uartSocketRunning = false;
-    if (recvThread != nullptr) {
-        recvThread->join();
-        delete recvThread;
-    }
+    // uartSocketRunning = false;
+    // if (recvThread != nullptr) {
+    //     recvThread->join();
+    //     delete recvThread;
+    // }
     close(recvSocket);
     close(sendSocket);
 }
