@@ -2,7 +2,6 @@
 #include "cpu/word.h"
 
 #include "./local-decoder.h"
-#include "log.h"
 
 #ifdef KXEMU_ISA64
     #define SHAMT_MASK 0x3f

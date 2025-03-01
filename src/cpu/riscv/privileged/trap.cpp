@@ -9,7 +9,6 @@ using namespace kxemu::cpu;
 // up to x, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode y
 // into privilege mode x, xPIE is set to the value of xIE; xIE is set to 0; and xPP is set to y.
 void RVCore::trap(word_t code, word_t value) {
-    this->trapFlag = true;
     bool deleg;
 #ifdef KXEMU_ISA64
     deleg = *this->medeleg & (1 << code);
