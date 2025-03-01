@@ -7,6 +7,18 @@
 
 using namespace kxemu::cpu;
 
+void RVCore::set_priv_mode(int mode) {
+    // Change the virtual address translation function when entering or exiting machine mode
+    if (this->privMode != PrivMode::MACHINE && mode == PrivMode::MACHINE) {
+        if (this->vaddr_translate_func != &RVCore::vaddr_translate_bare) {
+            this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
+            this->icache_fence();
+        }
+    }
+
+    this->privMode = mode;
+}
+
 void RVCore::do_ecall(const DecodeInfo &) {
     word_t code;
     switch (this->privMode) {
@@ -27,7 +39,8 @@ void RVCore::do_mret(const DecodeInfo &) {
     
     // change to previous privilege mode
     word_t mpp = ((mstatus) >> STATUS_MPP_OFF) & 0x3;
-    this->privMode = mpp;
+    // this->privMode = mpp;
+    this->set_priv_mode(mpp);
     
     // set mstatus.MIE to mstatus.MPIE
     word_t mpie = (mstatus >> STATUS_MPIE_OFF) & 0x1;
@@ -49,7 +62,8 @@ void RVCore::do_sret(const DecodeInfo &) {
 
     // change to previous privilege mode
     word_t spp = (mstatus >> STATUS_SPP_OFF) & 0x1;
-    this->privMode = spp ? PrivMode::SUPERVISOR : PrivMode::USER;
+    // this->privMode = spp ? PrivMode::SUPERVISOR : PrivMode::USER;
+    this->set_priv_mode(spp ? PrivMode::SUPERVISOR : PrivMode::USER);
 
     // set mstatus.SIE to mstatus.SPIE
     word_t spie = (mstatus >> STATUS_SPIE_OFF) & 0x1;
@@ -82,18 +96,4 @@ void RVCore::do_wfi(const DecodeInfo &) {
     while (!this->scan_interrupt()) {
         this->bus->update();
     }
-}
-
-void RVCore::do_sfence_vma(const DecodeInfo &) {
-    if (this->privMode == PrivMode::USER) {
-        do_invalid_inst();
-        return;
-    } 
-}
-
-void RVCore::do_fence(const DecodeInfo &) {
-    if (this->privMode == PrivMode::USER) {
-        do_invalid_inst();
-        return;
-    } 
 }

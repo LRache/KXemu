@@ -1,7 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
-#include "cpu/riscv/cache-def.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/cache-def.h"
 #include "cpu/word.h"
 #include "debug.h"
 #include "device/bus.h"
@@ -25,13 +25,13 @@ RVCore::RVCore() {
     this->medelegh= this->csr.get_csr_ptr_readonly(CSR_MEDELEGH);
 #endif
 
-    this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
-
     #ifdef CONFIG_DCache
     INFO("dcache off mask = " FMT_WORD, DCACHE_OFF_MASK);
     INFO("dcache set mask = " FMT_WORD, DCACHE_SET_MASK);
     INFO("dcache tag mask = " FMT_WORD, DCACHE_TAG_MASK);
     #endif
+
+    this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
 }
 
 void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, TaskTimer *timer) {

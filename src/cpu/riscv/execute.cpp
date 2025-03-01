@@ -1,52 +1,22 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
-#include "cpu/riscv/cache-def.h"
 #include "cpu/word.h"
 #include "macro.h"
-#include "debug.h"
 #include "log.h"
-#include "word.h"
 
-#include <cstddef>
-#include <iostream>
 #include <cstdint>
 #include <cstring>
 
 using namespace kxemu::cpu;
 
-RVCore::do_inst_t RVCore::__decode_inst() {
+RVCore::do_inst_t RVCore::decode_and_exec() {
     uint32_t inst = this->inst;
     #include "./autogen/base-decoder.h"
 }
 
-RVCore::do_inst_t RVCore::__decode_inst_c() {
+RVCore::do_inst_t RVCore::decode_and_exec_c() {
     uint32_t inst = this->inst & 0xffff;
     #include "./autogen/compressed-decoder.h"
-}
-
-bool RVCore::decode_and_exec() {
-    do_inst_t do_inst = this->__decode_inst();
-    if (likely(do_inst != nullptr)) {
-        #ifdef CONFIG_ICache
-        this->icache_push(do_inst, 4);
-        #endif
-        return true;
-    } else {
-        return false;
-    } 
-}
-
-bool RVCore::decode_and_exec_c() {
-    NOT_IMPLEMENTED();
-    do_inst_t do_inst = this->__decode_inst_c();
-    if (likely(do_inst != nullptr)) {
-        #ifdef CONFIG_ICache
-        this->icache_push(do_inst, 2);
-        #endif
-        return true;
-    } else {
-        return false;
-    }
 }
 
 void RVCore::step() {
@@ -111,33 +81,6 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     }
 }
 
-#ifdef CONFIG_ICache
-
-void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen) {
-    word_t set = ICACHE_SET(this->pc);
-    this->icache[set].valid = true;
-    this->icache[set].tag = ICACHE_TAG(this->pc);
-    this->icache[set].do_inst = do_inst;
-    this->icache[set].instLen = instLen;
-    this->icache[set].decodeInfo = this->gDecodeInfo;
-}
-
-bool RVCore::icache_decode_and_exec() {
-    word_t set = ICACHE_SET(pc);
-    const ICacheBlock &block = this->icache[set];
-    if (block.tag == ICACHE_TAG(pc) && block.valid) {
-        this->npc = this->pc + block.instLen;
-
-        (this->*block.do_inst)(block.decodeInfo);
-        
-        return true;
-    } else {
-        return false;
-    }
-}
-
-#endif
-
 void RVCore::execute() {
     if (unlikely(this->pc & 0x1)) {
         // Instruction address misaligned
@@ -164,17 +107,24 @@ void RVCore::execute() {
     this->gDecodeInfo.imm_set = false;
     #endif
 
-    bool valid = false;
+    unsigned int instLen;
+    do_inst_t do_inst;
     if (likely((this->inst & 0x3) == 0x3)) {
         this->npc = this->pc + 4;
-        valid = this->decode_and_exec();
+        instLen = 4;
+        do_inst = this->decode_and_exec();
     } 
-    // else {
-    //     this->npc = this->pc + 2;
-    //     valid = this->decode_and_exec_c();
-    // }
-
-    if (unlikely(!valid)) {
+    else {
+        this->npc = this->pc + 2;
+        instLen = 2;
+        do_inst = this->decode_and_exec_c();
+    }
+    
+    if (unlikely(do_inst == nullptr)) {
         this->do_invalid_inst();
+    } else {
+        #ifdef CONFIG_ICache
+        this->icache_push(do_inst, instLen);
+        #endif
     }
 }

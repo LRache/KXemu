@@ -2,42 +2,44 @@
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
 #include "cpu/riscv/cache-def.h"
+#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
-#include "debug.h"
 #include "word.h"
 #include "log.h"
 #include "macro.h"
-#include <cstdarg>
-#include <cstdint>
+
 #include <cstring>
 
 using namespace kxemu::cpu;
 
 word_t RVCore::vaddr_translate(word_t addr, MemType type, VMResult &result) {
-    result = VM_OK;
     if (likely(this->privMode == PrivMode::MACHINE)) {
+        result = VM_OK;
         return addr;
+    } else {
+        return (this->*vaddr_translate_func)(addr, type, result);
     }
-#ifdef KXEMU_ISA32
-    if (SATP_MODE(*this->satp) == SATP_MODE_SV32) {
-        addr = this->vaddr_translate_sv32(addr, type, result);
-    }
-#else
-    switch (SATP_MODE(*this->satp)) {
-        case SATP_MODE_BARE: break;
-        case SATP_MODE_SV39:
-            addr = this->vaddr_translate_sv39(addr, type, result);
-            break;
-        case SATP_MODE_SV48:
-            addr = this->vaddr_translate_sv48(addr, type, result);
-            break;
-        case SATP_MODE_SV57:
-            addr = this->vaddr_translate_sv57(addr, type, result);
-            break;
-        default: PANIC("Invalid SATP mode"); break;
-    }
-#endif
-    return addr;
+    
+// #ifdef KXEMU_ISA32
+//     if (SATP_MODE(*this->satp) == SATP_MODE_SV32) {
+//         addr = this->vaddr_translate_sv32(addr, type, result);
+//     }
+// #else
+//     switch (SATP_MODE(*this->satp)) {
+//         case SATP_MODE_BARE: break;
+//         case SATP_MODE_SV39:
+//             addr = this->vaddr_translate_sv39(addr, type, result);
+//             break;
+//         case SATP_MODE_SV48:
+//             addr = this->vaddr_translate_sv48(addr, type, result);
+//             break;
+//         case SATP_MODE_SV57:
+//             addr = this->vaddr_translate_sv57(addr, type, result);
+//             break;
+//         default: PANIC("Invalid SATP mode"); break;
+//     }
+// #endif
+//     return addr;
 }
 
 word_t RVCore::vaddr_translate(word_t addr, bool &valid) {
@@ -50,6 +52,11 @@ word_t RVCore::vaddr_translate(word_t addr, bool &valid) {
     paddr = this->vaddr_translate(addr, MemType::FETCH, result);
     valid = result == VM_OK;
     return paddr;
+}
+
+word_t RVCore::vaddr_translate_bare(word_t addr, MemType type, VMResult &result) {
+    result = VM_OK;
+    return addr;
 }
 
 template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
@@ -65,7 +72,8 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
     // Whether the page which has the U bit set in the PTE is accessible by the current privilege mode
     bool uPageAccessible = this->privMode == USER || STATUS_SUM(*this->mstatus);
 
-    word_t base = SATP_PPN(*this->satp) * PGSIZE;
+    // word_t base = SATP_PPN(*this->satp) * PGSIZE;
+    word_t base = this->satpPPN * PGSIZE;
     for (int i = LEVELS - 1; i >= 0; i--) {
         word_t addr = base + vpn[i] * PTESIZE;
         
@@ -205,29 +213,6 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 
 #endif
 
-// word_t RVCore::vm_fetch_translate(word_t addr, bool &success) {
-//     success = false;
-    
-//     VMResult result;
-//     addr = this->vaddr_translate(addr, MemType::FETCH, result);
-//     switch (result) {
-//         case VM_OK: break;
-//         case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT); return -1;
-//         case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT);   return -1;
-//     }
-    
-//     if (unlikely(this->privMode != PrivMode::MACHINE)) {    
-//         if (unlikely(!this->csr.pmp_check_x(addr, 4))) {
-//             HINT("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
-//             this->trap(TRAP_LOAD_ACCESS_FAULT);
-//             return -1;
-//         }
-//     }
-
-//     success = true;
-//     return addr;
-// }
-
 bool RVCore::memory_fetch() {
     word_t addr = this->pc;
     VMResult result;
@@ -290,7 +275,6 @@ RVCore::DCacheBlock *RVCore::dcache_hit(word_t addr, int len) {
     block->valid = true;
     block->dirty = false;
     block->raw = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
-    // block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
     std::memcpy(block->data, block->raw, DCACHE_BLOCK_SIZE);
 
     return block;
@@ -300,37 +284,6 @@ bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
     if (unlikely(DCACHE_SET(addr) != DCACHE_SET(addr + len))) {
         return false;
     }
-    
-    // word_t tag = DCACHE_TAG(addr);
-    // word_t set = DCACHE_SET(addr);
-    // DCacheBlock &block = this->dcache[set];
-    // bool hit = block.tag == tag && block.valid;
-    // if (block.tag != tag) {
-    //     if (block.valid && block.dirty) {
-    //         std::memcpy(block.raw, block.data, sizeof(block.data));
-    //         INFO("WriteBack " FMT_WORD, block.addr);
-    //     } 
-        
-    //     auto mem = this->bus->match_memory(addr, len);
-        
-    //     if (mem == nullptr) {
-    //         return false;
-    //     }
-    //     if (mem->end - addr < DCACHE_BLOCK_SIZE) {
-    //         return false;
-    //     }
-
-    //     block.tag = tag;
-    //     block.valid = true;
-    //     block.raw = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
-    //     block.dirty = false;
-    //     // block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
-    //     std::memcpy(block.data, block.raw, sizeof(block.data));
-    // } 
-
-    // if (hit) {
-    //     INFO("DCache hit, addr=" FMT_WORD ", pc=" FMT_WORD, addr, this->pc);
-    // }
     
     DCacheBlock *block = this->dcache_hit(addr, len);
     if (block == nullptr) {
@@ -350,39 +303,6 @@ bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
 }
 
 bool RVCore::dcache_store(word_t addr, word_t data, int len) {
-    // if (unlikely(DCACHE_SET(addr) != DCACHE_SET(addr + len))) {
-    //     return false;
-    // }
-    
-    // word_t tag = DCACHE_TAG(addr);
-    // word_t set = DCACHE_SET(addr);
-    // DCacheBlock &block = this->dcache[set];
-    // bool hit = block.tag == tag && block.valid;
-    // if (block.tag != tag) {
-    //     if (block.valid && block.dirty) {
-    //         std::memcpy(block.raw, block.data, sizeof(block.data));
-    //         INFO("WriteBack " FMT_WORD, block.addr);
-    //     } 
-
-    //     auto mem = this->bus->match_memory(addr, len);
-        
-    //     if (mem == nullptr) {
-    //         return false;
-    //     }
-    //     if (mem->end - addr < DCACHE_BLOCK_SIZE) {
-    //         return false;
-    //     }
-
-    //     block.tag = tag;
-    //     block.valid = true;
-    //     block.raw = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
-    //     // block.data = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
-    //     std::memcpy(block.data, block.raw, sizeof(block.data));
-    //     #ifdef CONFIG_DEBUG
-    //     block.addr = addr & ~DCACHE_OFF_MASK;
-    //     #endif
-    // } 
-
     DCacheBlock *block = this->dcache_hit(addr, len);
     if (block == nullptr) {
         return false;
@@ -397,10 +317,6 @@ bool RVCore::dcache_store(word_t addr, word_t data, int len) {
         default: PANIC("Invalid length");
     }
     block->dirty = true;
-
-    // if (hit) {
-    //     INFO("DCache hit, addr=" FMT_WORD ", pc=" FMT_WORD, addr, this->pc);
-    // }
 
     return true;
 }
@@ -471,18 +387,28 @@ bool RVCore::memory_store(word_t addr, word_t data, int len) {
     #endif
 
     return this->bus->write(addr, data, len);
-    
-    // bool valid = this->bus->write(addr, data, len);
-    // if (valid) {
-    //     return true;
-    // }
+}
 
-    // // ACLINT memory mapped register
-    // if (unlikely(addr - ACLINT_BASE <= ACLINT_SIZE)) {
-    //     return this->aclint->write(addr - ACLINT_BASE, data, len);
-    // }
+void RVCore::update_satp() {
+    word_t satp = this->csr.read_csr(CSR_SATP);
+    this->satpPPN = SATP_PPN(satp);
+    #ifdef KXEMU_ISA32
+    if (SATP_MODE(satp) == SATP_MODE_SV32) {
+        this->vaddr_translate_func = &RVCore::vaddr_translate_sv32;
+    } else {
+        this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
+    }
+    #else
+    switch (SATP_MODE(satp)) {
+        case SATP_MODE_BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
+        case SATP_MODE_SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
+        case SATP_MODE_SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
+        case SATP_MODE_SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
+        default: PANIC("Invalid SATP mode"); break;
+    }
+    #endif
 
-    // return false;
+    this->icache_fence();
 }
 
 bool RVCore::check_pmp(word_t addr, int len, MemType type) {

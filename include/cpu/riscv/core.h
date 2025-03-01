@@ -48,6 +48,8 @@ private:
         VM_ACCESS_FAULT,
     };
     word_t vaddr_translate(word_t addr, MemType type, VMResult &result);
+    
+    word_t vaddr_translate_bare(word_t addr, MemType type, VMResult &result);
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
     word_t vaddr_translate_sv(word_t addr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
     #ifdef KXEMU_ISA32
@@ -57,7 +59,11 @@ private:
     word_t vaddr_translate_sv48(word_t addr, MemType type, VMResult &result);
     word_t vaddr_translate_sv57(word_t addr, MemType type, VMResult &result);
     #endif
+    
+    word_t satpPPN;
+    word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
     void update_satp();
+    void update_vm_addr_space();
 
     // Physical memory protection
     bool check_pmp(word_t addr, int len, MemType type);
@@ -83,41 +89,10 @@ private:
     DecodeInfo gDecodeInfo;
     
     typedef void (RVCore::*do_inst_t)(const DecodeInfo &decodeInfo);
-    do_inst_t __decode_inst  ();
-    do_inst_t __decode_inst_c();
-    bool decode_and_exec  ();
-    bool decode_and_exec_c(); // for compressed instructions
+    do_inst_t decode_and_exec  ();
+    do_inst_t decode_and_exec_c(); // for compressed instructions
 
-    void decode_r();
-    void decode_i();
-    void decode_shifti();
-    void decode_s();
-    void decode_b();
-    void decode_j();
-    void decode_u();
-    void decode_csrr();
-    void decode_csri();
-    void decode_c_lwsp();
-    void decode_c_swsp();
-    void decode_c_lwsw();
-    void decode_c_j();
-    void decode_c_b();
-    void decode_c_li();
-    void decode_c_lui();
-    void decode_c_addi();
-    void decode_c_addi16sp();
-    void decode_c_addi4spn();
-    void decode_c_slli();
-    void decode_c_i();
-    void decode_c_shifti();
-    void decode_c_mvadd();
-    void decode_c_r();
-#ifdef KXEMU_ISA64
-    void decode_c_ldsp();
-    void decode_c_sdsp();
-    void decode_c_ldsd();
-#endif
-    void decode_n();
+    #include "./local-include/decode-list.h"
 
     // running
     uint32_t inst;
@@ -126,11 +101,10 @@ private:
     void execute();
 
     // Trap
-    bool trapFlag;
     void trap(word_t code, word_t value = 0);
     
     // Interrupt
-    void set_interrupt(word_t code);
+    void   set_interrupt(word_t code);
     void clear_interrupt(word_t code);
     bool scan_interrupt();
     void interrupt_m(word_t code);
@@ -162,7 +136,7 @@ private:
     const word_t *medelegh;
     const word_t *mideleg;
 
-    const word_t *satp;
+    void set_priv_mode(int mode);
 
     uint64_t get_uptime();
     void update_stimecmp();
@@ -188,6 +162,7 @@ private:
     ICacheBlock icache[1 << ICACHE_SET_BITS];
     void icache_push(do_inst_t do_inst, unsigned int instLen);
     bool icache_decode_and_exec();
+    void icache_fence();
     #endif
 
     // Experimental DCache
@@ -239,18 +214,18 @@ public:
 
     word_t vaddr_translate(word_t vaddr, bool &valid) override;
     
-    void set_timer_interrupt_m();
-    void set_timer_interrupt_s();
+    void   set_timer_interrupt_m();
+    void   set_timer_interrupt_s();
     void clear_timer_interrupt_m();
     void clear_timer_interrupt_s();
 
-    void set_software_interrupt_m();
-    void set_software_interrupt_s();
+    void   set_software_interrupt_m();
+    void   set_software_interrupt_s();
     void clear_software_interrupt_m();
     void clear_software_interrupt_s();
     
-    void set_external_interrupt_m();
-    void set_external_interrupt_s();
+    void   set_external_interrupt_m();
+    void   set_external_interrupt_s();
     void clear_external_interrupt_m();
     void clear_external_interrupt_s();
 };

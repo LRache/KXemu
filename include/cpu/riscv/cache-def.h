@@ -1,6 +1,8 @@
 #ifndef __KXEMU_CPU_RISCV_ICACHE_DEF_H__
 #define __KXEMU_CPU_RISCV_ICACHE_DEF_H__
 
+#include "word.h"
+
 // #define ICACHE_SET_BITS 11
 #define ICACHE_TAG_BITS (WORD_BITS - ICACHE_SET_BITS - 1)
 #define ICACHE_SET_MASK ((word_t)((1ULL << ICACHE_SET_BITS) - 1) << 1)
