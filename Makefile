@@ -28,7 +28,14 @@ INCFLAGS = $(addprefix -I,$(INCPATH))
 
 LIBFLAGS = $(addprefix -l,$(LIBS))
 
-CXXFLAGS += -Wall -Wextra -Werror -pedantic -Ofast -O3 -std=c++17
+ifeq ($(CONFIG_DEBUG), y)
+	CXXFLAGS += -g -O0 -fsanitize=address
+	LDFLAGS  += -fsanitize=address
+else
+	CXXFLAGS += -Ofast -O3
+endif
+
+CXXFLAGS += -Wall -Wextra -Werror -pedantic -std=c++17
 CXXFLAGS += -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field
 CXXFLAGS += $(INCFLAGS)
 
