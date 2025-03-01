@@ -75,7 +75,7 @@ bool Bus::add_mmio_map(const std::string &name, word_t start, word_t length, MMI
 
 void Bus::free_all() {
     for (auto &m : memoryMaps) {
-        delete m->data;
+        ::operator delete[](m->data, std::align_val_t(8));    
         delete m;
     }
     memoryMaps.clear();
@@ -133,9 +133,11 @@ bool Bus::write(word_t addr, word_t data, word_t length) {
 }
 
 void Bus::update() {
+    this->updateLock.lock();
     for (auto &m : mmioMaps) {
         m->map->update();
     }
+    this->updateLock.unlock();
 }
 
 #define AMO_FUNC(name, op) \
