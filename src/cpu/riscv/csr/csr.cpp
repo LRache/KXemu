@@ -4,8 +4,6 @@
 #include "debug.h"
 #include "macro.h"
 #include "config/config.h"
-#include "word.h"
-#include <functional>
 
 #define MVENDORID 0x584b5343 // "CSKX" in little-endian
 #define MARCHID   0x00CAFFEE // Our architecture ID
@@ -264,7 +262,9 @@ bool RVCSR::write_csr(unsigned int addr, word_t value) {
     }
     if (valid) {
         iter->second.value = value;
-        iter->second.writeCallback();
+        if (iter->second.writeCallback != nullptr) {
+            iter->second.writeCallback();
+        }
     }
     return valid;
 }
