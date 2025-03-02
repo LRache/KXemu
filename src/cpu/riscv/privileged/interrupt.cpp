@@ -12,6 +12,7 @@ void RVCore::update_stimecmp() {
     stimecmp |= (uint64_t)this->csr.read_csr(CSR_STIMECMPH) << 32;
 #endif
     this->aclint->register_stimer(this->coreID, stimecmp);
+    this->clear_timer_interrupt_s();
 }
 
 void RVCore::set_interrupt(word_t code) {

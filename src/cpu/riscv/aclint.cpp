@@ -295,8 +295,6 @@ void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {
         this->taskTimer.remove_task(coreObj.stimerID);
     }
 
-    coreObj.core->clear_timer_interrupt_s();
-
     uint64_t uptimecmp = MTIME_TO_UPTIME(stimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
