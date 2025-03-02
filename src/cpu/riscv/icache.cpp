@@ -1,5 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/cache-def.h"
+#include "debug.h"
 
 using namespace kxemu::cpu;
 
@@ -33,5 +34,16 @@ void RVCore::icache_fence() {
         this->icache[i].valid = false;
     }
 }
+
+#else
+
+void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen) {}
+
+bool RVCore::icache_decode_and_exec() {
+    NOT_IMPLEMENTED();
+    return false;
+}
+
+void RVCore::icache_fence() {}
 
 #endif

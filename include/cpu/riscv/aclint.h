@@ -34,13 +34,13 @@ public:
 
         unsigned int pendingInterrupts;
     };
-    CoreObject *cores;
+    CoreObject *coreObjects;
     uint64_t mtime;
 
     AClint();
     ~AClint();
 
-    void init(cpu::RVCore *cores[], unsigned int coreCount);
+    void init(cpu::RVCore *cores, unsigned int coreCount);
     void reset() override;
 
     word_t read(word_t addr, word_t size, bool &success) override;

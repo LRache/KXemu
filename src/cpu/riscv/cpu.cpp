@@ -19,7 +19,7 @@ void RVCPU::init(Bus *bus, int flags, unsigned int coreCount) {
     for (unsigned int i = 0; i < coreCount; i++) {
         this->cores[i].init(i, bus, flags, &aclint, &taskTimer);
     }
-    this->aclint.init(&this->cores, coreCount);
+    this->aclint.init(this->cores, coreCount);
     bus->add_mmio_map("aclint", ACLINT_BASE, ACLINT_SIZE, &aclint);
     this->coreCount = coreCount;
 }

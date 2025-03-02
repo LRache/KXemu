@@ -109,7 +109,7 @@ void RVCore::execute() {
     this->gDecodeInfo.csr_set = false;
     this->gDecodeInfo.imm_set = false;
     #endif
-
+    
     unsigned int instLen;
     do_inst_t do_inst;
     if (likely((this->inst & 0x3) == 0x3)) {
@@ -126,8 +126,6 @@ void RVCore::execute() {
     if (unlikely(do_inst == nullptr)) {
         this->do_invalid_inst();
     } else {
-        #ifdef CONFIG_ICache
         this->icache_push(do_inst, instLen);
-        #endif
     }
 }

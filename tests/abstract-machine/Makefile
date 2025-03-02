@@ -56,6 +56,11 @@ else
 	$(error "Unknown platform $(PLATFORM)")
 endif
 
+ifneq ($(CORES),)
+	KXEMU_FLAGS += --cores $(CORES)
+	QEMU_FLAGS  += -smp $(CORES)
+endif
+
 CFLAGS += -D__PLATFORM__=$(PLATFORM)
 ASFLAGS += -D__PLATFORM__=$(PLATFORM)
 
@@ -114,6 +119,10 @@ run: $(ELF)
 debug: $(ELF)
 	$(info + DEBUGGING KXEMU)
 	@ $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/debug.kdb
+
+gdb: $(ELF)
+	$(info + DEBUGGING GDB)
+	@ gdb $(KXEMU) -ex "set args $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/run.kdb" 
 
 qemu: $(ELF)
 	$(info + RUNNING QEMU)

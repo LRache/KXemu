@@ -160,10 +160,11 @@ private:
         unsigned int instLen;
     };
     ICacheBlock icache[1 << ICACHE_SET_BITS];
+    #endif
     void icache_push(do_inst_t do_inst, unsigned int instLen);
     bool icache_decode_and_exec();
     void icache_fence();
-    #endif
+    
 
     // Experimental DCache
     #ifdef CONFIG_DCache

@@ -4,6 +4,7 @@
 #include "utils/utils.h"
 #include "log.h"
 #include "debug.h"
+#include <cstddef>
 
 #define IN_RANGE(addr, name) (addr >= name##_BASE && addr < name##_BASE + name##_SIZE)
 
@@ -16,31 +17,31 @@ using kxemu::cpu::RVCore;
 
 AClint::AClint() {
     this->coreCount = 0;
-    this->cores = nullptr;
+    this->coreObjects = nullptr;
 }
 
 AClint::~AClint() {
-    delete[] this->cores;
+    delete[] this->coreObjects;
 }
 
-void AClint::init(RVCore *cores[], unsigned int coreCount) {
-    SELF_PROTECT(this->cores == nullptr, "CLINT is already initialized.");
+void AClint::init(RVCore *cores, unsigned int coreCount) {
+    SELF_PROTECT(this->coreObjects == nullptr, "CLINT is already initialized.");
     this->coreCount = coreCount;
-    this->cores = new CoreObject[coreCount];
+    this->coreObjects = new CoreObject[coreCount];
     for (unsigned int i = 0; i < coreCount; i++) {
-        this->cores[i].core = cores[i];
-        this->cores[i].mtimecmp = -1;
-        this->cores[i].mtimerID = -1;
-        this->cores[i].stimerID = -1;
+        this->coreObjects[i].core = &cores[i];
+        this->coreObjects[i].mtimecmp = -1;
+        this->coreObjects[i].mtimerID = -1;
+        this->coreObjects[i].stimerID = -1;
     }
 }
 
 void AClint::reset() {
     for (unsigned int i = 0; i < this->coreCount; i++) {
-        this->cores[i].mtimecmp = -1;
-        if (this->cores[i].mtimerID != (unsigned int)-1) {
-            this->taskTimer.remove_task(this->cores[i].mtimerID);
-            this->cores[i].mtimerID = -1;
+        this->coreObjects[i].mtimecmp = -1;
+        if (this->coreObjects[i].mtimerID != (unsigned int)-1) {
+            this->taskTimer.remove_task(this->coreObjects[i].mtimerID);
+            this->coreObjects[i].mtimerID = -1;
         }
     }
     this->timerRunning = false;
@@ -65,7 +66,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         }
         
         valid = true; 
-        return this->cores[coreID].msip;
+        return this->coreObjects[coreID].msip;
     
     } else if (IN_RANGE(addr, SSWI)) {
         // SSWI only supports 32-bit reads
@@ -85,7 +86,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         }
         
         valid = true;
-        return this->cores[coreID].ssip;
+        return this->coreObjects[coreID].ssip;
     
     } else if (IN_RANGE(addr, MTIMECMP)) {
         // MTIMECMP only supports aligned reads
@@ -106,7 +107,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         }
         
         valid = true;
-        return this->cores[coreID].mtimecmp;
+        return this->coreObjects[coreID].mtimecmp;
         #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %lu for MTIMECMP", size);
@@ -179,11 +180,11 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
         }
         
         value = value & 1;
-        this->cores[coreID].msip = value;
+        this->coreObjects[coreID].msip = value;
         if (value) {
-            this->cores[coreID].core->set_software_interrupt_m();
+            this->coreObjects[coreID].core->set_software_interrupt_m();
         } else {
-            this->cores[coreID].core->clear_software_interrupt_m();
+            this->coreObjects[coreID].core->clear_software_interrupt_m();
         }
 
     } else if (IN_RANGE(addr, SSWI)) {
@@ -207,11 +208,11 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
         
-        this->cores[coreID].ssip = value;
+        this->coreObjects[coreID].ssip = value;
         if (value) {
-            this->cores[coreID].core->set_software_interrupt_s();
+            this->coreObjects[coreID].core->set_software_interrupt_s();
         } else {
-            this->cores[coreID].core->clear_software_interrupt_s();
+            this->coreObjects[coreID].core->clear_software_interrupt_s();
         }
     
     } else if (IN_RANGE(addr, MTIMECMP)) {
@@ -230,7 +231,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
         
-        this->cores[coreID].mtimecmp = value;
+        this->coreObjects[coreID].mtimecmp = value;
         this->update_core_mtimecmp(coreID);
     #else
         if (size != 4 || (addr & 0x3) != 0) {
@@ -239,11 +240,11 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
         }
         word_t offset = addr & 0b100;
         if (offset == 0) {
-            this->cores[coreID].mtimecmp &= ~0xffffffffUL;
-            this->cores[coreID].mtimecmp |= value;
+            this->coreObjects[coreID].mtimecmp &= ~0xffffffffUL;
+            this->coreObjects[coreID].mtimecmp |= value;
         } else {
-            this->cores[coreID].mtimecmp &= 0xffffffffUL;
-            this->cores[coreID].mtimecmp |= (uint64_t)value << 32;
+            this->coreObjects[coreID].mtimecmp &= 0xffffffffUL;
+            this->coreObjects[coreID].mtimecmp |= (uint64_t)value << 32;
             this->update_core_mtimecmp(coreID);
         }
         #endif
@@ -289,18 +290,18 @@ void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {
         return ;
     }
 
-    const CoreObject &coreObj = this->cores[coreID];
+    CoreObject *coreObj = &this->coreObjects[coreID];
     
-    if (coreObj.stimerID != (unsigned int)-1) {
-        this->taskTimer.remove_task(coreObj.stimerID);
+    if (coreObj->stimerID != (unsigned int)-1) {
+        this->taskTimer.remove_task(coreObj->stimerID);
     }
 
     uint64_t uptimecmp = MTIME_TO_UPTIME(stimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
-    this->cores[coreID].stimerID = this->taskTimer.add_task(delay, [this, coreID]() {
-        this->cores[coreID].core->set_timer_interrupt_s();
-        this->cores[coreID].stimerID = -1;
+    this->coreObjects[coreID].stimerID = this->taskTimer.add_task(delay, [coreObj]() {
+        coreObj->core->set_timer_interrupt_s();
+        coreObj->stimerID = -1;
     });
 }
 
@@ -310,7 +311,7 @@ void AClint::update_core_mtimecmp(unsigned int coreID) {
         return ;
     }
 
-    const CoreObject &coreObj = this->cores[coreID];
+    const CoreObject &coreObj = this->coreObjects[coreID];
 
     if (coreObj.mtimerID != (unsigned int)-1) {
         this->taskTimer.remove_task(coreObj.mtimerID);
@@ -322,9 +323,9 @@ void AClint::update_core_mtimecmp(unsigned int coreID) {
     uint64_t uptimecmp = MTIME_TO_UPTIME(mtimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
-    this->cores[coreID].mtimerID = this->taskTimer.add_task(delay, [this, coreID]() {
-        this->cores[coreID].core->set_timer_interrupt_m();
-        this->cores[coreID].mtimerID = -1;
+    this->coreObjects[coreID].mtimerID = this->taskTimer.add_task(delay, [this, coreID]() {
+        this->coreObjects[coreID].core->set_timer_interrupt_m();
+        this->coreObjects[coreID].mtimerID = -1;
     });
 }
 

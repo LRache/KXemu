@@ -29,8 +29,10 @@ INCFLAGS = $(addprefix -I,$(INCPATH))
 LIBFLAGS = $(addprefix -l,$(LIBS))
 
 ifeq ($(CONFIG_DEBUG), y)
-	CXXFLAGS += -g -O0 -fsanitize=address
-	LDFLAGS  += -fsanitize=address
+	# CXXFLAGS += -g -O0 -fsanitize=address
+	# LDFLAGS  += -g -O0 -fsanitize=address
+	CXXFLAGS += -g -O0
+	LDFLAGS  += -g -O0
 else
 	CXXFLAGS += -Ofast -O3
 endif

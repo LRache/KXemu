@@ -227,7 +227,7 @@ const word_t *RVCSR::get_csr_ptr_readonly(unsigned int addr) const {
 }
 
 word_t RVCSR::read_csr(unsigned int addr, bool &valid) {
-    // std::lock_guard<std::mutex> lock(this->mtx);
+    std::lock_guard<std::mutex> lock(this->mtx);
     
     auto iter = this->csr.find(addr);
     if (iter == this->csr.end()) {

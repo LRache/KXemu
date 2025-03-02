@@ -31,7 +31,7 @@ void parse_args(int argc, char **argv) {
     static struct option options[] = {
         {"source", required_argument, 0, 's'},
         {"elf"   , required_argument, 0, 'e'},
-        {"core"  , required_argument, 0, 'c'},
+        {"cores" , required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
 
