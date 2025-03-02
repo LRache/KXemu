@@ -35,6 +35,11 @@ else
 	CXXFLAGS += -Ofast -O3
 endif
 
+ifneq ($(CORECOUNT), )
+	KXEMU_FLAGS += --core $(CORECOUNT)
+	QEMU_FLAGS += -smp $(CORECOUNT)
+endif
+
 CXXFLAGS += -Wall -Wextra -Werror -pedantic -std=c++17
 CXXFLAGS += -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field
 CXXFLAGS += $(INCFLAGS)

@@ -10,7 +10,4 @@ KDB_INIT_SRC += $(abspath ./uart.kdb)
 
 -include $(NAME)/Makefile
 
-KXEMU_FLAGS += --core $(CORECOUNT)
-QEMU_FLAGS += -smp 4
-
 include ../abstract-machine/Makefile
