@@ -1,8 +1,10 @@
 #include "device/virtio/virtio.h"
 #include "device/virtio/def.h"
-#include "device/bus.h"
 #include "log.h"
 #include "word.h"
+
+#define SET_UPPER(target, upper) (target) &= ~0xffffffffULL; (target) |= (upper)
+#define SET_LOWER(target, lower) (target) &=  0xffffffffULL; (target) |= (uint64_t)(lower) << 32
 
 using namespace kxemu::device;
 
@@ -15,10 +17,15 @@ void VirtIO::reset() {
 
 uint32_t VirtIO::read_device_features() {
     unsigned int start = this->deviceFeaturesSelect * 32;
+    if (start >= featuresCount) {
+        return 0;
+    }
+   
     unsigned int end = start + 32;
     if (end > this->featuresCount) {
         end = this->featuresCount;
     }
+    
     uint32_t features = 0;
     for (unsigned int i = start; i < end; i++) {
         features |= this->get_device_features_bit(i) << (i - start);
@@ -37,6 +44,7 @@ void VirtIO::write_driver_features(uint32_t features) {
     if (end > this->featuresCount) {
         end = this->featuresCount;
     }
+    
     for (unsigned int i = start; i < end; i++) {
         this->set_driver_features_bit(i, features & (1 << (i - start)));
     }
@@ -73,12 +81,14 @@ bool VirtIO::write(word_t offset, word_t data, word_t size) {
         case 0x14: this->deviceFeaturesSelect = data; break;
         case 0x20: this->write_driver_features(data); break;
         case 0x24: this->driverFeaturesSelect = data; break;
-        case 0x80: this->queueDesc &= ~0xffffffffULL; this->queueDesc |= data; break;
-        case 0x84: this->queueDesc &= 0xffffffffULL; this->queueDesc |= data << 32; break;
-        case 0x90: this->queueDriver &= ~0xffffffffULL; this->queueDriver |= data; break;
-        case 0x94: this->queueDriver &= 0xffffffffULL; this->queueDriver |= data << 32; break;
-        case 0xa0: this->queueDevice &= ~0xffffffffULL; this->queueDevice |= data; break;
-        case 0xa4: this->queueDevice &=  0xffffffffULL; this->queueDevice |= data << 32; break;
+        
+        case 0x80: SET_UPPER(this->queueDesc,   data); break;
+        case 0x84: SET_LOWER(this->queueDesc,   data); break;
+        case 0x90: SET_UPPER(this->queueDriver, data); break;
+        case 0x94: SET_LOWER(this->queueDriver, data); break;
+        case 0xa0: SET_UPPER(this->queueDevice, data); break;
+        case 0xa4: SET_LOWER(this->queueDevice, data); break;
+        
         default: valid = false; break;
     }
 
