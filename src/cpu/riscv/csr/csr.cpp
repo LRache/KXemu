@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "macro.h"
 #include "config/config.h"
+#include <mutex>
 
 #define MVENDORID 0x584b5343 // "CSKX" in little-endian
 #define MARCHID   0x00CAFFEE // Our architecture ID
@@ -226,6 +227,8 @@ const word_t *RVCSR::get_csr_ptr_readonly(unsigned int addr) const {
 }
 
 word_t RVCSR::read_csr(unsigned int addr, bool &valid) {
+    std::lock_guard<std::mutex> lock(this->mtx);
+    
     auto iter = this->csr.find(addr);
     if (iter == this->csr.end()) {
         valid = false;
@@ -250,6 +253,8 @@ bool RVCSR::write_csr(unsigned int addr, word_t value) {
     // Whether the destination csr is read-only should be checked in the Core
     SELF_PROTECT((addr & CSR_READ_ONLY) != CSR_READ_ONLY, "Write to read-only CSR 0x%03x", addr);
 
+    std::unique_lock<std::mutex> lock(this->mtx);
+
     auto iter = this->csr.find(addr);
     if (iter == this->csr.end()) {
         WARN("Write to non-exist CSR 0x%03x", addr);
@@ -262,6 +267,7 @@ bool RVCSR::write_csr(unsigned int addr, word_t value) {
     }
     if (valid) {
         iter->second.value = value;
+        lock.unlock();
         if (iter->second.writeCallback != nullptr) {
             iter->second.writeCallback();
         }

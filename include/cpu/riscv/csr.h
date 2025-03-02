@@ -4,6 +4,7 @@
 #include "cpu/word.h"
 
 #include <functional>
+#include <mutex>
 #include <unordered_map>
 #include <cstdint>
 
@@ -78,6 +79,8 @@ private:
 
     // time
     word_t  read_time(unsigned int addr, word_t value, bool &valid);
+
+    std::mutex mtx;
 
 public:
     RVCSR();
