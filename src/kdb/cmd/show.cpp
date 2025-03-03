@@ -57,7 +57,7 @@ static void show_mem_value_helper(unsigned int count, unsigned int size, word_t 
         return;
     }
 
-    uint8_t *mem = kdb::bus->get_ptr(addr);
+    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(addr);
     word_t memSize = kdb::bus->get_ptr_length(addr);
     for (unsigned int i = 0; i < count; i++) {
         std::cout << FMT_STREAM_WORD(addr) << ": ";
@@ -147,7 +147,7 @@ static void show_inst(unsigned int count, unsigned int, word_t addr) {
         return;
     }
     
-    uint8_t *mem = kdb::bus->get_ptr(addr);
+    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(addr);
     word_t memSize = kdb::bus->get_ptr_length(addr);
 
     for (unsigned int i = 0; i < count; i++) {
