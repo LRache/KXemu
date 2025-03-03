@@ -176,6 +176,7 @@ void Uart16650::update() {
     ssize_t n = ::read(recvSocket, buffer, sizeof(buffer));
     if (n <= 0) {
         WARN("Failed to receive data from socket.");
+        mode = Mode::NONE;
         return;
     }
 
@@ -225,7 +226,7 @@ bool Uart16650::open_socket(const std::string &ip, int port) {
     }
     // uartSocketRunning = true;
     // recvThread = new std::thread(&Uart16650::recv_thread_loop, this);
-    // mode = Mode::SOCKET;
+    mode = Mode::SOCKET;
     lsr |= LSR_TX_READY;
     return true;
 }
@@ -243,6 +244,7 @@ void Uart16650::recv_byte(uint8_t c) {
         if (ier & 0x01) {
             iir = 0b10 | 0b11000000; // Interrupt Pending
             this->interrput = true;
+            INFO("UART interrupt pending.");
         }
     }
 }
