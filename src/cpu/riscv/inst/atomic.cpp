@@ -73,7 +73,7 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
         return;
     }
 
-    uint8_t *ptr = this->bus->get_ptr(addr);
+    void *ptr = this->bus->get_ptr(addr);
     if (ptr == nullptr) {
         this->trap(TRAP_AMO_ACCESS_FAULT, addr);
         return;
