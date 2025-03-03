@@ -47,6 +47,8 @@ namespace kxemu::kdb {
         bool add(word_t base, std::ostream &os);
         bool add(word_t base, const std::string &ip, int port);
         bool puts(std::size_t index, const std::string &s);
+
+        void deinit();
     };
 
     // Breakpoint

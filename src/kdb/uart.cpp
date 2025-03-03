@@ -47,3 +47,10 @@ bool kdb::uart::puts(std::size_t index, const std::string &s) {
     }
     return true;
 }
+
+void kdb::uart::deinit() {
+    for (auto uart : kdb::uart::list) {
+        delete uart;
+    }
+    kdb::uart::list.clear();
+}

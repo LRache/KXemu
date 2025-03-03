@@ -34,6 +34,7 @@ void kdb::deinit() {
     delete cpu;
     cpu = nullptr;
     deinit_bus();
+    uart::deinit();
 }
 
 // run .kdb source file to exec kdb command
