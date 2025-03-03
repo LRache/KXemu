@@ -17,10 +17,12 @@ RVCPU::RVCPU() {
 void RVCPU::init(Bus *bus, int flags, unsigned int coreCount) {
     this->cores = new RVCore[coreCount];
     for (unsigned int i = 0; i < coreCount; i++) {
-        this->cores[i].init(i, bus, flags, &aclint, &taskTimer);
+        this->cores[i].init(i, bus, flags, &aclint, &plic);
     }
     this->aclint.init(this->cores, coreCount);
+    this->plic.init(this->cores, coreCount);
     bus->add_mmio_map("aclint", ACLINT_BASE, ACLINT_SIZE, &aclint);
+    bus->add_mmio_map("plic", PLIC_BASE, PLIC_SIZE, &plic);
     this->coreCount = coreCount;
 }
 

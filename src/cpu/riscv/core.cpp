@@ -11,7 +11,6 @@
 #include <cstring>
 
 using namespace kxemu::cpu;
-using kxemu::utils::TaskTimer;
 
 RVCore::RVCore() {    
     this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
@@ -34,11 +33,12 @@ RVCore::RVCore() {
     this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
 }
 
-void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, TaskTimer *timer) {
+void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, device::PLIC *plic) {
     this->coreID = coreID;
     this->bus = bus;
     this->flags = flags;
     this->aclint = alint;
+    this->plic = plic;
     this->state = IDLE;
 
     this->init_csr();

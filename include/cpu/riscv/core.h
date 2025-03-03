@@ -3,6 +3,7 @@
 
 #include "cpu/core.h"
 #include "cpu/riscv/aclint.h"
+#include "cpu/riscv/plic.h"
 #include "cpu/word.h"
 #include "cpu/riscv/csr.h"
 #include "device/bus.h"
@@ -37,6 +38,7 @@ private:
     };
     device::Bus *bus;
     device::AClint *aclint;
+    device::PLIC *plic;
     bool   memory_fetch();
     word_t memory_load (word_t addr, int len);
     bool   memory_store(word_t addr, word_t data, int len);
@@ -193,7 +195,7 @@ public:
     RVCore();
     ~RVCore();
 
-    void init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *aclint, utils::TaskTimer *timer);
+    void init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *aclint, device::PLIC *plic);
     
     void reset(word_t entry) override;
     void step() override;

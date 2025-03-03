@@ -4,6 +4,7 @@
 #include "device/bus.h"
 #include "device/def.h"
 #include "device/mmio.h"
+#include "log.h"
 
 #include <cstdint>
 
@@ -19,6 +20,27 @@
 #define IN_RANGE(addr, name) (addr) >= PLIC_##name##_BASE && (addr) < PLIC_##name##_BASE + PLIC_##name##_SIZE
 
 using namespace kxemu::device;
+
+void PLIC::init(cpu::RVCore *cores, unsigned int coreCount) {
+    for (unsigned int i = 0; i < 32; i++) {
+        this->interruptSources[i].priority = 0;
+        this->interruptSources[i].pending = false;
+        for (unsigned int j = 0; j < 32; j++) {
+            this->interruptSources[i].enable[j] = false;
+        }
+    }
+
+    for (unsigned int i = 0; i < 32; i++) {
+        this->targetContexts[i].threshold = 0;
+        this->targetContexts[i].claim = 0;
+        this->targetContexts[i].core = nullptr;
+    }
+
+    for (unsigned int i = 0; i < coreCount; i++) {
+        this->targetContexts[i * 2    ].core = &cores[i];
+        this->targetContexts[i * 2 + 1].core = &cores[i];
+    }
+}
 
 void PLIC::reset() {}
 
@@ -80,7 +102,50 @@ word_t PLIC::read(word_t offset, word_t size, bool &valid) {
 }
 
 bool PLIC::write(word_t offset, word_t data, word_t size) {
-    return false;
+    if (size != 4) {
+        return false;
+    }
+
+    INFO("PLIC: Write %lu to offset %lu", data, offset);
+
+    if (IN_RANGE(offset, PRIORITY)) {
+        unsigned int source = offset / 4;
+        if (source < 32) {
+            this->interruptSources[source].priority = data;
+            INFO("PLIC: Set priority of interrupt %u to %lu", source, data);
+            return true;
+        } else {
+            return false;
+        }
+    } else if (IN_RANGE(offset, ENABLE)) {
+        unsigned int contextID = (offset - PLIC_ENABLE_BASE) / 0x80;
+        if ((offset - PLIC_ENABLE_BASE) % 0x80 == 0) {
+            for (unsigned int i = 0; i < 32; i++) {
+                this->interruptSources[i].enable[contextID] = (data & (1 << i)) != 0;
+            }
+            return true;
+        } else {
+            return false;
+        }
+    } else if (IN_RANGE(offset, CONTEXT)) {
+        unsigned int contextID = (offset - PLIC_CONTEXT_BASE) / 0x1000;
+        if (contextID >= 32) {
+            return false;
+        }
+        if ((offset - PLIC_CONTEXT_BASE) % 0x1000 == 0) {
+            this->targetContexts[contextID].threshold = data;
+            return true;
+        } else if ((offset - PLIC_CONTEXT_BASE) % 0x1000 == 4) {
+            if (this->targetContexts[contextID].claim == data) {
+                this->targetContexts[contextID].claim = 0;
+                this->targetContexts[contextID].core->clear_external_interrupt_m();
+            }
+            return true;
+        }
+        return false;
+    } else {
+        return false;
+    }
 }
 
 void PLIC::connect_to_bus(Bus *bus) {
@@ -99,6 +164,7 @@ void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
     
     uint32_t priority = target.threshold;
     uint32_t claim = 0;
+    MMIOMap *sourceDev = nullptr;
     
     for (auto &map : this->bus->mmioMaps) {
         auto &dev = map->map;
@@ -106,9 +172,11 @@ void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
             auto &source = this->interruptSources[map->id];
             
             source.pending = true;
-            dev->clear_interrupt();
+            sourceDev = dev;
+
+            INFO("PLIC: Interrupt %u is pending, enable=%d, p=%u", map->id, source.enable[contextID], source.priority);
             
-            if (source.enable[contextID] && source.priority > priority) {
+            if (source.enable[contextID] && source.priority >= priority) {
                 priority = source.priority;
                 claim = map->id;
             }
@@ -116,7 +184,9 @@ void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
     }
 
     if (claim != 0) {
+        INFO("PLIC: Claiming interrupt %u for hart %u %s", claim, hartid, sourceDev->get_type_name());
         target.claim = claim;
+        sourceDev->clear_interrupt();
         if (privMode == cpu::PrivMode::MACHINE) {
             target.core->set_external_interrupt_m();
         } else {

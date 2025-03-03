@@ -20,6 +20,10 @@
 #define SSWI_BASE     0xc000
 #define SSWI_SIZE     0x4000
 
+// PLIC
+#define PLIC_BASE     0x0c000000
+#define PLIC_SIZE     0x4000000
+
 #define CSR_READ_ONLY  0b110000000000
 #define IS_CSR_READ_ONLY(addr) ((addr & CSR_READ_ONLY) == CSR_READ_ONLY)
 

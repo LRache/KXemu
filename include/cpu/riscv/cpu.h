@@ -3,6 +3,7 @@
 
 #include "cpu/cpu.h"
 #include "cpu/riscv/aclint.h"
+#include "cpu/riscv/plic.h"
 #include "cpu/riscv/core.h"
 #include "utils/task-timer.h"
 
@@ -18,6 +19,7 @@ private:
     void core_thread_worker(unsigned int coreID, const word_t *breakpoints, unsigned int n);
     
     device::AClint aclint;
+    device::PLIC plic;
     utils::TaskTimer taskTimer;
     
 public:

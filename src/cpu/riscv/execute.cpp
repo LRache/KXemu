@@ -72,6 +72,7 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
             // Interrupt
             if (unlikely(i & 0x2000)) {
                 this->bus->update();
+                this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
                 this->scan_interrupt();
                 i = 0;
             }

@@ -28,6 +28,7 @@ private:
     TargetContext targetContexts[32];
 
 public:
+    void init(cpu::RVCore *cores, unsigned int coreCount);
     void reset() override;
     word_t read(word_t offset, word_t size, bool &valid) override;
     bool write(word_t offset, word_t data, word_t size) override;

@@ -31,7 +31,7 @@ public:
         std::string name;
         word_t start;
         word_t size;
-        unsigned int id;
+        unsigned int id = 1;
         MMIOMap *map;
     };
     std::vector<MMIOMapBlock *> mmioMaps;
