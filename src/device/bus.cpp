@@ -188,7 +188,7 @@ word_t Bus::do_atomic(word_t addr, word_t data, word_t length, AMO amo, bool &va
 }
 
 bool Bus::load_from_stream(std::istream &stream, word_t addr) {
-    uint8_t *dest = this->get_ptr(addr);
+    uint8_t *dest = (uint8_t *)this->get_ptr(addr);
     if (dest == nullptr) {
         WARN("Unable to write to destination.");
         return false;
@@ -217,7 +217,7 @@ bool Bus::load_from_stream(std::istream &stream, word_t addr) {
 }
 
 bool Bus::load_from_stream(std::istream &stream, word_t addr, word_t length) {
-    uint8_t *dest = this->get_ptr(addr);
+    uint8_t *dest = (uint8_t *)this->get_ptr(addr);
     if (dest == nullptr) {
         WARN("Unable to write to destination.");
         return false;
@@ -249,7 +249,7 @@ bool Bus::load_from_stream(std::istream &stream, word_t addr, word_t length) {
 }
 
 bool Bus::load_from_memory(void *src, word_t addr, word_t length) {
-    uint8_t *dest = this->get_ptr(addr);
+    void *dest = this->get_ptr(addr);
     if (dest == nullptr) {
         WARN("Unable to write to destination.");
         return false;
@@ -267,7 +267,7 @@ bool Bus::load_from_memory(void *src, word_t addr, word_t length) {
 }
 
 bool Bus::dump(std::ostream &stream, word_t addr, word_t length) const {
-    const uint8_t *src = this->get_ptr(addr);
+    const void *src = this->get_ptr(addr);
     if (src == nullptr) {
         WARN("Unable to read from source.");
         return false;
@@ -285,7 +285,7 @@ bool Bus::dump(std::ostream &stream, word_t addr, word_t length) const {
 }
 
 bool Bus::memset(word_t addr, word_t length, uint8_t byte) {
-    uint8_t *dest = this->get_ptr(addr);
+    void *dest = this->get_ptr(addr);
     word_t leftLength = this->get_ptr_length(addr);
     
     if (dest == nullptr || length > leftLength) {
@@ -304,7 +304,7 @@ bool Bus::memcpy(word_t addr, word_t length, void *dest) {
         return false;
     }
 
-    uint8_t *src = this->get_ptr(addr);
+    void *src = this->get_ptr(addr);
     word_t leftLength = this->get_ptr_length(addr);
     
     if (src == nullptr || length > leftLength) {
@@ -317,7 +317,7 @@ bool Bus::memcpy(word_t addr, word_t length, void *dest) {
     return true;
 }
 
-uint8_t *Bus::get_ptr(word_t addr) const{
+void *Bus::get_ptr(word_t addr) const{
     auto mem = match_memory(addr);
     if (mem != nullptr) {
         return mem->data + (addr - mem->start);
@@ -329,6 +329,19 @@ uint8_t *Bus::get_ptr(word_t addr) const{
     }
 
     return nullptr;
+}
+
+void *Bus::get_ptr(word_t addr, word_t length) const {
+    auto mem = match_memory(addr);
+    if (mem != nullptr) {
+        if (mem->end - addr >= length) {
+            return mem->data + (addr - mem->start);
+        } else {
+            return nullptr;
+        }
+    } else {
+        return nullptr;
+    }
 }
 
 word_t Bus::get_ptr_length(word_t addr) const {

@@ -19,4 +19,6 @@
 /* This means the buffer contains a list of buffer descriptors. */
 #define VIRTQ_DESC_F_INDIRECT 4
 
+#define VIRTQ_USED_F_NO_NOTIFY 1
+
 #endif

@@ -2,7 +2,9 @@
 #define __KXEMU_DEVICE_VIRTIO_VIRTIO_H__
 
 #include "device/bus.h"
+#include "device/def.h"
 #include <cstdint>
+#include <vector>
 
 namespace kxemu::device {
 
@@ -12,32 +14,86 @@ namespace kxemu::device {
 
 class VirtIO : public MMIOMap {
 private:
+    Bus *bus;
+
+    enum State {
+        IDLE,
+        ACKNOWLEGED,
+        DRIVERED,
+        FEATURES_OK,
+        DRIVER_OK,
+    } state;
+    
     // MMIO Device Register
     uint32_t deviceID; // 0x008 Device ID, used to identify the device type
     uint32_t deviceFeaturesSelect; // 0x010
     uint32_t driverFeaturesSelect; // 0x014
     uint32_t queueSelect; // 0x030
-    uint32_t queueNumMax; // 0x034
-    uint32_t status;   // 0x070 Device status field
-
-    uint64_t queueDesc;   // Queue descriptor address
-    uint64_t queueDriver; // Queue driver(avail) address
-    uint64_t queueDevice; // Queue device(used) address
+    static constexpr uint32_t queueNumMax = 12;
+    /* 0x010 Device features */
+    uint32_t read_device_features();
+    void write_driver_features(uint32_t features);
+    /* 0x070 Device status field */ 
+    word_t read_status();
+    void  write_status(word_t data);
+    /* 0x050 Queue Notify */
+    void notify_queue(uint32_t idx);
+    /* 0x100+ configuration space */
+    void *configuration;
+    word_t sizeof_configuration;
+    virtual bool update_configuration(const void *newConfig) { return true; };
 
     // Device Features
     unsigned int featuresCount;
-    virtual bool get_device_features_bit(unsigned int bit) = 0;
-    virtual void set_driver_features_bit(unsigned int bit, bool value) = 0;
-    uint32_t read_device_features();
-    void write_driver_features(uint32_t features);
+    virtual bool get_device_features_bit(unsigned int bit) { return false; }
+    virtual void set_driver_features_bit(unsigned int bit, bool value) {}
 
     // Virtqueue
-    struct VirtQueue {
-
+    struct VirtQueueDescriptor {
+        uint64_t addr;
+        uint32_t len;
+        uint16_t flags;
+        uint16_t next;
     };
 
+    // struct virtq_avail {
+    //    uint16_t flags;
+    //    uint16_t idx;
+    //    uint16_t ring[ /* Queue Size */ ];
+    //    uint16_t used_event; /* Only if VIRTIO_F_EVENT_IDX */
+    // };
+
+    unsigned int queueCount = 0;
+    struct VirtQueue {
+        uint64_t p_desc  = 0;  // 0x80, 0x84 Pointer to Descriptor Table
+        uint64_t p_avail = 0;  // 0x90, 0x94 Pointer to Available Ring
+        uint64_t p_used  = 0;  // 0xa0, 0xa4 Pointer to Used Ring
+        uint32_t queueNum = 12;
+        bool ready = false;
+    };
+    VirtQueue *virtQueues;
+
+    struct Buffer {
+        word_t addr;
+        word_t len;
+        bool write;
+    };
+    struct ReqContext {
+        unsigned int queueIndex;
+        unsigned int descIndex;
+    };
+    // Pass the context to function virtio_handle_done, DO NOT CHANGE.
+    virtual bool virtio_handle_req(const std::vector<Buffer> &buffer, const ReqContext *context) = 0;
+
+    word_t sizeof_usedElem = 0;
+    void virtio_handle_done(uint32_t len, const ReqContext *context);
+
+    bool interrupt = false;
+    bool interrupt_pending() override;
+    void clear_interrupt() override;
+
 public:
-    VirtIO(uint32_t deviceID, unsigned int featuresCount);
+    VirtIO(uint32_t deviceID, unsigned int featuresCount, unsigned int queueCount, uint32_t sizeof_usedElem);
 
     void reset() override;
     word_t read(word_t offset, word_t size, bool &valid) override;

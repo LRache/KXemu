@@ -56,7 +56,8 @@ public:
     
     bool memset(word_t addr, word_t length, uint8_t byte);
     bool memcpy(word_t addr, word_t length, void *dest);
-    uint8_t *get_ptr(word_t addr) const;
+    void *get_ptr(word_t addr) const;
+    void *get_ptr(word_t addr, word_t length) const;
     word_t   get_ptr_length(word_t addr) const;
 };
 
