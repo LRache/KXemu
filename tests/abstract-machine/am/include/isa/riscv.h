@@ -32,6 +32,9 @@
 #define MSTATUS_MPP_MASK 0x00001800
 #define MSTATUS_MPP_U 0
 
+#define MSTATUS_MIE_MASK (1 << 3)
+#define MIE_MEIE_MASK (1 << 11)
+
 typedef uintptr_t word_t;
 
 word_t csrr_mhartid();
@@ -78,7 +81,7 @@ typedef struct {
     uintptr_t cause;
 } Event;
 
-void cte_init(Context*(*handler)(Event, Context*));
+void cte_init(Context*(*handler)(Context*));
 void yield();
 
 #endif

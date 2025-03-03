@@ -36,32 +36,16 @@ f(10) f(11) f(12) f(13) f(14) f(15)
 
 #define CONTEXT_SIZE  ((NR_REGS + 3) * XLEN)
 
-.align 3
+.align 2
 .globl __am_asm_trap
 __am_asm_trap:
     addi sp, sp, -CONTEXT_SIZE
 
     MAP(REGS, PUSH)
 
-    csrr t0, mstatus
-    csrr t1, mepc
-
-    STORE t0, OFFSET_STATUS(sp)
-    STORE t1, OFFSET_EPC(sp)
-
-    # set mstatus.MPRV to pass difftest
-    li a0, (1 << 17)
-    or t1, t1, a0
-    csrw mstatus, t1
-
     mv a0, sp
     jal __am_irq_handle
     mv sp, a0
-  
-    LOAD t1, OFFSET_STATUS(sp)
-    LOAD t2, OFFSET_EPC(sp)
-    csrw mstatus, t1
-    csrw mepc, t2
 
     MAP(REGS, POP)
     addi sp, sp, CONTEXT_SIZE
