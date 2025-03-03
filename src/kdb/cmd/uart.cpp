@@ -22,12 +22,14 @@ static int cmd_uart_add(const cmd::args_t &args) {
         std::cout << "Usage: uart add <base> [port]" << std::endl;
         return cmd::InvalidArgs;
     }
+    
     bool s;
     word_t base = utils::string_to_unsigned(args[2], s);
     if (!s) {
         std::cout << "Invalid address: " << args[2] << std::endl;
         return cmd::InvalidArgs;
     }
+    
     if (args.size() == 3) {
         if (kdb::uart::add(base, std::cout)) {
             std::cout << "UART added at base " << std::hex << base << std::dec << std::endl;

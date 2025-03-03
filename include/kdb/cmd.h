@@ -13,12 +13,16 @@
 #ifndef __KXEMU_KDB_CMD_H__
 #define __KXEMU_KDB_CMD_H__
 
-#include <cstddef>
 #include <unordered_map>
 #include <vector>
 #include <string>
 
 namespace kxemu::kdb::cmd {
+    void init();
+    int mainloop();
+    int run_command(const std::string &command);
+    int run_source_file(const std::string &filename);
+
     using args_t = std::vector<std::string>;
     using func_t = int (*)(const args_t &);
     using cmd_map_t = std::unordered_map<std::string, func_t>;
@@ -50,6 +54,11 @@ namespace kxemu::kdb::cmd {
         MissingPrevOp = 2,
         CmdError      = 3
     };
+
+    // Defines varibles
+    extern std::unordered_map<std::string, std::string> defines;
+    void add_define(const std::string &define);
+    void replace_define(args_t &args);
 
     // load source from args
     extern std::string elfFileName;

@@ -92,12 +92,14 @@ int cmd::step(const args_t &args) {
 
 int cmd::run(const args_t &) {
     kdb::run_cpu();
+    
     for (unsigned int i = 0; i < kdb::cpu->core_count(); i++) {
         auto core = kdb::cpu->get_core(i);
         if (core->is_break()) {
             std::cout << "Core " << i << ": Breakpoint at " << FMT_STREAM_WORD(core->get_pc()) << " triggered."<< std::endl;
         }
     }
+    
     return 0;
 }
 
@@ -106,6 +108,7 @@ int cmd::symbol(const cmd::args_t &) {
         std::cout << "No symbol found" << std::endl;
         return cmd::Success;
     }
+    
     std::cout << std::setfill(' ')
     << std::setw(16)  << "name" << " | "
     << std::setw(WORD_WIDTH + 2) << "addr"
@@ -116,6 +119,7 @@ int cmd::symbol(const cmd::args_t &) {
         << FMT_STREAM_WORD(sym.first) 
         << std::endl;
     }
+    
     return cmd::Success;
 }
 
@@ -124,6 +128,7 @@ int cmd::breakpoint(const cmd::args_t &args) {
         std::cout << "Usage: breakpoint <addr>" << std::endl;
         return cmd::EmptyArgs;
     }
+    
     std::string addrStr = args[1];
     bool success;
     word_t addr = string_to_addr(addrStr, success);

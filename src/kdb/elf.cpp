@@ -1,6 +1,5 @@
 #include "isa/isa.h"
 #include "kdb/kdb.h"
-#include "log.h"
 #include "config/config.h"
 
 #include <cstdint>
@@ -125,7 +124,7 @@ static bool load_symbol_table(const Elf_Shdr &symtabShdr, const Elf_Shdr &strtab
 
 // For ELF file format, see https://www.man7.org/linux/man-pages/man5/elf.5.html
 // Load elf file from local disk to memory and build symbol table for debug.
-kdb::word_t kdb::load_elf(const std::string &filename) {
+std::optional<kdb::word_t> kdb::load_elf(const std::string &filename) {
     std::fstream f;
     f.open(filename, std::ios_base::in);
     if (!f.is_open()) {
@@ -138,7 +137,7 @@ kdb::word_t kdb::load_elf(const std::string &filename) {
 
     if (!check_is_valid_elf(ehdr)) {
         std::cout << "BAD elf header" << std::endl;
-        return 0;
+        return std::nullopt;
     }
 
     // read program header
@@ -150,7 +149,6 @@ kdb::word_t kdb::load_elf(const std::string &filename) {
         CHECK_READ_SUCCESS(sizeof(phdr));
         phdrArray.push_back(phdr);
     }
-    DEBUG("Load ELF: find %d programs", ehdr.e_phnum);
 
     for (auto phdr: phdrArray) {
         load_program(phdr, f);
@@ -201,12 +199,6 @@ std::optional<std::string> kdb::addr_match_symbol(word_t addr, word_t &offset) {
         }
     }
 
-    // if (addr - iter->first) {
-    //     offset = addr - iter->first;
-    //     return iter->second;
-    // } else {
-    //     return std::nullopt;
-    // }
     offset = addr - iter->first;
     return iter->second;
 }

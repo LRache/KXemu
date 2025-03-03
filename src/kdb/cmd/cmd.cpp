@@ -11,17 +11,21 @@
 #include "log.h"
 #include "utils/utils.h"
 
-#include <cstdio>
+#include <readline/chardefs.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #define SHELL_BULE "\x1b[94m"
 #define SHELL_RESET "\x1b[0m"
 
 using namespace kxemu;
 using namespace kxemu::kdb;
+
+unsigned int cmd::currentCore;
+int cmd::coreCount;
 
 static const cmd::cmd_map_t cmdMap = {
     {"help" , cmd::help  },
@@ -49,48 +53,15 @@ static const cmd::cmd_map_t cmdMap = {
 
 static bool cmdRunning = true;
 
-unsigned int cmd::currentCore;
-int cmd::coreCount;
-
-int cmd::help(const args_t &) {
-    std::cout << "Commands:" << std::endl;
-    return 0;
-}
-
-int cmd::quit(const args_t &) {
-    std::cout << "Bye~" << std::endl;
-    cmdRunning = false;
-    return 0;
-}
-
-int cmd::source(const args_t &args) {
-    if (args.size() < 2) {
-        std::cout << "Usage: source <filename>";
-        return cmd::EmptyArgs;
-    }
-    std::string filename = args[1];
-    std::cout << "Run source " << filename << std::endl;
-    return kdb::run_source_file(filename);
-}
-
-int cmd::find_and_run(const args_t &args, const cmd_map_t &cmdMap, const std::size_t startIndex) {
-    if (args.size() <= startIndex) {
-        return cmd::EmptyArgs;
+void cmd::init() {
+    if (kdb::cpu == nullptr || kdb::bus == nullptr) {
+        PANIC("CPU or memory not initialized");
     }
 
-    auto iter = cmdMap.find(args[startIndex]);
-    if (iter != cmdMap.end()) {
-        return iter->second(args);
-    }
-    
-    // NOTE: We only output command not found message in this function to avoid the recursion handle.
-    if (startIndex == 0) {
-        std::cout << "Command not found: " << args[startIndex] << std::endl;
-    } else {
-        std::cout << "Sub command not found: " << args[startIndex] << std::endl;
-    }
-    
-    return cmd::CmdNotFound;
+    cmd::coreCount = cpu->core_count();
+    cmd::currentCore = 0;
+
+    cmd::init_completion();
 }
 
 static const char *logo = \
@@ -100,19 +71,9 @@ static const char *logo = \
 " | . \\  | |_| | | |_) | \n" \
 " |_|\\_\\ |____/  |____/ \n";
 
-void kdb::cmd_init() {
-    if (kdb::cpu == nullptr || kdb::bus == nullptr) {
-        PANIC("CPU or memory not initialized");
-    }
-
-    cmd::coreCount = cpu->core_count();
-    cmd::currentCore = 0;
-
-    isa::init();
-    cmd::init_completion();
-}
-
-int kdb::run_cmd_mainloop() {
+int cmd::mainloop() {
+    if (!cmdRunning) return kdb::returnCode;
+    
     std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
     
     char prompt[64];
@@ -143,9 +104,67 @@ int kdb::run_cmd_mainloop() {
     return kdb::returnCode;
 }
 
-int kdb::run_command(const std::string &cmd) {
-    cmd::args_t args = utils::string_split(cmd, ' ');
-    int r = cmd::find_and_run(args, cmdMap);
+int cmd::run_command(const std::string &cmd) {
+    args_t args = utils::string_split(cmd, ' ');
+    replace_define(args);
+    int r = find_and_run(args, cmdMap);
 
     return r;
+}
+
+int cmd::run_source_file(const std::string &filename) {
+    std::ifstream f;
+    f.open(filename, std::ios::in);
+    if (!f.is_open()) {
+        std::cerr << "FileNotFound: No such file: " << filename << std::endl;
+        return CmdError;
+    }
+
+    std::string cmdLine;
+    while (std::getline(f, cmdLine)) {
+        run_command(cmdLine);
+    }
+    return Success;
+}
+
+int cmd::help(const args_t &) {
+    std::cout << "Commands:" << std::endl;
+    return 0;
+}
+
+int cmd::quit(const args_t &) {
+    std::cout << "Bye~" << std::endl;
+    cmdRunning = false;
+    return 0;
+}
+
+int cmd::source(const args_t &args) {
+    if (args.size() < 2) {
+        std::cout << "Usage: source <filename>";
+        return cmd::EmptyArgs;
+    }
+    std::string filename = args[1];
+    std::cout << "Run source " << filename << std::endl;
+
+    return run_source_file(filename);
+}
+
+int cmd::find_and_run(const args_t &args, const cmd_map_t &cmdMap, const std::size_t startIndex) {
+    if (args.size() <= startIndex) {
+        return cmd::EmptyArgs;
+    }
+
+    auto iter = cmdMap.find(args[startIndex]);
+    if (iter != cmdMap.end()) {
+        return iter->second(args);
+    }
+    
+    // NOTE: We only output command not found message in this function to avoid the recursion handle.
+    if (startIndex == 0) {
+        std::cout << "Command not found: " << args[startIndex] << std::endl;
+    } else {
+        std::cout << "Sub command not found: " << args[startIndex] << std::endl;
+    }
+    
+    return cmd::CmdNotFound;
 }

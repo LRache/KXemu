@@ -5,9 +5,7 @@
 #include "isa/isa.h"
 #include "utils/utils.h"
 
-#include <fstream>
 #include <string>
-#include <iostream>
 
 using namespace kxemu;
 using kxemu::cpu::CPU;
@@ -22,6 +20,7 @@ void kdb::init(unsigned int coreCount) {
 
     logFlag = DEBUG | INFO | WARN | PANIC;
 
+    isa::init();
     cpu = isa::new_cpu();
     cpu->init(bus, -1, coreCount);
     cpu->reset(0x80000000);
@@ -35,22 +34,6 @@ void kdb::deinit() {
     cpu = nullptr;
     deinit_bus();
     uart::deinit();
-}
-
-// run .kdb source file to exec kdb command
-int kdb::run_source_file(const std::string &filename) {
-    std::ifstream f;
-    f.open(filename, std::ios::in);
-    if (!f.is_open()) {
-        std::cerr << "FileNotFound: No such file: " << filename << std::endl;
-        return 1;
-    }
-
-    std::string cmdLine;
-    while (std::getline(f, cmdLine)) {
-        run_command(cmdLine);
-    }
-    return 0;
 }
 
 word_t kdb::string_to_addr(const std::string &s, bool &success) {

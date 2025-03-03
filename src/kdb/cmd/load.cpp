@@ -3,6 +3,7 @@
 #include "word.h"
 
 #include <iostream>
+#include <optional>
 
 using namespace kxemu;
 using namespace kxemu::kdb;
@@ -16,22 +17,21 @@ static const cmd::cmd_map_t cmdMap = {
 };
 
 static int cmd_load_elf(const cmd::args_t &args) {
-    if (args.size() > 2) {
-        std::cout << "WARN: load elf command only get source from kdb exec arguments." << std::endl;
-    }
-    if (cmd::elfFileName.empty()) {
-        std::cout << "Failed to load ELF file, because file name is empty." << std::endl;
-        return cmd::MissingPrevOp;
+    if (args.size() <= 2) {
+        std::cout << "Usage: load elf <filename>" << std::endl;
+        return cmd::EmptyArgs;
     }
     
-    word_t entry = kdb::load_elf(cmd::elfFileName);
-    if (entry == 0) {
-        std::cout << "Failed to load ELF file " << cmd::elfFileName << std::endl;
+    auto entry = kdb::load_elf(args[2]);
+    if (entry == std::nullopt) {
+        std::cerr << "Failed to load ELF file " << cmd::elfFileName << std::endl;
         return cmd::CmdError;
     }
+    
     std::cout << "Load ELF file success." << std::endl;
-    std::cout << "Switch entry to " << FMT_STREAM_WORD(entry) << "." << std::endl;
-    kdb::programEntry = entry;
+    std::cout << "Switch entry to " << FMT_STREAM_WORD(entry.value()) << "." << std::endl;
+    kdb::programEntry = entry.value();
+    
     return cmd::Success;
 }
 

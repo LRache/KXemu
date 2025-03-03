@@ -29,7 +29,7 @@ LIBS_ARCHIVE = $(foreach name, $(LIBS), $(AM_DIR)/$(name)/build/$(ARCH)-$(name).
 
 # Kxemu configuration
 KXEMU = $(AM_DIR)/../../build/$(KXEMU_ISA)-kxemu
-KXEMU_FLAGS += --elf $(abspath $(ELF)) --source $(AM_DIR)/scripts/kdb/init.kdb
+KXEMU_FLAGS += --def elf=$(abspath $(ELF)) --source $(AM_DIR)/scripts/kdb/init.kdb
 KXEMU_FLAGS += $(addprefix --source , $(KDB_INIT_SRC))
 
 # Load ISA specific configuration
@@ -118,7 +118,7 @@ run: $(ELF)
 
 debug: $(ELF)
 	$(info + DEBUGGING KXEMU)
-	@ $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/debug.kdb
+	@ $(KXEMU) $(KXEMU_FLAGS)
 
 gdb: $(ELF)
 	$(info + DEBUGGING GDB)

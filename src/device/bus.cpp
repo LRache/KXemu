@@ -52,7 +52,7 @@ bool Bus::add_memory_map(const std::string &name, word_t start, word_t size) {
     return true;
 }
 
-bool Bus::add_mmio_map(const std::string &name, word_t start, word_t length, MMIOMap *map) {
+bool Bus::add_mmio_map(const std::string &name, unsigned int id, word_t start, word_t length, MMIOMap *map) {
     // check if overlap
     for (auto &m : mmioMaps) {
         if (m->start <= start && start < m->start + m->size) {
@@ -68,9 +68,14 @@ bool Bus::add_mmio_map(const std::string &name, word_t start, word_t length, MMI
     m->start = start;
     m->size = length;
     m->map = map;
+    m->id = id;
     mmioMaps.push_back(m);
     map->connect_to_bus(this);
     return true;
+}
+
+bool Bus::add_mmio_map(const std::string &name, word_t start, word_t length, MMIOMap *map) {
+    return this->add_mmio_map(name, 0, start, length, map);
 }
 
 void Bus::free_all() {

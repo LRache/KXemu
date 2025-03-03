@@ -30,7 +30,7 @@ static unsigned int coreCount = 1;
 void parse_args(int argc, char **argv) {
     static struct option options[] = {
         {"source", required_argument, 0, 's'},
-        {"elf"   , required_argument, 0, 'e'},
+        {"def"   , required_argument, 0, 'd'},
         {"cores" , required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
@@ -41,8 +41,8 @@ void parse_args(int argc, char **argv) {
             case 's':
                 sourceFiles.push_back(optarg);
                 break;
-            case 'e':
-                kdb::cmd::elfFileName = optarg;
+            case 'd':
+                kdb::cmd::add_define(optarg);
                 break;
             case 'c':
                 coreCount = std::stoi(optarg);
@@ -58,11 +58,12 @@ int main(int argc, char **argv) {
     
     kdb::init(coreCount);
     for (auto sourceFileName: sourceFiles) {
-        kdb::run_source_file(sourceFileName);
+        kdb::cmd::run_source_file(sourceFileName);
     }
     
-    kdb::cmd_init();
-    int r = kdb::run_cmd_mainloop();
+    kdb::cmd::init();
+    int r = kdb::cmd::mainloop();
     kdb::deinit();
+    
     return r;
 }

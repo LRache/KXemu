@@ -66,7 +66,7 @@ count:
 	@ find $(SRC_DIR) ./include ./scripts -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.py" | xargs cat | sed '/^\s*$$/d' | wc -l
 
 tidy:
-	clang-tidy $(SRCS)
+	clang-tidy $(SRCS) -checks='clang-analyzer-*,readability-*'
 
 .PHONY: kxemu run clean
 .DEFAULT_GOAL := kxemu

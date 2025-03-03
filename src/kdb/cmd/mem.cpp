@@ -17,21 +17,19 @@ using kxemu::kdb::word_t;
 
 static int cmd_mem_create(const cmd::args_t &);
 static int cmd_mem_img   (const cmd::args_t &);
-static int cmd_mem_elf   (const cmd::args_t &);
 static int cmd_mem_map   (const cmd::args_t &);
 static int cmd_mem_save  (const cmd::args_t &);
 
 static const cmd::cmd_map_t cmdMap = {
     {"create"   , cmd_mem_create},
     {"img"      , cmd_mem_img   },
-    {"elf"      , cmd_mem_elf   },
     {"map"      , cmd_mem_map   },
     {"save"     , cmd_mem_save  },
 };
 
 static bool check_memory_initialized() {
     if (kdb::bus == nullptr) {
-        std::cout << "Memory not initialized" << std::endl;
+        std::cerr << "Memory was not initialized." << std::endl;
         return false;
     }
     return true;
@@ -82,24 +80,6 @@ static int cmd_mem_img(const cmd::args_t &args) {
 
     kdb::bus->load_from_stream(f, 0x80000000);
 
-    return cmd::Success;
-}
-
-// load elf to memory and switch the program entry
-static int cmd_mem_elf(const cmd::args_t &args) {
-    if (args.size() < 3) {
-        std::cout << "Missing elf file path" << std::endl;
-        return cmd::InvalidArgs;
-    }
-    const std::string filename = args[2];
-    word_t entry = kdb::load_elf(filename);
-    if (entry == 0) {
-        std::cout << "Error when load elf files" << std::endl;
-        return cmd::CmdError;
-    }
-    std::cout << "Load ELF file success." << std::endl;
-    std::cout << "Switch entry to " << FMT_STREAM_WORD(entry) << "." << std::endl;
-    kdb::programEntry = entry;
     return cmd::Success;
 }
 

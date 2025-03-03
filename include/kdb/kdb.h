@@ -20,12 +20,6 @@ namespace kxemu::kdb {
     void init(unsigned int coreCount);
     void deinit();
 
-    // kdb command line
-    void cmd_init();
-    int run_cmd_mainloop();
-    int run_command(const std::string &cmd);
-    int run_source_file(const std::string &filename);
-
     // GDB connection
     bool run_gdb(const std::string &addr);
 
@@ -58,8 +52,7 @@ namespace kxemu::kdb {
     bool remove_breakpoint(word_t addr);
 
     // ELF format
-    // Load ELF to memory, return 0 if failed and entry else.
-    word_t load_elf(const std::string &filename);
+    std::optional<word_t> load_elf(const std::string &filename);
     std::optional<std::string> addr_match_symbol(word_t addr, word_t &offset);
     extern std::map<word_t, std::string> symbolTable;
     extern word_t programEntry;

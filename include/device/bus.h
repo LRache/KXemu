@@ -31,13 +31,14 @@ public:
         std::string name;
         word_t start;
         word_t size;
-        unsigned int id = 1;
+        unsigned int id = 0;
         MMIOMap *map;
     };
     std::vector<MMIOMapBlock *> mmioMaps;
 
     MMIOMapBlock *match_mmio  (word_t addr, word_t length = 0) const;
     MemoryBlock  *match_memory(word_t addr, word_t length = 0) const;
+    bool add_mmio_map  (const std::string &name, unsigned int id, word_t start, word_t length, MMIOMap *map);
     bool add_mmio_map  (const std::string &name, word_t start, word_t length, MMIOMap *map);
     bool add_memory_map(const std::string &name, word_t start, word_t length);
     void free_all();
