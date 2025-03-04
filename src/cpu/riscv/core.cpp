@@ -13,7 +13,7 @@
 using namespace kxemu::cpu;
 
 RVCore::RVCore() {    
-    this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
+    // this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
     this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
     this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
     this->mie     = this->csr.get_csr_ptr_readonly(CSR_MIE);
@@ -126,7 +126,7 @@ word_t RVCore::get_register(const std::string &name, bool &success) {
     if (name == "pc") {
         return this->pc;
     } else if (name == "mstatus") {
-        return *this->mstatus;
+        return this->csr.read_csr(CSR_MSTATUS);
     } else if (name == "mie") {
         return *this->mie;
     } else if (name == "mip") {

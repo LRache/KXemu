@@ -127,11 +127,20 @@ private:
     void init_csr();
     word_t  read_csr(unsigned int addr, bool &valid);
     bool   write_csr(unsigned int addr, word_t value);
+    word_t get_csr_core(unsigned int addr);
+    void   set_csr_core(unsigned int addr, word_t value);
+    
+    void update_mstatus();
+    struct MstatusField {
+        bool mie;
+        bool sie;
+        bool sum;
+    } mstatus;
 
-    bool msip; // Machine-mode Software Interrupt Pending Flag
-    bool ssip; // Supervisor-mode Software Interrupt Pending Flag
+    // bool msip; // Machine-mode Software Interrupt Pending Flag
+    // bool ssip; // Supervisor-mode Software Interrupt Pending Flag
 
-    word_t *mstatus;
+    // word_t *mstatus;
     const word_t *mie;
     const word_t *mip;
     const word_t *medeleg;

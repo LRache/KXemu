@@ -2,7 +2,9 @@
 #include "log.h"
 #include "word.h"
 
+#include <cerrno>
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <mutex>
 #include <sys/socket.h>
@@ -31,7 +33,8 @@ static int open_socket_client(const std::string &ip, int port) {
         return -1;
     }
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        WARN("Connection failed.");
+        WARN("Connect failed.");
+        perror("Connect failed");
         return -1;
     }
     return sockfd;

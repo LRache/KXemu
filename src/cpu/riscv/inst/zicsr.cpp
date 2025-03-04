@@ -2,8 +2,8 @@
 #include "cpu/riscv/def.h"
 
 #include "./local-decoder.h"
-
-#include <functional>
+#include "cpu/word.h"
+#include "debug.h"
 
 // #define CSR unsigned int csrAddr = BITS(31, 20)
 // #define RD  unsigned int rd  = BITS(11, 7)
@@ -19,20 +19,6 @@
 #define CHECK_SUCCESS do{if (!s) {do_invalid_inst(); return;}} while(0);
 
 using namespace kxemu::cpu;
-
-void RVCore::init_csr() {
-    this->csr.init(this->coreID, std::bind(&RVCore::get_uptime, this));
-    this->csr.set_write_callbacks(CSR_STIMECMP, std::bind(&RVCore::update_stimecmp, this));
-    this->csr.set_write_callbacks(CSR_SATP    , std::bind(&RVCore::update_satp    , this));
-}
-
-word_t RVCore::read_csr(unsigned int addr, bool &valid) {
-    return this->csr.read_csr(addr, valid);
-}
-
-bool RVCore::write_csr(unsigned int addr, word_t value) {
-    return this->csr.write_csr(addr, value);
-}
 
 void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {
     CSR; RD; RS1;

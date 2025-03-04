@@ -19,27 +19,6 @@ word_t RVCore::vaddr_translate(word_t addr, MemType type, VMResult &result) {
     } else {
         return (this->*vaddr_translate_func)(addr, type, result);
     }
-    
-// #ifdef KXEMU_ISA32
-//     if (SATP_MODE(*this->satp) == SATP_MODE_SV32) {
-//         addr = this->vaddr_translate_sv32(addr, type, result);
-//     }
-// #else
-//     switch (SATP_MODE(*this->satp)) {
-//         case SATP_MODE_BARE: break;
-//         case SATP_MODE_SV39:
-//             addr = this->vaddr_translate_sv39(addr, type, result);
-//             break;
-//         case SATP_MODE_SV48:
-//             addr = this->vaddr_translate_sv48(addr, type, result);
-//             break;
-//         case SATP_MODE_SV57:
-//             addr = this->vaddr_translate_sv57(addr, type, result);
-//             break;
-//         default: PANIC("Invalid SATP mode"); break;
-//     }
-// #endif
-//     return addr;
 }
 
 word_t RVCore::vaddr_translate(word_t addr, bool &valid) {
@@ -70,7 +49,8 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
     }
 
     // Whether the page which has the U bit set in the PTE is accessible by the current privilege mode
-    bool uPageAccessible = this->privMode == USER || STATUS_SUM(*this->mstatus);
+    // bool uPageAccessible = this->privMode == USER || STATUS_SUM(*this->mstatus);
+    bool uPageAccessible = this->privMode == USER || this->mstatus.sum;
 
     // word_t base = SATP_PPN(*this->satp) * PGSIZE;
     word_t base = this->satpPPN * PGSIZE;
@@ -78,7 +58,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
         word_t addr = base + vpn[i] * PTESIZE;
         
         if (!check_pmp(addr, PTESIZE, MemType::LOAD)) {
-            DEBUG("PMP check failed when translate vaddr=" FMT_WORD, vaddr);
+            // DEBUG("PMP check failed when translate vaddr=" FMT_WORD, vaddr);
             result = VM_ACCESS_FAULT;
             return -1;
         }
@@ -86,7 +66,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
         bool valid;
         word_t pte = this->bus->read(addr, PTESIZE, valid);
         if (!valid) {
-            DEBUG("Read PTE failed when translate vaddr=" FMT_WORD, vaddr);
+            // DEBUG("Read PTE failed when translate vaddr=" FMT_WORD, vaddr);
             result = VM_ACCESS_FAULT;
             return -1;
         }

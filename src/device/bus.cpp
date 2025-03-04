@@ -75,7 +75,7 @@ bool Bus::add_mmio_map(const std::string &name, unsigned int id, word_t start, w
 }
 
 bool Bus::add_mmio_map(const std::string &name, word_t start, word_t length, MMIOMap *map) {
-    return this->add_mmio_map(name, 0, start, length, map);
+    return this->add_mmio_map(name, 1, start, length, map);
 }
 
 void Bus::free_all() {

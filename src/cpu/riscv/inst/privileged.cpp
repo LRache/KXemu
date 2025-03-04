@@ -19,6 +19,13 @@ void RVCore::set_priv_mode(int mode) {
     this->privMode = mode;
 }
 
+void RVCore::update_mstatus() {
+    const word_t mstatus = this->csr.read_csr(CSR_MSTATUS);
+    this->mstatus.mie = STATUS_MIE(mstatus);
+    this->mstatus.sie = STATUS_SIE(mstatus);
+    this->mstatus.sum = STATUS_SUM(mstatus);
+} 
+
 void RVCore::do_ecall(const DecodeInfo &) {
     word_t code;
     switch (this->privMode) {
@@ -35,7 +42,7 @@ void RVCore::do_ecall(const DecodeInfo &) {
 // changed to y; xPIE is set to 1; and xPP is set to the least-privileged supported mode (U if U-mode is
 // implemented, else M). If y≠M, xRET also sets MPRV=0.
 void RVCore::do_mret(const DecodeInfo &) {
-    word_t mstatus = *this->mstatus;
+    word_t mstatus = this->get_csr_core(CSR_MSTATUS);
     
     // change to previous privilege mode
     word_t mpp = ((mstatus) >> STATUS_MPP_OFF) & 0x3;
@@ -51,14 +58,12 @@ void RVCore::do_mret(const DecodeInfo &) {
 
     // set mstatus.MPP to the lowest privilege mode
     mstatus = (mstatus & ~STATUS_MPP_MASK) | (PrivMode::USER << STATUS_MPP_OFF);
-
-    *this->mstatus = mstatus;
     
-    this->npc = this->csr.read_csr(CSR_MEPC);
+    this->npc = this->get_csr_core(CSR_MEPC);
 }
 
 void RVCore::do_sret(const DecodeInfo &) {    
-    word_t mstatus = *this->mstatus;
+    word_t mstatus = this->get_csr_core(CSR_MSTATUS);
 
     // change to previous privilege mode
     word_t spp = (mstatus >> STATUS_SPP_OFF) & 0x1;
@@ -78,8 +83,8 @@ void RVCore::do_sret(const DecodeInfo &) {
     // set mstatus.MPRV to 0
     mstatus &= ~STATUS_MPRV_OFF;
 
-    *this->mstatus = mstatus;
-    this->npc = this->csr.read_csr(CSR_SEPC);
+    this->set_csr_core(CSR_MSTATUS, mstatus);
+    this->npc = this->get_csr_core(CSR_SEPC);
 }
 
 void RVCore::do_ebreak(const DecodeInfo &) {

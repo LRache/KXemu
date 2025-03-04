@@ -161,6 +161,8 @@
 #define STATUS_MPP_MASK  (3 << STATUS_MPP_OFF)
 #define STATUS_MPRV_MASK (1 << STATUS_MPRV_OFF)
 
+#define STATUS_MIE(status) ((status & (1 << STATUS_MIE_OFF)) >> STATUS_MIE_OFF)
+#define STATUS_SIE(status) ((status & (1 << STATUS_SIE_OFF)) >> STATUS_SIE_OFF)
 #define STATUS_SUM(status) ((status & (1 << STATUS_SUM_OFF)) >> STATUS_SUM_OFF)
 
 #define MCNTEN_CY_MASK (1 << 0)

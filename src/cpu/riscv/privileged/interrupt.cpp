@@ -129,14 +129,17 @@ static constexpr word_t INTER_BITS[] = {
 };
 
 bool RVCore::scan_interrupt() {
-    if (likely(this->privMode == PrivMode::MACHINE    && !(*this->mstatus & STATUS_MIE_MASK))) return false;
-    if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & STATUS_SIE_MASK))) return false;
+    // if (likely(this->privMode == PrivMode::MACHINE    && !(*this->mstatus & STATUS_MIE_MASK))) return false;
+    if (likely(this->privMode == PrivMode::MACHINE    && !(this->mstatus.mie))) return false;
+    // if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & STATUS_SIE_MASK))) return false;
+    if (likely(this->privMode == PrivMode::SUPERVISOR && !(this->mstatus.sie))) return false;
 
     if (*this->mip == 0) return false;
 
     // Machine level interrupt
     word_t pending;
-    if (*this->mstatus & STATUS_MIE_MASK) {
+    // if (*this->mstatus & STATUS_MIE_MASK) {
+    if (this->mstatus.mie) {
         pending = *this->mip & *this->mie & ~*this->mideleg;
         if (pending) {
             for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {
@@ -149,7 +152,8 @@ bool RVCore::scan_interrupt() {
     }
     
     // Supervisor level interrupt
-    if (*this->mstatus & STATUS_SIE_MASK) {
+    if (this->mstatus.sie) {
+    // if (*this->mstatus & STATUS_SIE_MASK) {
         pending = *this->mip & *this->mie & *this->mideleg;
         if (pending) {
             for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {

@@ -39,7 +39,9 @@ int main() {
 
     printf("Hello, World! This is KXemu!\n");
     
-    wfi();
+    while (1) {
+        wfi();
+    }
     
     return 0;
 }
