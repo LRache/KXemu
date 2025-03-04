@@ -1,5 +1,6 @@
 #include "utils/utils.h"
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -38,12 +39,14 @@ static uint64_t s_to_u_hex(const std::string &s, bool &success) {
     return result;
 }
 
-uint64_t utils::string_to_unsigned(const std::string &s) {
+std::optional<uint64_t> utils::string_to_unsigned(const std::string &s) {
     bool success;
     if (s.size() > 2 && s[0] == '0' && s[1] == 'x') {
-        return s_to_u_hex(s.substr(2), success);
+        uint64_t r = s_to_u_hex(s.substr(2), success);
+        return success ? std::optional<uint64_t>(r) : std::nullopt;
     } else {
-        return s_to_u(s, success);
+        uint64_t r = s_to_u(s, success);
+        return success ? std::optional<uint64_t>(r) : std::nullopt;
     }
 }
 

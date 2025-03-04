@@ -330,5 +330,5 @@ void AClint::update_core_mtimecmp(unsigned int coreID) {
 }
 
 const char *AClint::get_type_name() const {
-    return "RISC-V AClint";
+    return "AClint";
 }

@@ -10,4 +10,4 @@ LDFLAGS += -T $(AM_DIR)/scripts/linker.ld \
            -melf64lriscv
 
 QEMU = qemu-system-riscv64
-QEMU_FLAGS += -machine virt,aclint=on -nographic -bios none -semihosting
+QEMU_FLAGS += -machine virt,aclint=on -nographic -bios none

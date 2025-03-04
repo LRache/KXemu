@@ -38,8 +38,8 @@ namespace kxemu::kdb {
     // Uart
     namespace uart{
         extern std::vector<kxemu::device::Uart16650 *> list;
-        bool add(word_t base, std::ostream &os);
-        bool add(word_t base, const std::string &ip, int port);
+        bool add(unsigned int id, word_t base, std::ostream &os);
+        bool add(unsigned int id, word_t base, const std::string &ip, int port);
         bool puts(std::size_t index, const std::string &s);
 
         void deinit();

@@ -21,8 +21,8 @@ void RVCPU::init(Bus *bus, int flags, unsigned int coreCount) {
     }
     this->aclint.init(this->cores, coreCount);
     this->plic.init(this->cores, coreCount);
-    bus->add_mmio_map("aclint", ACLINT_BASE, ACLINT_SIZE, &aclint);
-    bus->add_mmio_map("plic", PLIC_BASE, PLIC_SIZE, &plic);
+    bus->add_mmio_map(ACLINT_BASE, ACLINT_SIZE, &aclint);
+    bus->add_mmio_map(PLIC_BASE, PLIC_SIZE, &plic);
     this->coreCount = coreCount;
 }
 

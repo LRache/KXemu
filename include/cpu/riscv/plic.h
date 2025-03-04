@@ -35,6 +35,10 @@ public:
     void connect_to_bus(Bus *bus) override;
 
     void scan_and_set_interrupt(unsigned int hartid, int privMode);
+
+    const char *get_type_name() const override {
+        return "PLIC";
+    }
 };
 
 } // namespace kxemu::cpu

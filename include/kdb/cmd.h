@@ -44,6 +44,7 @@ namespace kxemu::kdb::cmd {
     int breakpoint(const args_t &); // set breakpoint
     int show_mem(const args_t &);
     int gdb     (const args_t &); // run gdb rsp
+    int device  (const args_t &); // device command
 
     // do command return code
     enum Code {

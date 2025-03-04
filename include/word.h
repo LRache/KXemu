@@ -27,5 +27,6 @@
 #endif // KXEMU_ISA64
 
 #define FMT_STREAM_WORD(word)  "0x" << std::hex << std::setfill('0') << word << std::dec
+#define FMT_STREAM_WORD_SPACE(word)  std::setw(WORD_WIDTH + 2) << std::setfill(' ') << std::showbase << std::hex << word << std::dec << std::noshowbase
 
 #endif

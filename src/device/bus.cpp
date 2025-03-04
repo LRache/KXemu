@@ -31,7 +31,7 @@ Bus::MMIOMapBlock *Bus::match_mmio(word_t addr, word_t length) const {
     return nullptr;
 }
 
-bool Bus::add_memory_map(const std::string &name, word_t start, word_t size) {
+bool Bus::add_memory_map(word_t start, word_t size) {
     // check if overlap
     for (auto &m : memoryMaps) {
         if (m->start <= start && start < m->end) {
@@ -43,7 +43,6 @@ bool Bus::add_memory_map(const std::string &name, word_t start, word_t size) {
     }
     
     auto m = new MemoryBlock;
-    m->name = name;
     m->start = start;
     m->end = start + size;
     m->data = new((std::align_val_t)8) uint8_t[size];
@@ -52,7 +51,7 @@ bool Bus::add_memory_map(const std::string &name, word_t start, word_t size) {
     return true;
 }
 
-bool Bus::add_mmio_map(const std::string &name, unsigned int id, word_t start, word_t length, MMIOMap *map) {
+bool Bus::add_mmio_map(unsigned int id, word_t start, word_t length, MMIOMap *map) {
     // check if overlap
     for (auto &m : mmioMaps) {
         if (m->start <= start && start < m->start + m->size) {
@@ -64,7 +63,6 @@ bool Bus::add_mmio_map(const std::string &name, unsigned int id, word_t start, w
     }
 
     auto m = new MMIOMapBlock;
-    m->name = name;
     m->start = start;
     m->size = length;
     m->map = map;
@@ -74,8 +72,8 @@ bool Bus::add_mmio_map(const std::string &name, unsigned int id, word_t start, w
     return true;
 }
 
-bool Bus::add_mmio_map(const std::string &name, word_t start, word_t length, MMIOMap *map) {
-    return this->add_mmio_map(name, 1, start, length, map);
+bool Bus::add_mmio_map(word_t start, word_t length, MMIOMap *map) {
+    return this->add_mmio_map(0, start, length, map);
 }
 
 void Bus::free_all() {

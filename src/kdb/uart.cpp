@@ -7,8 +7,8 @@ using kxemu::device::Uart16650;
 
 std::vector<Uart16650 *> kdb::uart::list;
 
-static bool add_uart_map(kdb::word_t base, Uart16650 *uart) {
-    if (!kdb::bus->add_mmio_map("uart" + std::to_string(kdb::uart::list.size()), base, UART_LENGTH, uart)) {
+static bool add_uart_map(unsigned int id, kdb::word_t base, Uart16650 *uart) {
+    if (!kdb::bus->add_mmio_map(id, base, UART_LENGTH, uart)) {
         // Add memory map failed, free
         delete uart;
         return false;
@@ -17,22 +17,22 @@ static bool add_uart_map(kdb::word_t base, Uart16650 *uart) {
     return true; 
 }
 
-bool kdb::uart::add(word_t base, std::ostream &os) {
+bool kdb::uart::add(unsigned int id, word_t base, std::ostream &os) {
     Uart16650 *uart = new Uart16650();
-    if (!add_uart_map(base, uart)) {
+    if (!add_uart_map(id, base, uart)) {
         return false;
     }
     uart->set_output_stream(os);
     return true;
 }
 
-bool kdb::uart::add(word_t base, const std::string &ip, int port) {
+bool kdb::uart::add(unsigned int id, word_t base, const std::string &ip, int port) {
     Uart16650 *uart = new Uart16650();
     if (!uart->open_socket(ip, port)) {
         delete uart;
         return false;
     }
-    if (!add_uart_map(base, uart)) {
+    if (!add_uart_map(id, base, uart)) {
         return false;
     }
     return true;

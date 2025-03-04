@@ -6,8 +6,7 @@
 #include "utils/spinlock.h"
 
 #include <vector>
-#include <string>
-
+#include <iostream>
 #include <cstdint>
 
 namespace kxemu::device {
@@ -20,7 +19,6 @@ public:
     ~Bus();
 
     struct MemoryBlock {
-        std::string name;
         word_t start;
         word_t end;
         uint8_t *data;
@@ -28,7 +26,6 @@ public:
     std::vector<MemoryBlock *> memoryMaps;
 
     struct MMIOMapBlock {
-        std::string name;
         word_t start;
         word_t size;
         unsigned int id = 0;
@@ -38,9 +35,9 @@ public:
 
     MMIOMapBlock *match_mmio  (word_t addr, word_t length = 0) const;
     MemoryBlock  *match_memory(word_t addr, word_t length = 0) const;
-    bool add_mmio_map  (const std::string &name, unsigned int id, word_t start, word_t length, MMIOMap *map);
-    bool add_mmio_map  (const std::string &name, word_t start, word_t length, MMIOMap *map);
-    bool add_memory_map(const std::string &name, word_t start, word_t length);
+    bool add_mmio_map  (unsigned int id, word_t start, word_t length, MMIOMap *map);
+    bool add_mmio_map  (word_t start, word_t size, MMIOMap *map);
+    bool add_memory_map(word_t start, word_t size);
     void free_all();
 
     word_t read (word_t addr, word_t length, bool &valid) const;

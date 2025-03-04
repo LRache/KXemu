@@ -2,13 +2,14 @@
 #define __KXEMU_UTILS_UTILS_H__
 
 #include <chrono>
-#include <cstdint>
-#include <ctime>
+#include <optional>
 #include <string>
 #include <vector>
+#include <cstdint>
+#include <ctime>
 
 namespace kxemu::utils {
-    uint64_t string_to_unsigned(const std::string &s);
+    std::optional<uint64_t> string_to_unsigned(const std::string &s);
     uint64_t string_to_unsigned(const std::string &s, bool &success);
     std::vector<std::string> string_split(const std::string &s, const char delim);
 

@@ -48,7 +48,8 @@ static const cmd::cmd_map_t cmdMap = {
     {"break", cmd::breakpoint},
     {"x"    , cmd::show_mem},
     {"uart" , cmd::uart},
-    {"gdb"  , cmd::gdb}
+    {"gdb"  , cmd::gdb},
+    {"device", cmd::device}
 };
 
 static bool cmdRunning = true;

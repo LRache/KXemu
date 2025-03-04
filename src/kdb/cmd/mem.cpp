@@ -58,7 +58,7 @@ static int cmd_mem_create(const std::vector<std::string> &args) {
         return cmd::InvalidArgs;
     }
     
-    s = kdb::bus->add_memory_map(name, start, size);
+    s = kdb::bus->add_memory_map(start, size);
     if (s) {
         std::cout << "Create new memory map " << name << " at " << FMT_STREAM_WORD(start) << " with size=" <<  FMT_STREAM_WORD(size) << std::endl;
         return cmd::Success;
@@ -99,14 +99,12 @@ static int cmd_mem_map(const cmd::args_t &) {
 
     for (auto &m : kdb::bus->memoryMaps) {
         std::cout << std::setfill(' ')
-        << std::setw(10) << m->name << " | "
         << FMT_STREAM_WORD(m->start)  << " | "
         << FMT_STREAM_WORD(m->start - m->end) << " | "
         << std::setw(6) << "Memory" << std::endl;
     }
     for (auto &m : kdb::bus->mmioMaps) {
         std::cout << std::setfill(' ')
-        << std::setw(10) << m->name << " | "
         << FMT_STREAM_WORD(m->start)  << " | "
         << FMT_STREAM_WORD(m->size) << " | "
         << std::setw(6) << m->map->get_type_name() << std::endl;

@@ -23,36 +23,37 @@ static int cmd_uart_add(const cmd::args_t &args) {
         return cmd::InvalidArgs;
     }
     
-    bool s;
-    word_t base = utils::string_to_unsigned(args[2], s);
-    if (!s) {
-        std::cout << "Invalid address: " << args[2] << std::endl;
-        return cmd::InvalidArgs;
-    }
+    // bool s;
+    // word_t base = utils::string_to_unsigned(args[2], s);
+    // if (!s) {
+    //     std::cout << "Invalid address: " << args[2] << std::endl;
+    //     return cmd::InvalidArgs;
+    // }
     
-    if (args.size() == 3) {
-        if (kdb::uart::add(base, std::cout)) {
-            std::cout << "UART added at base " << std::hex << base << std::dec << std::endl;
-            return cmd::Success;
-        } else {
-            return cmd::CmdError;
-        }
-    } else {
-        bool s;
-        int port = utils::string_to_unsigned(args[3], s);
-        if (!s) {
-            std::cout << "Invalid port: " << args[3] << std::endl;
-            return cmd::InvalidArgs;
-        }
+    // if (args.size() == 3) {
+    //     if (kdb::uart::add(base, std::cout)) {
+    //         std::cout << "UART added at base " << std::hex << base << std::dec << std::endl;
+    //         return cmd::Success;
+    //     } else {
+    //         return cmd::CmdError;
+    //     }
+    // } else {
+    //     bool s;
+    //     int port = utils::string_to_unsigned(args[3], s);
+    //     if (!s) {
+    //         std::cout << "Invalid port: " << args[3] << std::endl;
+    //         return cmd::InvalidArgs;
+    //     }
 
-        if (kdb::uart::add(base, "127.0.0.1", port)) {
-            std::cout << "UART added at base " << FMT_STREAM_WORD(base) << " port " << port << std::endl;
-            return cmd::Success;
-        } else {
-            std::cout << "Failed to add UART." << std::endl;
-            return cmd::CmdError;
-        }
-    }
+    //     if (kdb::uart::add(base, "127.0.0.1", port)) {
+    //         std::cout << "UART added at base " << FMT_STREAM_WORD(base) << " port " << port << std::endl;
+    //         return cmd::Success;
+    //     } else {
+    //         std::cout << "Failed to add UART." << std::endl;
+    //         return cmd::CmdError;
+    //     }
+    // }
+    return cmd::CmdError;
 }
 
 static int cmd_uart_puts(const cmd::args_t &args) {
