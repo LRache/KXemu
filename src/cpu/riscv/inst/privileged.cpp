@@ -19,13 +19,6 @@ void RVCore::set_priv_mode(int mode) {
     this->privMode = mode;
 }
 
-void RVCore::update_mstatus() {
-    const word_t mstatus = this->csr.read_csr(CSR_MSTATUS);
-    this->mstatus.mie = STATUS_MIE(mstatus);
-    this->mstatus.sie = STATUS_SIE(mstatus);
-    this->mstatus.sum = STATUS_SUM(mstatus);
-} 
-
 void RVCore::do_ecall(const DecodeInfo &) {
     word_t code;
     switch (this->privMode) {
@@ -58,7 +51,8 @@ void RVCore::do_mret(const DecodeInfo &) {
 
     // set mstatus.MPP to the lowest privilege mode
     mstatus = (mstatus & ~STATUS_MPP_MASK) | (PrivMode::USER << STATUS_MPP_OFF);
-    
+
+    this->set_csr_core(CSR_MSTATUS, mstatus);
     this->npc = this->get_csr_core(CSR_MEPC);
 }
 

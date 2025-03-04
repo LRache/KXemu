@@ -32,3 +32,10 @@ void RVCore::set_csr_core(unsigned int addr, word_t value) {
     bool valid = this->csr.write_csr(addr, value);
     SELF_PROTECT(valid, "Set csr failed.");
 }
+
+void RVCore::update_mstatus() {
+    const word_t mstatus = this->csr.read_csr(CSR_MSTATUS);
+    this->mstatus.mie = STATUS_MIE(mstatus);
+    this->mstatus.sie = STATUS_SIE(mstatus);
+    this->mstatus.sum = STATUS_SUM(mstatus);
+} 

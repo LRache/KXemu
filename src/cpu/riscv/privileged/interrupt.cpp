@@ -76,7 +76,7 @@ void RVCore::clear_external_interrupt_s() {
 }
 
 void RVCore::interrupt_m(word_t code) {
-    this->csr.write_csr(CSR_MEPC, this->pc);
+    this->csr.write_csr(CSR_MEPC, this->npc);
     this->csr.write_csr(CSR_MCAUSE, code | CAUSE_INTERRUPT_MASK);
     this->csr.write_csr(CSR_MTVAL, 0);
 
@@ -98,7 +98,7 @@ void RVCore::interrupt_m(word_t code) {
 }
 
 void RVCore::interrupt_s(word_t code) {    
-    this->csr.write_csr(CSR_SEPC, this->pc);
+    this->csr.write_csr(CSR_SEPC, this->npc);
     this->csr.write_csr(CSR_SCAUSE, code | CAUSE_INTERRUPT_MASK);
     this->csr.write_csr(CSR_STVAL, 0);
 
@@ -129,6 +129,7 @@ static constexpr word_t INTER_BITS[] = {
 };
 
 bool RVCore::scan_interrupt() {
+    // INFO(FMT_WORD ", %d", this->get_csr_core(CSR_MSTATUS), this->mstatus.mie);
     // if (likely(this->privMode == PrivMode::MACHINE    && !(*this->mstatus & STATUS_MIE_MASK))) return false;
     if (likely(this->privMode == PrivMode::MACHINE    && !(this->mstatus.mie))) return false;
     // if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & STATUS_SIE_MASK))) return false;

@@ -45,20 +45,19 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     this->state = RUNNING;
     if (n == 0) {
         while (this->state == RUNNING) {            
+            
+            this->execute();
+
             // Interrupt
             if (unlikely(i & 0x2000)) {
                 i = 0;
                 this->bus->update();
                 this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
-                if (this->scan_interrupt()) {
-                    this->pc = this->npc;
-                    continue;
-                }
+                this->scan_interrupt();
             }
             
-            this->execute();
-            
             this->pc = this->npc;
+            
             i++;
         }
     } else {
