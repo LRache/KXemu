@@ -2,16 +2,13 @@
 #include "am-dev.h"
 #include "klib.h"
 
-#ifdef __QEMU
-#endif
-
 #define UART_BASE 0x10000000
 #define UART_IER (*(volatile uint8_t *)(UART_BASE + 1))
 
 #define PLIC_BASE 0x0C000000
 #define PLIC_R(x) (*(volatile uint32_t *)(PLIC_BASE + (x)))
 
-Context *handler(Context *context) {
+Context *handler(Context *context) {    
     uint8_t c = __uart_rx();
     __am_uart_tx(c);
     
