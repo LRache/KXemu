@@ -247,7 +247,6 @@ void Uart16650::recv_byte(uint8_t c) {
         if (ier & 0x01) {
             iir = 0b10 | 0b11000000; // Interrupt Pending
             this->interrput = true;
-            INFO("UART interrupt pending.");
         }
     }
 }

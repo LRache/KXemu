@@ -63,11 +63,15 @@ static int device_add_uart(unsigned int id, const cmd::args_t &args) {
 
     bool success;
     if (args.size() == 5) {
+        // [0]device [1]add [2]uart [3]id [4]base
         success = kdb::uart::add(id, base.value(), std::cout);
     } else if (args.size() == 6) {
-        success =  kdb::uart::add(id, base.value(), "127.0.0.1", std::stoi(args[4]));
-        std::cout << "uart.ip=" << "127.0.0.1" << ", uart.port=" << std::stoi(args[4]) << std::endl;
+        // [0]device [1]add [2]uart [3]id [4]base [5]port
+        int port = std::stoi(args[5]);
+        std::cout << "uart.ip=" << "127.0.0.1" << ", uart.port=" << port << std::endl;
+        success =  kdb::uart::add(id, base.value(), "127.0.0.1", port);
     } else {
+        // [0]device [1]add [2]uart [3]id [4]base [5]ip [6]port
         success = kdb::uart::add(id, base.value(), args[4], std::stoi(args[5]));
     }
 

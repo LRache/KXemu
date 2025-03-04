@@ -47,7 +47,6 @@ static const cmd::cmd_map_t cmdMap = {
     {"info" , cmd::info },
     {"break", cmd::breakpoint},
     {"x"    , cmd::show_mem},
-    {"uart" , cmd::uart},
     {"gdb"  , cmd::gdb},
     {"device", cmd::device}
 };
