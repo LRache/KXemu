@@ -3,17 +3,6 @@
 
 #include "./local-decoder.h"
 #include "cpu/word.h"
-#include "debug.h"
-
-// #define CSR unsigned int csrAddr = BITS(31, 20)
-// #define RD  unsigned int rd  = BITS(11, 7)
-// #define RS1 unsigned int rs1 = BITS(19, 15)
-// #define IMM word_t imm = BITS(19, 15)
-
-// #define CSR unsigned int csrAddr = decodeInfo.csr
-// #define RD  unsigned int rd  = decodeInfo.rd
-// #define RS1 unsigned int rs1 = decodeInfo.rs1
-// #define IMM word_t imm = decodeInfo.imm
 
 #define REQUIRE_WRITABLE do {if (IS_CSR_READ_ONLY(CSR)) {do_invalid_inst(); return;}} while(0);
 #define CHECK_SUCCESS do{if (!s) {do_invalid_inst(); return;}} while(0);
@@ -60,9 +49,7 @@ void RVCore::do_csrrc(const DecodeInfo &decodeInfo) {
     }
 }
 
-void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {
-    // CSR; RD; IMM;
-    
+void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {  
     REQUIRE_WRITABLE;
     
     bool s;
@@ -77,11 +64,10 @@ void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_csrrsi(const DecodeInfo &decodeInfo) {
-    // CSR; RD; IMM;
     bool s;
     word_t value = this->read_csr(CSR, s);
     CHECK_SUCCESS;
-    // this->set_gpr(rd, value);
+
     DEST = value;
     if (IMM != 0) {
         REQUIRE_WRITABLE;
@@ -91,11 +77,10 @@ void RVCore::do_csrrsi(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_csrrci(const DecodeInfo &decodeInfo) {
-    // CSR; RD; IMM;
     bool s;
     word_t value = this->read_csr(CSR, s);
     CHECK_SUCCESS;
-    // this->set_gpr(rd, value);
+
     DEST = value;
     if (IMM != 0) {
         REQUIRE_WRITABLE;

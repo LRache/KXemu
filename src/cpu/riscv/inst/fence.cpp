@@ -1,5 +1,4 @@
 #include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
 
 using namespace kxemu::cpu;
 
