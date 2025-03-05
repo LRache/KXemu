@@ -32,7 +32,7 @@ ifeq ($(CONFIG_DEBUG), y)
 	CXXFLAGS += -g -O0 -fsanitize=address
 	LDFLAGS  += -g -O0 -fsanitize=address
 else
-	CXXFLAGS += -Ofast -O3
+	CXXFLAGS += -Ofast -O3 -mavx2 -march=native
 endif
 
 ifneq ($(CORECOUNT), )

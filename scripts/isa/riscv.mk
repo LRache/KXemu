@@ -6,12 +6,12 @@ INSTPAT_SRC_FILES = $(addprefix $(INSTPAT_SRC_DIR)/, $(addsuffix .instpat, $(INS
 
 INSTPAT_DST_FILES = $(addprefix $(INSTPAT_DST_DIR)/, $(addsuffix -decoder.h, $(INSTPAT_NAMES)))
 
-DECODE_GEN_SCRIPT = ./scripts/decoder-gen/main.py
+DECODE_GEN_SCRIPT = ./scripts/riscv-decoder-gen/main.py
 
 $(INSTPAT_DST_DIR)/%-decoder.h: $(INSTPAT_SRC_DIR)/%.instpat $(DECODE_GEN_SCRIPT)
 	$(info + GEN $@)
 	@ mkdir -p $(INSTPAT_DST_DIR)
-	@ python3 $(DECODE_GEN_SCRIPT) --input $< --output $@ --format "this->decode_insttype_{arg1}(); this->do_{name}(this->gDecodeInfo); return &RVCore::do_{name};"
+	@ python3 $(DECODE_GEN_SCRIPT) --input $< --output $@
 
 instpat: $(INSTPAT_DST_FILES)
 

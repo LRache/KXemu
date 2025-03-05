@@ -6,10 +6,10 @@ class InstType(Enum):
     Both = 2
 
 class InstPattern():
-    def __init__(self, pattern: str, arg0: str, arg1: str, t: InstType):
-        self.arg0 = arg0
-        self.arg1 = arg1
-        self.t = t
+    def __init__(self, pattern: str, instName: str, decoderName: str, instType: InstType):
+        self.instName = instName
+        self.decoderName = decoderName
+        self.instType = instType
 
         mask = 0
         length = 0
