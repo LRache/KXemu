@@ -60,6 +60,12 @@ void RVCore::reset(word_t entry) {
         this->icache[i].valid = false;
     }
     #endif
+
+    #ifdef CONFIG_DCache
+    for (unsigned int i = 0; i < sizeof(this->dcache) / sizeof(this->dcache[0]); i++) {
+        this->dcache[i].valid = false;
+    }
+    #endif
 }
 
 uint64_t RVCore::get_uptime() {
