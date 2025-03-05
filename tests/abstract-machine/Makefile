@@ -12,7 +12,7 @@ ARCH_NAME = $(ARCH)-$(NAME)
 
 ELF     = $(BUILD_DIR)/$(ARCH_NAME).elf
 ARCHIVE = $(BUILD_DIR)/$(ARCH_NAME).a
-ASM     = $(BUILD_DIR)/$(ARCH_NAME).txt
+ASM     = $(BUILD_DIR)/$(ARCH_NAME).asm
 
 BUILD_DIR := build
 OBJ_DIR   := build/$(ARCH)
@@ -45,7 +45,7 @@ OBJDUMP = $(CROSS_COMPILE)-objdump
 
 INC_PATH += $(foreach name, $(LIBS), $(AM_DIR)/$(name)/include)
 
-CFLAGS += -nostdlib -fno-stack-protector -O3 -fno-builtin -fno-asynchronous-unwind-tables
+CFLAGS += -nostdlib -fno-stack-protector -g -O3 -fno-builtin -fno-asynchronous-unwind-tables
 CFLAGS += $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(CFLAGS) -fno-exceptions
 
@@ -100,7 +100,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cc
 $(ELF): $(OBJS) $(LIBS)
 	$(info + LD $@)
 	@ $(LD) $(OBJS) $(LIBS_ARCHIVE) -o $@ $(LDFLAGS)
-	@ $(OBJDUMP) -d $@ > $(ASM)
+	@ $(OBJDUMP) -S $@ > $(ASM)
 
 $(LIBS): %:
 	$(info + MAKELIB $@)
