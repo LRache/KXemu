@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include <immintrin.h>
+
 using namespace kxemu::cpu;
 
 RVCore::do_inst_t RVCore::decode_and_exec() {
