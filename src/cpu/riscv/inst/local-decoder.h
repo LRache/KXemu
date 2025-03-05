@@ -1,16 +1,35 @@
 #include "config/config.h"
 #include "debug.h"
 
+#define SEXT64(v) ((sword_t)(int32_t)(v))
+
 #ifdef CONFIG_DEBUG
-    #define RD  unsigned int rd  = decodeInfo.rd ; SELF_PROTECT(decodeInfo.rd_set , "decodeInfo.rd_set is false.");
-    #define RS1 unsigned int rs1 = decodeInfo.rs1; SELF_PROTECT(decodeInfo.rs1_set, "decodeInfo.rs1_set is false.");
-    #define RS2 unsigned int rs2 = decodeInfo.rs2; SELF_PROTECT(decodeInfo.rs2_set, "decodeInfo.rs2_set is false.");
-    #define CSR unsigned int csr = decodeInfo.csr; SELF_PROTECT(decodeInfo.csr_set, "decodeInfo.csr_set is false.");
-    #define IMM word_t       imm = decodeInfo.imm; SELF_PROTECT(decodeInfo.imm_set, "decodeInfo.imm_set is false.");
+    #define DEST (this->gpr[decodeInfo.rd ])
+    #define SRC1 (this->gpr[decodeInfo.rs1])
+    #define SRC2 (this->gpr[decodeInfo.rs2])
+    #define CSR  ( decodeInfo.csr)
+    #define IMM  ( decodeInfo.imm)
+
+    #define  rd_is_x0 (decodeInfo.rd  == 32)
+    #define rs1_is_x0 (decodeInfo.rs1 == 0 )
 #else
-    #define RD  unsigned int rd  = decodeInfo.rd ;
-    #define RS1 unsigned int rs1 = decodeInfo.rs1;
-    #define RS2 unsigned int rs2 = decodeInfo.rs2;
-    #define CSR unsigned int csr = decodeInfo.csr;
-    #define IMM word_t       imm = decodeInfo.imm;
+    // #define RD  unsigned int rd  = decodeInfo.rd ;
+    // #define RS1 unsigned int rs1 = decodeInfo.rs1;
+    // #define RS2 unsigned int rs2 = decodeInfo.rs2;
+    // #define CSR unsigned int csr = decodeInfo.csr;
+    // #define IMM word_t       imm = decodeInfo.imm;
+
+    // #define DEST (*decodeInfo.rd )
+    // #define SRC1 (*decodeInfo.rs1)
+    // #define SRC2 (*decodeInfo.rs2)
+    #define DEST (this->gpr[decodeInfo.rd ])
+    #define SRC1 (this->gpr[decodeInfo.rs1])
+    #define SRC2 (this->gpr[decodeInfo.rs2])
+    #define CSR  ( decodeInfo.csr)
+    #define IMM  ( decodeInfo.imm)
+
+    #define  rd_is_x0 (decodeInfo.rd  == 32)
+    #define rs1_is_x0 (decodeInfo.rs1 ==  0)
+    // #define  rd_is_x0 (decodeInfo.rd  == &this->gpr[32])
+    // #define rs1_is_x0 (decodeInfo.rs1 == &this->gpr[ 0])
 #endif

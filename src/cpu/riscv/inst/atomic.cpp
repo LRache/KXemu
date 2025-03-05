@@ -41,10 +41,11 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
 
 template<int len>
 void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
-    RD; RS1;
+    // RD; RS1;
 
     bool valid;
-    word_t addr = this->get_gpr(rs1);
+    // word_t addr = this->get_gpr(rs1);
+    word_t addr = SRC1;
     addr = this->amo_vaddr_translate_and_set_trap(addr, len, valid);
     if (!valid) return;
 
@@ -55,21 +56,24 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     }
 
     this->reservedMemory.insert(std::make_pair(addr, value));
-    this->set_gpr(rd, value);
+    // this->set_gpr(rd, value);
+    DEST = value;
 }
 
 template<int len>
 void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
-    RD; RS1; RS2;
+    // RD; RS1; RS2;
 
     bool valid;
-    word_t addr = this->get_gpr(rs1);
+    // word_t addr = this->get_gpr(rs1);
+    word_t addr = SRC1;
     addr = this->amo_vaddr_translate_and_set_trap(addr, len, valid);
     if (!valid) return;
 
     auto iter = this->reservedMemory.find(addr);
     if (iter == this->reservedMemory.end()) {
-        this->set_gpr(rd, 0);
+        // this->set_gpr(rd, 0);
+        DEST = 0;
         return;
     }
 
@@ -80,30 +84,32 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     }
 
     word_t expected = iter->second;
-    word_t desired  = this->get_gpr(rs2);
+    // word_t desired  = this->get_gpr(rs2);
+    word_t desired  = this->get_gpr(SRC2);
     bool success = __atomic_compare_exchange_n((word_t *)ptr, &expected, desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
-    this->set_gpr(rd, success ? 0 : 1);
+    // this->set_gpr(rd, success ? 0 : 1);
+    DEST = success ? 0 : 1;
 }
 
 template<kxemu::device::AMO amo, typename sw_t>
 void RVCore::do_amo_inst(const DecodeInfo &decodeInfo) {
-    RS1; RS2; RD;
-    constexpr int len = sizeof(sw_t);
+    // RS1; RS2; RD;
+    // constexpr int len = sizeof(sw_t);
 
-    bool valid;
-    word_t addr = this->get_gpr(rs1);
-    addr = this->amo_vaddr_translate_and_set_trap(addr, len, valid);
-    if (!valid) return;
+    // bool valid;
+    // word_t addr = this->get_gpr(rs1);
+    // addr = this->amo_vaddr_translate_and_set_trap(addr, len, valid);
+    // if (!valid) return;
 
-    word_t src = this->get_gpr(rs2);
-    sw_t oldValue = this->bus->do_atomic(addr, src, len, amo, valid); // signed extend
+    // word_t src = this->get_gpr(rs2);
+    // sw_t oldValue = this->bus->do_atomic(addr, src, len, amo, valid); // signed extend
     
-    if (!valid) {
-        this->trap(TRAP_AMO_ACCESS_FAULT, addr);
-        return;
-    }
+    // if (!valid) {
+    //     this->trap(TRAP_AMO_ACCESS_FAULT, addr);
+    //     return;
+    // }
 
-    this->set_gpr(rd, (sword_t)oldValue);
+    // this->set_gpr(rd, (sword_t)oldValue);
 }
 
 void RVCore::do_lr_w(const DecodeInfo &decodeInfo) {

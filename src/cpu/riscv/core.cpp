@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <cstring>
 
+#include <immintrin.h>
+
 using namespace kxemu::cpu;
 
 RVCore::RVCore() {    
@@ -105,20 +107,8 @@ word_t RVCore::get_gpr(unsigned int index) {
     return gpr[index];
 }
 
-word_t RVCore::get_gpr_core(unsigned int index) {
-    SELF_PROTECT(index < 32, "GPR index out of range");
-    return gpr[index];
-}
-
 void RVCore::set_gpr(unsigned int index, word_t value) {
     this->gpr[index] = value;
-    this->gpr[0] = 0;
-}
-
-void RVCore::set_gpr_core(unsigned int index, word_t value) {
-    SELF_PROTECT(index < 32, "GPR index out of range: %u", index);
-    this->gpr[index] = value;
-    this->gpr[0] = 0;
 }
 
 word_t RVCore::get_register(const std::string &name, bool &success) {

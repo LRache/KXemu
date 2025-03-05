@@ -78,7 +78,7 @@ private:
             unsigned int rs2;
             unsigned int csr;
         };
-        word_t imm;
+        word_t imm;       
 
     #ifdef CONFIG_DEBUG
         bool rd_set;
@@ -112,9 +112,7 @@ private:
     void interrupt_m(word_t code);
     void interrupt_s(word_t code);
     
-    word_t gpr[32];
-    word_t get_gpr_core(unsigned index);
-    void   set_gpr_core(unsigned index, word_t v);
+    word_t gpr[33];
 
     // Do instructions
     void do_invalid_inst();
@@ -137,10 +135,6 @@ private:
         bool sum;
     } mstatus;
 
-    // bool msip; // Machine-mode Software Interrupt Pending Flag
-    // bool ssip; // Supervisor-mode Software Interrupt Pending Flag
-
-    // word_t *mstatus;
     const word_t *mie;
     const word_t *mip;
     const word_t *medeleg;

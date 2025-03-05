@@ -1,6 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "config/config.h"
 #include "cpu/word.h"
+#include "macro.h"
 #include <cstdint>
 
 using namespace kxemu::cpu;
@@ -9,13 +10,13 @@ using namespace kxemu::cpu;
 #define SEXT(bits, from) (sword_t)((int32_t)((bits) << (32 - (from))) >> (32 - (from))) // Signed extend
 
 #ifdef CONFIG_DEBUG
-    #define set_rd(v)  this->gDecodeInfo.rd  = v; this->gDecodeInfo.rd_set  = true;
+    #define set_rd(v)  this->gDecodeInfo.rd  = unlikely((v) == 0) ? 32 : (v); this->gDecodeInfo.rd_set  = true;
     #define set_rs1(v) this->gDecodeInfo.rs1 = v; this->gDecodeInfo.rs1_set = true;
     #define set_rs2(v) this->gDecodeInfo.rs2 = v; this->gDecodeInfo.rs2_set = true;
     #define set_csr(v) this->gDecodeInfo.csr = v; this->gDecodeInfo.csr_set = true;
     #define set_imm(v) this->gDecodeInfo.imm = v; this->gDecodeInfo.imm_set = true;
 #else
-    #define set_rd(v)  this->gDecodeInfo.rd  = v;
+    #define set_rd(v)  this->gDecodeInfo.rd  = unlikely((v) == 0) ? 32 : (v);
     #define set_rs1(v) this->gDecodeInfo.rs1 = v;
     #define set_rs2(v) this->gDecodeInfo.rs2 = v;
     #define set_csr(v) this->gDecodeInfo.csr = v;

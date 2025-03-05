@@ -118,9 +118,9 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         word_t offset = addr & 0b11;
         valid = true;
         if (offset == 0) {
-            return this->cores[coreID].mtimecmp & 0xffffffffUL;
+            return this->coreObjects[coreID].mtimecmp & 0xffffffffUL;
         } else {
-            return this->cores[coreID].mtimecmp >> 32;
+            return this->coreObjects[coreID].mtimecmp >> 32;
         }
         #endif
     } else if (IN_RANGE(addr, MTIME)) {
