@@ -46,8 +46,8 @@ s_mode_entry:
     la a0, str3
     call puts
 
-    li a0, 0
-    ebreak
+    mv a0, zero
+    call halt
 
 .section .data
 str1:
