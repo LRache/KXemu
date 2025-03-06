@@ -8,15 +8,7 @@
 using namespace kxemu;
 using namespace kxemu::kdb;
 
-static int cmd_info_gpr(const cmd::args_t &args);
-static int cmd_info_pc(const cmd::args_t &args);
-
-static const cmd::cmd_map_t cmdMap = {
-    {"gpr", cmd_info_gpr},
-    {"pc", cmd_info_pc},
-};
-
-static int cmd_info_gpr(const cmd::args_t &) {
+static int cmd_info_gpr() {
     auto core = kdb::cpu->get_core(cmd::currentCore);
     for (unsigned int i = 0; i < isa::get_gpr_count(); i++) {
         word_t value = core->get_gpr(i);
@@ -27,13 +19,28 @@ static int cmd_info_gpr(const cmd::args_t &) {
     return cmd::Success;
 }
 
-static int cmd_info_pc(const cmd::args_t &) {
-    auto core = kdb::cpu->get_core(cmd::currentCore);
-    word_t pc = core->get_pc();
-    std::cout << "pc = " << FMT_STREAM_WORD(pc) << std::endl;
+static int cmd_info_reg(const std::string &name) {
+    bool success;
+    word_t v = kdb::cpu->get_core(cmd::currentCore)->get_register(name, success);
+    
+    if (!success) {
+        std::cout << "Register not found: " << name << std::endl;
+        return cmd::InvalidArgs;
+    }
+
+    std::cout << name <<" = " << FMT_STREAM_WORD(v) << std::endl;
     return cmd::Success;
 }
 
 int cmd::info(const args_t &args) {
-    return cmd::find_and_run(args, cmdMap, 1);
+    if (args.size() < 2) {
+        std::cout << "Usage: info gpr/pc" << std::endl;
+        return cmd::EmptyArgs;
+    }
+
+    if (args[1] == "gpr") {
+        return cmd_info_gpr();
+    } else {
+        return cmd_info_reg(args[1]);
+    }
 }

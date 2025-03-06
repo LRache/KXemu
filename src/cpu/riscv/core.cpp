@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "device/bus.h"
 #include "log.h"
+#include "macro.h"
 
 #include <cstdint>
 #include <cstring>
@@ -119,20 +120,38 @@ void RVCore::set_gpr(unsigned int index, word_t value) {
 
 word_t RVCore::get_register(const std::string &name, bool &success) {
     success = true;
+    
+    static const char* gprNames[] = {
+        "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+        "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+        "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+        "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+    };
+    unsigned int i = 0;
+    for (i = 0; i <32; i++) {
+        if (name == gprNames[i]) {
+            return this->gpr[i];
+        }
+    }
+
     if (name == "pc") {
         return this->pc;
     } else if (name == "mstatus") {
-        return this->csr.read_csr(CSR_MSTATUS);
+        return this->get_csr_core(CSR_MSTATUS);
     } else if (name == "mie") {
-        return *this->mie;
+        return this->get_csr_core(CSR_MIE);
     } else if (name == "mip") {
-        return *this->mip;
+        return this->get_csr_core(CSR_MIP);
     } else if (name == "medeleg") {
-        return *this->medeleg;
-    } else {
-        success = false;
-        return 0;
+        return this->get_csr_core(CSR_MEDELEG);
+    } else if (name == "mcause") {
+        return this->get_csr_core(CSR_MCAUSE);
+    } else if (name == "mscratch") {
+        return this->get_csr_core(CSR_MSCRATCH);
     }
+    
+    success = false;
+    return 0;
 }
 
 word_t RVCore::get_halt_pc() {
