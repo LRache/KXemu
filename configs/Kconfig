@@ -45,9 +45,6 @@ config LOG
 config HINT
     bool "Show hints"
 
-config DEBUG
-    bool "DEBUG mode"
-
 menu "Cache"
 
 config ICache
@@ -55,5 +52,15 @@ config ICache
 
 config DCache
     bool "Enable DCache"
+
+endmenu
+
+menu "DEBUG mode"
+
+config DEBUG
+    bool "DEBUG mode"
+
+config DEBUG_DECODER
+    bool "DEBUG decoder" if DEBUG
 
 endmenu

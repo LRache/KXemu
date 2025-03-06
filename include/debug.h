@@ -20,7 +20,7 @@ do { \
 
 #else
 
-#define SELF_PROTECT(cond, ...) (void)cond;
+#define SELF_PROTECT(cond, ...) (void)(cond);
 
 #endif
 

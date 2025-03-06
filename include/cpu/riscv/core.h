@@ -80,7 +80,7 @@ private:
         };
         word_t imm;       
 
-    #ifdef CONFIG_DEBUG
+    #ifdef CONFIG_DEBUG_DECODER
         bool rd_set;
         bool rs1_set;
         bool rs2_set;
