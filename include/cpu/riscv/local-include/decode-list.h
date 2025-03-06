@@ -3,6 +3,7 @@
 _DECODE(r)
 _DECODE(i)
 _DECODE(shifti)
+_DECODE(shiftiw)
 _DECODE(s)
 _DECODE(b)
 _DECODE(u)

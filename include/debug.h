@@ -5,6 +5,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#ifdef CONFIG_DEBUG
+
 #define SELF_PROTECT(cond, ...) \
 do { \
     if (unlikely(!(cond))) { \
@@ -15,6 +17,12 @@ do { \
         exit(1); \
     } \
 } while(0);
+
+#else
+
+#define SELF_PROTECT(cond, ...) (void)cond;
+
+#endif
 
 #define NOT_IMPLEMENTED() \
 do { \

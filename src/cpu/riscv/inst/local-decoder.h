@@ -13,12 +13,6 @@
     #define  rd_is_x0 (decodeInfo.rd  == 32)
     #define rs1_is_x0 (decodeInfo.rs1 == 0 )
 #else
-    // #define RD  unsigned int rd  = decodeInfo.rd ;
-    // #define RS1 unsigned int rs1 = decodeInfo.rs1;
-    // #define RS2 unsigned int rs2 = decodeInfo.rs2;
-    // #define CSR unsigned int csr = decodeInfo.csr;
-    // #define IMM word_t       imm = decodeInfo.imm;
-
     // #define DEST (*decodeInfo.rd )
     // #define SRC1 (*decodeInfo.rs1)
     // #define SRC2 (*decodeInfo.rs2)
@@ -33,3 +27,9 @@
     // #define  rd_is_x0 (decodeInfo.rd  == &this->gpr[32])
     // #define rs1_is_x0 (decodeInfo.rs1 == &this->gpr[ 0])
 #endif
+
+#define TAG_RD  SELF_PROTECT(decodeInfo.rd_set, "decodeInfo.rd is not set by decoder.");
+#define TAG_RS1 SELF_PROTECT(decodeInfo.rs1_set, "decodeInfo.rs1 is not set by decoder.");
+#define TAG_RS2 SELF_PROTECT(decodeInfo.rs2_set, "decodeInfo.rs2 is not set by decoder.");
+#define TAG_IMM SELF_PROTECT(decodeInfo.imm_set, "decodeInfo.imm is not set by decoder.");
+#define TAG_CSR SELF_PROTECT(decodeInfo.csr_set, "decodeInfo.csr is not set by decoder.");

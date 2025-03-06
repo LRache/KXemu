@@ -45,6 +45,12 @@ void RVCore::decode_insttype_shifti() {
 #endif
 }
 
+void RVCore::decode_insttype_shiftiw() {
+    set_rd (BITS(11,  7));
+    set_rs1(BITS(19, 15));
+    set_imm(BITS(24, 20));
+}
+
 void RVCore::decode_insttype_s() {
     set_rs1(BITS(19, 15));
     set_rs2(BITS(24, 20));
