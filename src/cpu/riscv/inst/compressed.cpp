@@ -39,16 +39,16 @@ void RVCore::do_c_sw(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_c_j(const DecodeInfo &decodeInfo) {
-    TAG_IMM;
+    TAG_NPC;
     
-    this->npc = this->pc + IMM;
+    this->npc = NPC;
 }
 
 void RVCore::do_c_jal(const DecodeInfo &decodeInfo) {
-    TAG_IMM;
+    TAG_IMM; TAG_NPC;
     
     this->gpr[1] = this->pc + 2;
-    this->npc = this->pc + IMM;
+    this->npc = NPC;
 }
 
 void RVCore::do_c_jr(const DecodeInfo &decodeInfo) {
@@ -60,25 +60,25 @@ void RVCore::do_c_jr(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_c_jalr(const DecodeInfo &decodeInfo) {
-    TAG_RS1;
+    TAG_RS1; TAG_NPC;
     
-    this->gpr[1] = this->pc + 2;
+    this->gpr[1] = NPC;
     this->npc = SRC1;
 }
 
 void RVCore::do_c_beqz(const DecodeInfo &decodeInfo) {
-    TAG_RS1; TAG_IMM;
+    TAG_RS1; TAG_NPC;
     
     if (unlikely(SRC1 == 0)) {
-        this->npc = this->pc + IMM;
+        this->npc = NPC;
     }
 }
 
 void RVCore::do_c_bnez(const DecodeInfo &decodeInfo) {
-    TAG_RS1; TAG_IMM;
+    TAG_RS1; TAG_NPC;
     
     if (unlikely(SRC1 != 0)) {
-        this->npc = this->pc + IMM;
+        this->npc = NPC;
     }
 }
 
@@ -198,13 +198,13 @@ void RVCore::do_c_ldsp(const DecodeInfo &decodeInfo) {
     
     REQUIRE_NOT_x0(rd);
 
-    DEST = this->memory_load(this->gpr[2] + IMM, 8);
+    DEST = this->memory_load(SP + IMM, 8);
 }
 
 void RVCore::do_c_sdsp(const DecodeInfo &decodeInfo) {
     TAG_RS2; TAG_IMM;
     
-    this->memory_store(this->gpr[2] + IMM, SRC2, 8);
+    this->memory_store(SP + IMM, SRC2, 8);
 }
 
 void RVCore::do_c_ld(const DecodeInfo &decodeInfo) {

@@ -78,7 +78,10 @@ private:
             unsigned int rs2;
             unsigned int csr;
         };
-        word_t imm;       
+        union {
+            word_t imm;
+            word_t npc;
+        };
 
     #ifdef CONFIG_DEBUG_DECODER
         bool rd_set;
@@ -86,6 +89,7 @@ private:
         bool rs2_set;
         bool csr_set;
         bool imm_set;
+        bool npc_set;
     #endif
     };
     DecodeInfo gDecodeInfo;
@@ -111,8 +115,6 @@ private:
     bool scan_interrupt();
     void interrupt_m(word_t code);
     void interrupt_s(word_t code);
-    
-    word_t gpr[33];
 
     // Do instructions
     void do_invalid_inst();
@@ -170,6 +172,7 @@ private:
     bool icache_decode_and_exec();
     void icache_fence();
     
+    word_t gpr[33];
 
     // Experimental DCache
     #ifdef CONFIG_DCache

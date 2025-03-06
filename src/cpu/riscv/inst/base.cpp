@@ -253,19 +253,19 @@ void RVCore::do_sd(const DecodeInfo &decodeInfo) {
 
 #define DO_INST_B(name, op) \
 void RVCore::do_##name(const DecodeInfo &decodeInfo) { \
-    TAG_RS1; TAG_RS2; TAG_IMM; \
+    TAG_RS1; TAG_RS2; TAG_NPC; \
     \
     if (unlikely((sword_t)SRC1 op (sword_t)SRC2)) { \
-        this->npc = this->pc + IMM; \
+        this->npc = NPC; \
     } \
 } \
 
 #define DO_INST_BU(name, op) \
 void RVCore::do_##name(const DecodeInfo &decodeInfo) { \
-    TAG_RS1; TAG_RS2; TAG_IMM; \
+    TAG_RS1; TAG_RS2; TAG_NPC; \
     \
     if (unlikely(SRC1 op SRC2)) { \
-        this->npc = this->pc + IMM; \
+        this->npc = NPC; \
     } \
 } \
 
@@ -315,5 +315,5 @@ void RVCore::do_lui(const DecodeInfo &decodeInfo) {
 void RVCore::do_auipc(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_IMM;
     
-    DEST = this->pc + IMM;
+    DEST = IMM;
 }

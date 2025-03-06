@@ -15,12 +15,14 @@ using namespace kxemu::cpu;
     #define set_rs2(v) this->gDecodeInfo.rs2 = v; this->gDecodeInfo.rs2_set = true;
     #define set_csr(v) this->gDecodeInfo.csr = v; this->gDecodeInfo.csr_set = true;
     #define set_imm(v) this->gDecodeInfo.imm = v; this->gDecodeInfo.imm_set = true;
+    #define set_npc(v) this->gDecodeInfo.npc = v; this->gDecodeInfo.npc_set = true;
 #else
     #define set_rd(v)  this->gDecodeInfo.rd  = unlikely((v) == 0) ? 32 : (v);
     #define set_rs1(v) this->gDecodeInfo.rs1 = v;
     #define set_rs2(v) this->gDecodeInfo.rs2 = v;
     #define set_csr(v) this->gDecodeInfo.csr = v;
     #define set_imm(v) this->gDecodeInfo.imm = v;
+    #define set_npc(v) this->gDecodeInfo.npc = v;
 #endif
 
 void RVCore::decode_insttype_r() {
@@ -60,7 +62,7 @@ void RVCore::decode_insttype_s() {
 void RVCore::decode_insttype_b() {
     set_rs1(BITS(19, 15));
     set_rs2(BITS(24, 20));
-    set_imm(SEXT((BITS(31, 31) << 12) | (BITS(30, 25) << 5) | (BITS(11, 8) << 1) | (BITS(7, 7) << 11), 13));
+    set_npc(this->pc + SEXT((BITS(31, 31) << 12) | (BITS(30, 25) << 5) | (BITS(11, 8) << 1) | (BITS(7, 7) << 11), 13));
 }
 
 void RVCore::decode_insttype_j() {
@@ -68,7 +70,12 @@ void RVCore::decode_insttype_j() {
     set_imm(SEXT((BITS(31, 31) << 20) | (BITS(30, 21) << 1) | (BITS(20, 20) << 11) | (BITS(19, 12) << 12), 21));
 }
 
-void RVCore::decode_insttype_u() {
+void RVCore::decode_insttype_auipc() {
+    set_rd (BITS(11, 7));
+    set_imm(this->pc + SEXT(BITS(31, 12) << 12, 32));
+}
+
+void RVCore::decode_insttype_lui() {
     set_rd (BITS(11, 7));
     set_imm(SEXT(BITS(31, 12) << 12, 32));
 }
@@ -115,7 +122,12 @@ void RVCore::decode_insttype_c_j() {
         12);
     
     set_rs1(BITS(11, 7));
-    set_imm(imm);
+    set_npc(this->pc + imm);
+}
+
+void RVCore::decode_insttype_c_jalr() {
+    set_rs1(BITS(11, 7));
+    set_npc(this->pc + 2);
 }
 
 void RVCore::decode_insttype_c_b() {
@@ -128,7 +140,7 @@ void RVCore::decode_insttype_c_b() {
         9);
     
     set_rs1(BITS(9, 7) + 8);
-    set_imm(imm);
+    set_npc(this->pc + imm);
 }
 
 void RVCore::decode_insttype_c_li() {

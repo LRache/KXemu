@@ -11,6 +11,7 @@
 #define SRC2 (this->gpr[decodeInfo.rs2])
 #define CSR  ( decodeInfo.csr)
 #define IMM  ( decodeInfo.imm)
+#define NPC  ( decodeInfo.npc)
 
 // #define  rd_is_x0 (decodeInfo.rd  == &this->gpr[32])
 // #define rs1_is_x0 (decodeInfo.rs1 == &this->gpr[ 0])
@@ -24,6 +25,7 @@
 #define TAG_RS2 SELF_PROTECT(decodeInfo.rs2_set, "decodeInfo.rs2 is not set by decoder.");
 #define TAG_IMM SELF_PROTECT(decodeInfo.imm_set, "decodeInfo.imm is not set by decoder.");
 #define TAG_CSR SELF_PROTECT(decodeInfo.csr_set, "decodeInfo.csr is not set by decoder.");
+#define TAG_NPC SELF_PROTECT(decodeInfo.npc_set, "decodeInfo.npc is not set by decoder.");
 
 #else
 
@@ -32,5 +34,6 @@
 #define TAG_RS2
 #define TAG_IMM
 #define TAG_CSR
+#define TAG_NPC
 
 #endif
