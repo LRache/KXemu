@@ -104,7 +104,7 @@ void RVCore::execute() {
         return;
     }
     
-    #ifdef CONFIG_DEBUG
+    #ifdef CONFIG_DEBUG_DECODER
     std::memset(&this->gDecodeInfo, 0xac, sizeof(this->gDecodeInfo));
     this->gDecodeInfo.rd_set  = false;
     this->gDecodeInfo.rs1_set = false;

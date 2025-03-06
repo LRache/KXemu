@@ -63,4 +63,7 @@ config DEBUG
 config DEBUG_DECODER
     bool "DEBUG decoder" if DEBUG
 
+config DEBUG_DCACHE
+    bool "DEBUG dcache" if DEBUG && DCache
+
 endmenu

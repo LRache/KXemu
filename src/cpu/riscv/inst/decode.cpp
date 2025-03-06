@@ -9,7 +9,7 @@ using namespace kxemu::cpu;
 #define BITS(hi, lo) ((word_t)((this->inst >> lo) & ((1 << (hi - lo + 1)) - 1))) // Extract bits from hi to lo
 #define SEXT(bits, from) (sword_t)((int32_t)((int32_t)(bits) << (32 - (from))) >> (32 - (from))) // Signed extend
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_DECODER
     #define set_rd(v)  this->gDecodeInfo.rd  = unlikely((v) == 0) ? 32 : (v); this->gDecodeInfo.rd_set  = true;
     #define set_rs1(v) this->gDecodeInfo.rs1 = v; this->gDecodeInfo.rs1_set = true;
     #define set_rs2(v) this->gDecodeInfo.rs2 = v; this->gDecodeInfo.rs2_set = true;

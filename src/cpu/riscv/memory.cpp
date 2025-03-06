@@ -7,6 +7,7 @@
 #include "word.h"
 #include "log.h"
 #include "macro.h"
+#include "debug.h"
 
 #include <cstring>
 
@@ -279,6 +280,13 @@ bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
         default: PANIC("Invalid length");
     }
 
+    #ifdef CONFIG_DEBUG_DCACHE
+    bool valid;
+    word_t ref = this->bus->read(addr, len, valid);
+    SELF_PROTECT(valid, "Cannot read from bus.");
+    SELF_PROTECT(data == ref, "Difftest Failed. ref=" FMT_WORD ", dut=" FMT_WORD ", pc=" FMT_WORD, ref, data, pc);
+    #endif
+
     return true;
 }
 
@@ -297,6 +305,11 @@ bool RVCore::dcache_store(word_t addr, word_t data, int len) {
         default: PANIC("Invalid length");
     }
     block->dirty = true;
+
+    #ifdef CONFIG_DEBUG_DCACHE
+    bool s = this->bus->write(addr, data, len);
+    SELF_PROTECT(s, "Cannot write to bus");
+    #endif
 
     return true;
 }
@@ -344,6 +357,12 @@ word_t RVCore::memory_load(word_t addr, int len) {
 }
 
 bool RVCore::memory_store(word_t addr, word_t data, int len) {
+    #ifdef CONFIG_DCache
+    if (this->dcache_store(addr, data, len)) {
+        return true;
+    }
+    #endif
+
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
         VMResult result;
         addr = this->vaddr_translate(addr, MemType::STORE, result);
@@ -359,12 +378,6 @@ bool RVCore::memory_store(word_t addr, word_t data, int len) {
             return false;
         }
     }
-
-    #ifdef CONFIG_DCache
-    if (this->dcache_store(addr, data, len)) {
-        return true;
-    }
-    #endif
 
     return this->bus->write(addr, data, len);
 }
