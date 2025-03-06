@@ -142,7 +142,7 @@ def gen_code_avx(instList: List[InstPattern], key) -> str:
     return code
 
 
-def gen_code(tables: List[Dict[int, List[InstPattern]]], format: str) -> str:
+def gen_code(tables: List[Dict[int, List[InstPattern]]]) -> str:
     code = """#ifdef KXEMU_ISA32
     #define __INST32(x) x
     #define __INST64(x) 
@@ -153,11 +153,11 @@ def gen_code(tables: List[Dict[int, List[InstPattern]]], format: str) -> str:
 """
     for table in tables:
         for key in table:
-            if len(table[key]) >= 32:
-                code += gen_code_avx(table[key], key)
-                code += "\n"
+            # if len(table[key]) >= 32:
+            #     code += gen_code_avx(table[key], key)
+            #     code += "\n"
                 
-            else:
+            # else:
                 code += gen_code_normal(table[key], key)
                 code += "\n"
 

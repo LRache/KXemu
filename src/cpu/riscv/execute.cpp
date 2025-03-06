@@ -115,7 +115,7 @@ void RVCore::execute() {
     
     unsigned int instLen;
     do_inst_t do_inst;
-    if (likely((this->inst & 0x3) == 0x3)) {
+    if (unlikely((this->inst & 0x3) == 0x3)) {
         this->npc = this->pc + 4;
         instLen = 4;
         do_inst = this->decode_and_exec();
