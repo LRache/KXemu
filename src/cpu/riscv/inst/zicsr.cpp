@@ -13,40 +13,45 @@ void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {
     REQUIRE_WRITABLE;
     
     bool s;
-    if (rd_is_x0) {
-        word_t value = this->read_csr(CSR, s);
+    word_t value = 0;
+    if (!rd_is_x0) {
+        value = this->read_csr(CSR, s);
         CHECK_SUCCESS;
-        DEST = value;
     }
 
     s = this->write_csr(CSR, SRC1);
     CHECK_SUCCESS;
+
+    DEST = value;
 }
 
 void RVCore::do_csrrs(const DecodeInfo &decodeInfo) {
     bool s;
     word_t value = this->read_csr(CSR, s);
     CHECK_SUCCESS;
-    
-    DEST = value;
+
     if (!rs1_is_x0) {
         REQUIRE_WRITABLE;
         s = this->write_csr(CSR, value | SRC1);
         CHECK_SUCCESS;
     }
+    
+    DEST = value;
 }
 
 void RVCore::do_csrrc(const DecodeInfo &decodeInfo) {
     bool s;
+    
     word_t value = this->read_csr(CSR, s);
     CHECK_SUCCESS;
     
-    DEST = value;
     if (!rs1_is_x0) {
         REQUIRE_WRITABLE;
         s = this->write_csr(CSR, value & (~SRC1));
         CHECK_SUCCESS;
     }
+
+    DEST = value;
 }
 
 void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {  
@@ -68,12 +73,13 @@ void RVCore::do_csrrsi(const DecodeInfo &decodeInfo) {
     word_t value = this->read_csr(CSR, s);
     CHECK_SUCCESS;
 
-    DEST = value;
     if (IMM != 0) {
         REQUIRE_WRITABLE;
         s = this->write_csr(CSR, value | IMM);
         CHECK_SUCCESS;
     }
+
+    DEST = value;
 }
 
 void RVCore::do_csrrci(const DecodeInfo &decodeInfo) {
@@ -81,10 +87,11 @@ void RVCore::do_csrrci(const DecodeInfo &decodeInfo) {
     word_t value = this->read_csr(CSR, s);
     CHECK_SUCCESS;
 
-    DEST = value;
     if (IMM != 0) {
         REQUIRE_WRITABLE;
         s = this->write_csr(CSR, value & (~IMM));
         CHECK_SUCCESS;
     }
+
+    DEST = value;
 }
