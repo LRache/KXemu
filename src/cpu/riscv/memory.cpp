@@ -124,7 +124,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             }
 
             // Determine if the requested memory access is allowed by the pte.r, pte.w, and pte.x bits
-            if (!(pte & 0xff & type)) {
+            if ((pte & 0xf & type) != type) {
                 DEBUG("PTE is not valid for the access type");
                 DEBUG("Access type=%d, vaddr=" FMT_WORD " pte=" FMT_WORD, type, vaddr, pte);
                 result = VM_ACCESS_FAULT;

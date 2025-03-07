@@ -34,7 +34,7 @@ private:
         STORE = 1 << 1,
         LOAD  = 1 << 2,
         FETCH = 1 << 3,
-        AMO   = 1 << 6,
+        AMO   = STORE | LOAD,
     };
     device::Bus *bus;
     device::AClint *aclint;
