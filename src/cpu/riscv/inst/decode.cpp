@@ -17,7 +17,8 @@ using namespace kxemu::cpu;
     #define set_imm(v) this->gDecodeInfo.imm = v; this->gDecodeInfo.imm_set = true;
     #define set_npc(v) this->gDecodeInfo.npc = v; this->gDecodeInfo.npc_set = true;
 #else
-    #define set_rd(v)  this->gDecodeInfo.rd  = unlikely((v) == 0) ? 32 : (v);
+    // #define set_rd(v)  this->gDecodeInfo.rd  = unlikely((v) == 0) ? 32 : (v);
+    #define set_rd(v)  this->gDecodeInfo.rd  = v | (v == 0) << 5;
     #define set_rs1(v) this->gDecodeInfo.rs1 = v;
     #define set_rs2(v) this->gDecodeInfo.rs2 = v;
     #define set_csr(v) this->gDecodeInfo.csr = v;
