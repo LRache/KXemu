@@ -127,9 +127,20 @@ word_t RVCore::get_register(const std::string &name, bool &success) {
         "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
         "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
     };
-    unsigned int i = 0;
-    for (i = 0; i <32; i++) {
+    for (unsigned int i = 0; i < 32; i++) {
         if (name == gprNames[i]) {
+            return this->gpr[i];
+        }
+    }
+
+    static const char* gprAlias[] = {
+        "x0" , "x1" , "x2" , "x3" , "x4" , "x5" , "x6" , "x7" ,
+        "x8" , "x9" , "x10", "x11", "x12", "x13", "x14", "x15",
+        "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
+        "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"
+    };
+    for (unsigned int i = 0; i < 32; i++) {
+        if (name == gprAlias[i]) {
             return this->gpr[i];
         }
     }
@@ -140,25 +151,61 @@ word_t RVCore::get_register(const std::string &name, bool &success) {
     
     if (name == "mstatus") {
         return this->get_csr_core(CSR_MSTATUS);
-    } else if (name == "mie") {
-        return this->get_csr_core(CSR_MIE);
-    } else if (name == "mip") {
-        return this->get_csr_core(CSR_MIP);
+    } else if (name == "misa") {
+        return this->get_csr_core(CSR_MISA);
     } else if (name == "medeleg") {
         return this->get_csr_core(CSR_MEDELEG);
+    } else if (name == "mideleg") {
+        return this->get_csr_core(CSR_MIDELEG);
+    } else if (name == "mie") {
+        return this->get_csr_core(CSR_MIE);
+    } else if (name == "mtvec") {
+        return this->get_csr_core(CSR_MTVEC);
+    } else if (name == "mcnten") {
+        return this->get_csr_core(CSR_MCNTEN);
+    }
+    
+    if (name == "mscratch") {
+        return this->get_csr_core(CSR_MSCRATCH);
+    } else if (name == "mepc") {
+        return this->get_csr_core(CSR_MEPC);
     } else if (name == "mcause") {
         return this->get_csr_core(CSR_MCAUSE);
-    } else if (name == "mscratch") {
-        return this->get_csr_core(CSR_MSCRATCH);
-    } 
+    } else if (name == "mtval") {
+        return this->get_csr_core(CSR_MTVAL);
+    } else if (name == "mip") {
+        return this->get_csr_core(CSR_MIP);
+    } else if (name == "mtinst") {
+        return this->get_csr_core(CSR_MTINST);
+    } else if (name == "mtval2") {
+        return this->get_csr_core(CSR_MTVAL2);
+    }
+
+    if (name == "sstatus") {
+        return this->get_csr_core(CSR_SSTATUS);
+    } else if (name == "sie") {
+        return this->get_csr_core(CSR_SIE);
+    } else if (name == "stvec") {
+        return this->get_csr_core(CSR_STVEC);
+    } else if (name == "scnten") {
+        return this->get_csr_core(CSR_SCNTEN);
+    }
     
-    if (name == "scause") {
+    if (name == "sscratch") {
+        return this->get_csr_core(CSR_SSCRATCH);
+    } else if (name == "sepc") {
+        return this->get_csr_core(CSR_SEPC);
+    } else if (name == "scause") {
         return this->get_csr_core(CSR_SCAUSE);
     } else if (name == "stval") {
         return this->get_csr_core(CSR_STVAL);
-    } else if (name == "sepc") {
-        return this->get_csr_core(CSR_SEPC);
-    } else if (name == "satp") {
+    } else if (name == "sip") {
+        return this->get_csr_core(CSR_SIP);
+    } else if (name == "stimecmp") {
+        return this->get_csr_core(CSR_STIMECMP);
+    }
+    
+    if (name == "satp") {
         return this->get_csr_core(CSR_SATP);
     }
     
