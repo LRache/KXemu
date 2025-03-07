@@ -136,7 +136,9 @@ word_t RVCore::get_register(const std::string &name, bool &success) {
 
     if (name == "pc") {
         return this->pc;
-    } else if (name == "mstatus") {
+    } 
+    
+    if (name == "mstatus") {
         return this->get_csr_core(CSR_MSTATUS);
     } else if (name == "mie") {
         return this->get_csr_core(CSR_MIE);
@@ -148,6 +150,16 @@ word_t RVCore::get_register(const std::string &name, bool &success) {
         return this->get_csr_core(CSR_MCAUSE);
     } else if (name == "mscratch") {
         return this->get_csr_core(CSR_MSCRATCH);
+    } 
+    
+    if (name == "scause") {
+        return this->get_csr_core(CSR_SCAUSE);
+    } else if (name == "stval") {
+        return this->get_csr_core(CSR_STVAL);
+    } else if (name == "sepc") {
+        return this->get_csr_core(CSR_SEPC);
+    } else if (name == "satp") {
+        return this->get_csr_core(CSR_SATP);
     }
     
     success = false;
