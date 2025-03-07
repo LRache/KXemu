@@ -1,3 +1,4 @@
+#include "device/virtio/block.h"
 #include "kdb/cmd.h"
 #include "kdb/kdb.h"
 #include "utils/utils.h"
@@ -84,6 +85,43 @@ static int device_add_uart(unsigned int id, const cmd::args_t &args) {
     return cmd::Success;
 }
 
+static int device_add_virtio_block(unsigned int id, const cmd::args_t &args) {
+    // [0]device [1]add [2]id [3]virtio-blk [4]base [5]img-type [6]img-filepath
+    if (args.size() < 7) {
+        return cmd::InvalidArgs;
+    }
+
+    auto base = utils::string_to_unsigned(args[4]);
+    if (!base.has_value()) {
+        std::cerr << "Invalid base: " << args[4] << std::endl;
+        return cmd::InvalidArgs;
+    }
+    const std::string &imgType = args[5];
+    const std::string &filepath = args[6];
+
+    device::VirtIOBlock *dev = new device::VirtIOBlock;
+    if (imgType == "raw") {
+        if (!dev->open_raw_img(filepath)) {
+            std::cerr << "Failed to open image file: " << imgType << std::endl;
+            delete dev;
+            return cmd::CmdError;
+        }
+    } else {
+        std::cerr << "Unknown image type: " << imgType << std::endl;
+        delete dev;
+        return cmd::InvalidArgs;
+    }
+    
+    if (!bus->add_mmio_map(id, base.value(), 0x200, dev)) {
+        std::cerr << "Failed to add device."  << std::endl;
+        return cmd::CmdError;
+    }
+
+    std::cout << "Add virtio-block device: id=" << id << ", base=" << FMT_STREAM_WORD(base.value()) << std::endl;
+
+    return cmd::Success;
+}
+
 static int device_add(const cmd::args_t &args) {
     if (args.size() < 4) {
         std::cout << "Usage: device add <type> <start> <size>" << std::endl;
@@ -114,8 +152,10 @@ static int device_add(const cmd::args_t &args) {
         const std::string &type = args[3];
         if (type == "uart") {
             device_add_uart(id.value(), args);
+        } else if (type == "virtio-blk") {
+            device_add_virtio_block(id.value(), args);
         } else {
-            std::cout << "Unknown device type: " << type << std::endl;
+            std::cerr << "Unknown device type: " << type << std::endl;
             return cmd::InvalidArgs;
         }
     }

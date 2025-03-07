@@ -13,7 +13,7 @@ namespace kxemu::device {
 // for the specification.
 
 class VirtIO : public MMIOMap {
-private:
+protected:
     Bus *bus;
 
     enum State {
@@ -44,7 +44,7 @@ private:
     virtual bool update_configuration(const void *newConfig) { return true; };
 
     // Device Features
-    unsigned int featuresCount;
+    unsigned int featuresNumMax;
     virtual bool get_device_features_bit(unsigned int bit) { return false; }
     virtual void set_driver_features_bit(unsigned int bit, bool value) {}
 
@@ -62,6 +62,18 @@ private:
     //    uint16_t ring[ /* Queue Size */ ];
     //    uint16_t used_event; /* Only if VIRTIO_F_EVENT_IDX */
     // };
+
+    // struct virtq_used_elem {
+    //     /* Index of start of used descriptor chain. */
+    //     le32 id;
+    //     /* Total length of the descriptor chain which was used (written to) */
+    //     le32 len;
+    // };
+
+    struct VirtQueueUsedElem {
+        uint32_t id;
+        uint32_t len;
+    };
 
     unsigned int queueCount = 0;
     struct VirtQueue {
@@ -83,17 +95,16 @@ private:
         unsigned int descIndex;
     };
     // Pass the context to function virtio_handle_done, DO NOT CHANGE.
-    virtual bool virtio_handle_req(const std::vector<Buffer> &buffer, const ReqContext *context) = 0;
+    virtual bool virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t &len) = 0;
 
-    word_t sizeof_usedElem = 0;
-    void virtio_handle_done(uint32_t len, const ReqContext *context);
+    void virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned int descIndex);
 
     bool interrupt = false;
     bool interrupt_pending() override;
     void clear_interrupt() override;
 
 public:
-    VirtIO(uint32_t deviceID, unsigned int featuresCount, unsigned int queueCount, uint32_t sizeof_usedElem);
+    VirtIO(uint32_t deviceID, unsigned int featuresNumMax, unsigned int queueCount);
 
     void reset() override;
     word_t read(word_t offset, word_t size, bool &valid) override;

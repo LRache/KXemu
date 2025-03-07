@@ -21,4 +21,28 @@
 
 #define VIRTQ_USED_F_NO_NOTIFY 1
 
+// Virtio BLOCK
+#define VIRTIO_BLK_DEVICE_ID 2
+
+#define VIRTIO_BLK_F_SIZE_MAX      1
+#define VIRTIO_BLK_F_SEG_MAX       2
+#define VIRTIO_BLK_F_GEOMETRY      4
+#define VIRTIO_BLK_F_RO            5
+#define VIRTIO_BLK_F_BLK_SIZE      6
+#define VIRTIO_BLK_F_FLUSH         9
+#define VIRTIO_BLK_F_TOPOLOGY     10
+#define VIRTIO_BLK_F_CONFIG_WCE   11
+#define VIRTIO_BLK_F_DISCARD      13
+#define VIRTIO_BLK_F_WRITE_ZEROES 14
+
+#define VIRTIO_BLK_T_IN            0
+#define VIRTIO_BLK_T_OUT           1
+#define VIRTIO_BLK_T_FLUSH         4
+#define VIRTIO_BLK_T_GET_ID        8
+#define VIRTIO_BLK_T_GET_LIFETIME 10
+#define VIRTIO_BLK_T_DISCARD      11
+#define VIRTIO_BLK_T_WRITE_ZEROES 13
+#define VIRTIO_BLK_T_SECURE_ERASE 14
+
+
 #endif

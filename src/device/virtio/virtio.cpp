@@ -16,11 +16,10 @@ using namespace kxemu::device;
 
 VirtIO::VirtIO(
     uint32_t deviceID, 
-    unsigned int featuresCount, 
-    unsigned int queueCount,
-    uint32_t sizeof_usedElem
+    unsigned int featuresNumMax, 
+    unsigned int queueCount
 ) 
-    : deviceID(deviceID), featuresCount(featuresCount), queueCount(queueCount), sizeof_usedElem(sizeof_usedElem) {
+    : deviceID(deviceID), featuresNumMax(featuresNumMax), queueCount(queueCount) {
     this->virtQueues = new VirtQueue[queueCount];
 }
 
@@ -104,13 +103,15 @@ void VirtIO::notify_queue(uint32_t queueIdx) {
         descriptor = descriptors[descriptor.next];
     }
 
-    ReqContext context = {queueIdx, descIdx};
-
-    this->virtio_handle_req(buffer, &context);
+    uint32_t len;
+    if (this->virtio_handle_req(buffer, len)) {
+        virtio_handle_done(len, queueIdx, descIdx);
+    } else {
+        WARN("Occured an error");
+    }
 }
 
-void VirtIO::virtio_handle_done(uint32_t len, const ReqContext *context) {
-    uint32_t queueIndex = context->queueIndex;
+void VirtIO::virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned int descIndex) {
     const VirtQueue &queue = this->virtQueues[queueIndex];
     
     // struct virtq_used {
@@ -128,11 +129,15 @@ void VirtIO::virtio_handle_done(uint32_t len, const ReqContext *context) {
     //     le32 len;
     // };
     
-    void *used = this->bus->get_ptr(6 + this->sizeof_usedElem * queue.queueNum);
+    void *used = this->bus->get_ptr(6 + sizeof(VirtQueueUsedElem) * queue.queueNum);
     bool noNotify = ((uint16_t *)used)[0] & VIRTQ_USED_F_NO_NOTIFY;
+    
+    uint16_t usedIndex = ((uint16_t *)used)[1];
+    VirtQueueUsedElem *ring = (VirtQueueUsedElem *) (((char *)used) + 4);
+    ring[usedIndex].id  = descIndex;
+    ring[usedIndex].len = len;
+    
     ((uint16_t *)used)[1] ++; // Increase the used->idx
-    ((uint32_t *)used)[1] = context->descIndex;
-    ((uint32_t *)used)[2] = len;
 
     if (noNotify) {
         this->interrupt = true;
@@ -145,13 +150,13 @@ uint32_t VirtIO::read_device_features() {
     }
     
     unsigned int start = this->deviceFeaturesSelect * 32;
-    if (start >= featuresCount) {
+    if (start >= featuresNumMax) {
         return 0;
     }
    
     unsigned int end = start + 32;
-    if (end > this->featuresCount) {
-        end = this->featuresCount;
+    if (end > this->featuresNumMax) {
+        end = this->featuresNumMax;
     }
     
     uint32_t features = 0;
@@ -168,13 +173,13 @@ void VirtIO::write_driver_features(uint32_t features) {
     }
 
     unsigned int start = this->driverFeaturesSelect * 32;
-    if (start >= this->featuresCount) {
+    if (start >= this->featuresNumMax) {
         return;
     }
 
     unsigned int end = start + 32;
-    if (end > this->featuresCount) {
-        end = this->featuresCount;
+    if (end > this->featuresNumMax) {
+        end = this->featuresNumMax;
     }
     
     for (unsigned int i = start; i < end; i++) {
