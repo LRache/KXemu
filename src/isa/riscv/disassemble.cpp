@@ -35,8 +35,7 @@ void init_disasm() {
     const Target *target = TargetRegistry::lookupTarget(targetTriple, error);
 
     MCTargetOptions MCOptions;
-    gSTI = target->createMCSubtargetInfo(targetTriple, "", "");
-    gSTI->ApplyFeatureFlag("+c");
+    gSTI = target->createMCSubtargetInfo(targetTriple, "generic", "+m,+a,+f,+d,+c");
     auto gMII = target->createMCInstrInfo();
     auto gMRI = target->createMCRegInfo(targetTriple);
     auto asmInfo = target->createMCAsmInfo(*gMRI, targetTriple, MCOptions);
