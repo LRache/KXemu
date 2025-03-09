@@ -28,6 +28,7 @@ void RVCore::step() {
     if (likely(this->state == RUNNING)) {
         // Interrupt
         this->bus->update();
+        this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
         this->scan_interrupt();
         
         this->execute();
@@ -43,6 +44,7 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
         breakpoints.insert(breakpoints_[i]);
     }
 
+    constexpr unsigned int interruptFreq = 0x1000;
     unsigned int i = 0;
     this->state = RUNNING;
     if (n == 0) {
@@ -51,7 +53,7 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
             this->execute();
 
             // Interrupt
-            if (unlikely(i & 0x2000)) {
+            if (unlikely(i & interruptFreq)) {
                 i = 0;
                 this->bus->update();
                 this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
@@ -64,17 +66,10 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
         }
     } else {
         while (this->state == RUNNING) {
-            if (breakpoints.find(this->pc) != breakpoints.end()) {
-                this->haltCode = 0;
-                this->haltPC = this->pc;
-                this->state = BREAKPOINT;
-                break;
-            }
-            
             this->execute();
 
             // Interrupt
-            if (unlikely(i & 0x2000)) {
+            if (unlikely(i & interruptFreq)) {
                 this->bus->update();
                 this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
                 this->scan_interrupt();
@@ -82,7 +77,15 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
             }
             
             this->pc = this->npc;
+
             i++;
+
+            if (breakpoints.find(this->pc) != breakpoints.end()) {
+                this->haltCode = 0;
+                this->haltPC = this->pc;
+                this->state = BREAKPOINT;
+                break;
+            }
         }
     }
 }

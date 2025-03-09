@@ -39,14 +39,17 @@ static int print_halt(unsigned int coreID) {
 
 int kdb::step_core(unsigned int coreID) {
     auto core = cpu->get_core(coreID);
-    word_t pc = core->get_pc();
     core->step();
+    
     if (core->is_halt()) {
         print_halt(coreID);
     }
+
+    word_t pc = core->get_pc();
     if (breakpointSet.find(pc) != breakpointSet.end()) {
         brkTriggered = true;
     }
+
     return 0;
 }
 
