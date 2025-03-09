@@ -199,11 +199,12 @@ void RVCore::do_lhu(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_lw(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
+
     DEST = (sword_t)(int32_t)this->memory_load(ADDR, 4);
 }
 
 #ifdef KXEMU_ISA64
+
 void RVCore::do_lwu(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     RV64ONLY;
@@ -217,6 +218,7 @@ void RVCore::do_ld(const DecodeInfo &decodeInfo) {
     
     DEST = this->memory_load(ADDR, 8);
 }
+
 #endif
 
 void RVCore::do_sb(const DecodeInfo &decodeInfo) {
