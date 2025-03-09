@@ -135,7 +135,11 @@ bool PLIC::write(word_t offset, word_t data, word_t size) {
         } else if ((offset - PLIC_CONTEXT_BASE) % 0x1000 == 4) {
             if (this->targetContexts[contextID].claim == data) {
                 this->targetContexts[contextID].claim = 0;
-                this->targetContexts[contextID].core->clear_external_interrupt_m();
+                if (contextID % 2 == 0) {
+                    this->targetContexts[contextID].core->clear_external_interrupt_m();
+                } else {
+                    this->targetContexts[contextID].core->clear_external_interrupt_s();
+                }
             }
             return true;
         }
