@@ -337,14 +337,9 @@ void *Bus::get_ptr(word_t addr) const{
 void *Bus::get_ptr(word_t addr, word_t length) const {
     auto mem = match_memory(addr);
     if (mem != nullptr) {
-        if (mem->end - addr >= length) {
-            return mem->data + (addr - mem->start);
-        } else {
-            return nullptr;
-        }
-    } else {
-        return nullptr;
+        return mem->data + (addr - mem->start);
     }
+    return nullptr;
 }
 
 word_t Bus::get_ptr_length(word_t addr) const {
