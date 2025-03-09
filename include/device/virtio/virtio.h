@@ -39,8 +39,8 @@ protected:
     /* 0x050 Queue Notify */
     void notify_queue(uint32_t idx);
     /* 0x100+ configuration space */
-    void *configuration;
-    word_t sizeof_configuration;
+    void *configuration = nullptr;
+    word_t sizeof_configuration = 0;
     virtual bool update_configuration(const void *newConfig) { return true; };
 
     // Device Features
@@ -70,7 +70,7 @@ protected:
     //     le32 len;
     // };
 
-    struct VirtQueueUsedElem {
+    struct VirtqUsedElem {
         uint32_t id;
         uint32_t len;
     };
@@ -90,11 +90,7 @@ protected:
         word_t len;
         bool write;
     };
-    struct ReqContext {
-        unsigned int queueIndex;
-        unsigned int descIndex;
-    };
-    // Pass the context to function virtio_handle_done, DO NOT CHANGE.
+
     virtual bool virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t &len) = 0;
 
     void virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned int descIndex);
@@ -105,10 +101,12 @@ protected:
 
 public:
     VirtIO(uint32_t deviceID, unsigned int featuresNumMax, unsigned int queueCount);
+    virtual ~VirtIO();
 
     void reset() override;
     word_t read(word_t offset, word_t size, bool &valid) override;
     bool write(word_t offset, word_t data, word_t size) override;
+    void connect_to_bus(Bus *bus) override;
 };
 
 } // namespace kxemu::device

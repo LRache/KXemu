@@ -4,13 +4,13 @@
 #include "device/virtio/def.h"
 #include "log.h"
 #include "word.h"
-#include <cstddef>
+
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
-#define SET_UPPER(target, upper) (target) &= ~0xffffffffULL; (target) |= (upper);
-#define SET_LOWER(target, lower) (target) &=  0xffffffffULL; (target) |= (uint64_t)(lower) << 32;
+#define SET_UPPER(target, upper) (target) &=  0xffffffffULL; (target) |= (uint64_t)(upper) << 32;
+#define SET_LOWER(target, lower) (target) &= ~0xffffffffULL; (target) |= (lower) & 0xffffffff;
 
 using namespace kxemu::device;
 
@@ -21,6 +21,10 @@ VirtIO::VirtIO(
 ) 
     : deviceID(deviceID), featuresNumMax(featuresNumMax), queueCount(queueCount) {
     this->virtQueues = new VirtQueue[queueCount];
+}
+
+VirtIO::~VirtIO() {
+    delete[] this->virtQueues;
 }
 
 void VirtIO::reset() {
@@ -40,6 +44,11 @@ word_t VirtIO::read_status() {
 }
 
 void VirtIO::write_status(word_t data) {
+    if (data == 0) {
+        this->reset();
+        return ;
+    }
+    
     switch (this->state) {
         case IDLE: 
             if (data & VIRTIO_STATUS_ACKNOWLEDGE) this->state = ACKNOWLEGED;
@@ -54,6 +63,7 @@ void VirtIO::write_status(word_t data) {
             if (data & VIRTIO_STATUS_DRIVER_OK) this->state = DRIVER_OK;
             else break;
         case DRIVER_OK:
+            // INFO("%p %p %p", this->bus->get_ptr(virtQueues[0].p_avail), this->bus->get_ptr(virtQueues[0].p_desc), this->bus->get_ptr(virtQueues[0].p_used));
             break;
     }
 }
@@ -62,7 +72,6 @@ void VirtIO::notify_queue(uint32_t queueIdx) {
     if (queueIdx > this->queueCount) return ;
 
     const VirtQueue &queue = this->virtQueues[queueIdx];
-    word_t sizeofAvail = (3 + queue.queueNum) * 2;
     
     // struct virtq_avail {
     //     #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
@@ -72,36 +81,47 @@ void VirtIO::notify_queue(uint32_t queueIdx) {
     //     le16 used_event; /* Only if VIRTIO_F_EVENT_IDX */
     // };
     
-    uint16_t *avail = (uint16_t *)this->bus->get_ptr(queue.p_avail, sizeofAvail);
+    char *avail = (char *)this->bus->get_ptr(queue.p_avail, (3 + queue.queueNum) * 2);
     if (avail == nullptr) {
         WARN("Failed to get struct virtq_avail");
         return ;
     }
-    uint16_t availIdx = avail[1];
-    uint16_t *ring = avail + 2;
+    
+    uint16_t availIdx = avail[1] % queue.queueNum;
+    uint16_t *ring = (uint16_t *)(avail + 4);
     uint16_t descIdx = ring[availIdx];
     
-    const VirtQueueDescriptor *descriptors = (VirtQueueDescriptor *)this->bus->get_ptr(queue.p_desc, sizeof(VirtQueueDescriptor) * queue.queueNum);
+    VirtQueueDescriptor *descriptors = (VirtQueueDescriptor *)this->bus->get_ptr(queue.p_desc, sizeof(VirtQueueDescriptor) * queue.queueNum);
     if (descriptors == nullptr) {
         WARN("Failed to get struct virtq_desc");
         return ;
     }
     
-    VirtQueueDescriptor descriptor = descriptors[descIdx];
+    VirtQueueDescriptor *descriptor = &descriptors[descIdx];
     
-    if (descriptor.flags & VIRTQ_DESC_F_INDIRECT) {
+    if (descriptor->flags & VIRTQ_DESC_F_INDIRECT) {
         NOT_IMPLEMENTED();
     }
     
     std::vector<Buffer> buffer;
-    while (descriptor.flags & VIRTQ_DESC_F_NEXT) {
+    while (true) {
         buffer.push_back({
-            descriptor.addr, 
-            descriptor.len, 
-            (descriptor.flags & VIRTQ_DESC_F_WRITE) != 0,
+            descriptor->addr, 
+            descriptor->len, 
+            (descriptor->flags & VIRTQ_DESC_F_WRITE) != 0,
         });
-        descriptor = descriptors[descriptor.next];
+        
+        if (!(descriptor->flags & VIRTQ_DESC_F_NEXT)) {
+            break;
+        }
+        
+        descriptor = &descriptors[descriptor->next];
     }
+
+    // if (buffer.size() < 3) {
+    //     INFO("descIndex=%u, availIndex=%u, p_avail=" FMT_WORD64, descIdx, avail[1], queue.p_avail);
+    //     INFO("%p %p %p", this->bus->get_ptr(queue.p_avail), this->bus->get_ptr(queue.p_desc), this->bus->get_ptr(queue.p_used));
+    // }
 
     uint32_t len;
     if (this->virtio_handle_req(buffer, len)) {
@@ -129,17 +149,18 @@ void VirtIO::virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned 
     //     le32 len;
     // };
     
-    void *used = this->bus->get_ptr(6 + sizeof(VirtQueueUsedElem) * queue.queueNum);
-    bool noNotify = ((uint16_t *)used)[0] & VIRTQ_USED_F_NO_NOTIFY;
+    char *used = (char *)this->bus->get_ptr(queue.p_used, 6 + sizeof(VirtqUsedElem) * queue.queueNum);
+    bool noNotify = (*(uint16_t *)used) & VIRTQ_USED_F_NO_NOTIFY;
     
-    uint16_t usedIndex = ((uint16_t *)used)[1];
-    VirtQueueUsedElem *ring = (VirtQueueUsedElem *) (((char *)used) + 4);
+    uint16_t usedIndex = *(uint16_t *)(used + 2) % queue.queueNum;
+    VirtqUsedElem *ring = (VirtqUsedElem *)(((char *)used) + 4);
     ring[usedIndex].id  = descIndex;
     ring[usedIndex].len = len;
     
-    ((uint16_t *)used)[1] ++; // Increase the used->idx
+    // ((uint16_t *)used)[1] ++; // Increase the used->idx
+    ((uint16_t *)(used + 2))[0] ++; // Increase the used->idx
 
-    if (noNotify) {
+    if (!noNotify) {
         this->interrupt = true;
     }
 }
@@ -231,6 +252,11 @@ word_t VirtIO::read(word_t offset, word_t size, bool &valid) {
 bool VirtIO::write(word_t offset, word_t data, word_t size) {
     // Configuration Map
     if (offset >= 0x100 && offset + size <= 0x100 + this->sizeof_configuration) {
+        if (this->sizeof_configuration == 0) {
+            WARN("VirtIO: configuration size is 0\n");
+            return false;
+        }
+
         offset -= 0x100;
         char *c = new char[this->sizeof_configuration];
         void *p = c + offset;
@@ -262,23 +288,29 @@ bool VirtIO::write(word_t offset, word_t data, word_t size) {
         case 0x24: this->driverFeaturesSelect = data; break;
         
         case 0x30: this->queueSelect = data >= this->queueCount ? this->queueSelect : data; break;
-        case 0x38: this->virtQueues[this->queueSelect].queueNum = data;
-        case 0x44: this->virtQueues[this->queueSelect].ready = data == 1;
+        case 0x38: this->virtQueues[this->queueSelect].queueNum = data; break;
+        case 0x44: this->virtQueues[this->queueSelect].ready = data == 1; break;
+
+        case 0x50: this->notify_queue(data); break;
         
         case 0x64: break; // Interrupt ACK, not implenmted ignore yet
         case 0x70: this->write_status(data); break;
 
-        case 0x80: SET_UPPER(this->virtQueues[this->queueSelect].p_desc , data); break;
-        case 0x84: SET_LOWER(this->virtQueues[this->queueSelect].p_desc , data); break;
-        case 0x90: SET_UPPER(this->virtQueues[this->queueSelect].p_used , data); break;
-        case 0x94: SET_LOWER(this->virtQueues[this->queueSelect].p_used , data); break;
-        case 0xa0: SET_UPPER(this->virtQueues[this->queueSelect].p_avail, data); break;
-        case 0xa4: SET_LOWER(this->virtQueues[this->queueSelect].p_avail, data); break;
+        case 0x80: SET_LOWER(this->virtQueues[this->queueSelect].p_desc , data); break;
+        case 0x84: SET_UPPER(this->virtQueues[this->queueSelect].p_desc , data); break;
+        case 0x90: SET_LOWER(this->virtQueues[this->queueSelect].p_avail, data); break;
+        case 0x94: SET_UPPER(this->virtQueues[this->queueSelect].p_avail, data); break;
+        case 0xa0: SET_LOWER(this->virtQueues[this->queueSelect].p_used , data); break;
+        case 0xa4: SET_UPPER(this->virtQueues[this->queueSelect].p_used , data); break;
         
         default: valid = false; break;
     }
 
     return valid;
+}
+
+void VirtIO::connect_to_bus(Bus *bus) {
+    this->bus = bus;
 }
 
 bool VirtIO::interrupt_pending() {
