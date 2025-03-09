@@ -1,6 +1,8 @@
 #include "cpu/riscv/csr.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
+#include "log.h"
+#include "word.h"
 
 using namespace kxemu::cpu;
 
@@ -79,7 +81,9 @@ word_t RVCSR::read_sie(unsigned int addr, word_t value, bool &valid) {
 
 word_t RVCSR::write_sie(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    return value & INTER_MASK_S;
+    this->csr[CSR_MIE].value &= ~(INTER_MASK_S);
+    this->csr[CSR_MIE].value |= value & INTER_MASK_S;
+    return 0;
 }
 
 word_t RVCSR::read_sstatus(unsigned int addr, word_t value, bool &valid) {
