@@ -274,53 +274,7 @@ const char *Uart16650::get_type_name() const {
     return "uart16650";
 }
 
-// void Uart16650::recv_thread_loop() {
-//     struct timeval timeout;
-//     timeout.tv_sec = 1;
-//     timeout.tv_usec = 0;
-
-//     fd_set read_fds;
-    
-//     uint8_t buffer[64];
-//     while (uartSocketRunning) {
-//         FD_ZERO(&read_fds);
-//         FD_SET(recvSocket, &read_fds);
-
-//         int r = select(recvSocket + 1, &read_fds, NULL, NULL, &timeout);
-
-//         if (r == -1) {
-//             WARN("Failed to select socket.");
-//             break;
-//         }
-//         if (r == 0) {
-//             continue;
-//         }
-
-//         ssize_t n = ::read(recvSocket, buffer, sizeof(buffer));
-//         if (n <= 0) {
-//             WARN("Failed to receive data from socket.");
-//             break;
-//         }
-
-//         queueMtx.lock();
-//         for (int i = 0; i < n; i++) {
-//             queue.push(buffer[i]);
-//         }
-//         lsr |= LSR_RX_READY;
-//         queueMtx.unlock();
-//     }
-//     // close socket
-//     close(recvSocket);
-//     close(sendSocket);
-//     mode = Mode::NONE;
-// }
-
 Uart16650::~Uart16650() {
-    // uartSocketRunning = false;
-    // if (recvThread != nullptr) {
-    //     recvThread->join();
-    //     delete recvThread;
-    // }
     close(recvSocket);
     close(sendSocket);
 }

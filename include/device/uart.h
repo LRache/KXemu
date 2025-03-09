@@ -41,10 +41,6 @@ private:
     int sendSocket = -1;
     int recvSocket = -1;
 
-    // std::atomic<bool> uartSocketRunning;
-    // std::thread *recvThread;
-    // void recv_thread_loop();
-
     std::mutex queueMtx;
     std::queue<uint8_t> queue; // FIFO buffer
     void recv_byte(uint8_t c);

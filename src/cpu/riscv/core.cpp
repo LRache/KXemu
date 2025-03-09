@@ -11,12 +11,9 @@
 #include <cstdint>
 #include <cstring>
 
-#include <immintrin.h>
-
 using namespace kxemu::cpu;
 
 RVCore::RVCore() {    
-    // this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
     this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
     this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
     this->mie     = this->csr.get_csr_ptr_readonly(CSR_MIE);

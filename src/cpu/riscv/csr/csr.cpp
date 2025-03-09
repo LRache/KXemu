@@ -64,15 +64,15 @@ RVCSR::RVCSR() {
     }
 
     // Supervisor Trap Setup
-    add_csr(CSR_SSTATUS); // sstatus
+    add_csr(CSR_SSTATUS, 0, &RVCSR::read_sstatus, &RVCSR::write_sstatus); // sstatus
     add_csr(CSR_SIE    , 0, &RVCSR::read_sie, &RVCSR::write_sie); // sie
     add_csr(CSR_STVEC  ); // stvec
 
     // Supervisor Trap Handling
-    add_csr(CSR_SSCRATCH, 0, nullptr, nullptr); // sscratch
-    add_csr(CSR_SEPC    , 0, nullptr, nullptr); // sepc
-    add_csr(CSR_SCAUSE  , 0, nullptr, nullptr); // scause
-    add_csr(CSR_STVAL   , 0, nullptr, nullptr); // stval
+    add_csr(CSR_SSCRATCH); // sscratch
+    add_csr(CSR_SEPC    ); // sepc
+    add_csr(CSR_SCAUSE  ); // scause
+    add_csr(CSR_STVAL   ); // stval
     add_csr(CSR_SIP     , 0, &RVCSR::read_sip, &RVCSR::write_sip); // sip
     add_csr(CSR_STIMECMP, 0, nullptr, &RVCSR::write_stimecmp); // stimecmp
 #ifdef KXEMU_ISA32
