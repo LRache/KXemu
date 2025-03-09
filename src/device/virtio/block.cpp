@@ -2,9 +2,9 @@
 #include "device/def.h"
 #include "device/virtio/virtio.h"
 #include "device/virtio/def.h"
-#include <cstdint>
+#include "log.h"
+
 #include <cstring>
-#include <iterator>
 
 using namespace kxemu::device;
 
@@ -23,15 +23,18 @@ bool VirtIOBlock::open_raw_img(const std::string &filepath) {
     return true;
 }
 
-bool VirtIOBlock::blk_read (uint32_t sector, uint32_t len, word_t bufferAddr, uint8_t *status) {
-    if (len & ~(512 - 1)) return false;
+bool VirtIOBlock::blk_read(uint32_t sector, uint32_t len, word_t bufferAddr, uint8_t *status) {
+    if (len & (512 - 1)) return false;
+    
     char *dest = (char *)this->bus->get_ptr(bufferAddr, len);
     if (dest == nullptr) {
+        WARN("dest is nullptr");
         return false;
     }
     
     std::size_t start = sector * 512;
     if (start + len >= this->imgSize) {
+        WARN("start + len >= this->imgSize");
         return false;
     }
     
@@ -39,31 +42,47 @@ bool VirtIOBlock::blk_read (uint32_t sector, uint32_t len, word_t bufferAddr, ui
     this->fstream.seekg(start, std::ios::beg);
     this->fstream.read(buffer, len);
     if (this->fstream.fail()) {
+        WARN("this->fstream.fail()");
         return false;
     }
     std::memcpy(dest, buffer, len);
 
+    *status = 0;
+
     return true;
 }
 bool VirtIOBlock::blk_write(uint32_t sector, uint32_t len, word_t bufferAddr, uint8_t *status) {
-    if (len & ~(512 - 1)) return false;
+    if (len & (512 - 1)) return false;
 
     char *buffer = (char *)this->bus->get_ptr(bufferAddr, len);
     if (buffer == nullptr) {
         return false;
     }
 
+    std::size_t start = sector * 512;
+    this->fstream.seekp(start, std::ios::beg);
+
     this->fstream.write(buffer, len);
     if (this->fstream.fail()) {
         return false;
     }
+    this->fstream.flush();
+
+    *status = 0;
 
     return true;
 }
 
 bool VirtIOBlock::virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t &len) {
     if (buffer.size() < 3) {
-        return false;
+        const BufferHead *head = (BufferHead *)this->bus->get_ptr(buffer[0].addr, sizeof(BufferHead));
+        if (head != nullptr) {
+            INFO("head->sector: %lu", head->sector);
+        } else {
+            WARN("head is nullptr, head.addr: " FMT_WORD ", pc=", buffer[0].addr);
+        }
+        WARN("buffer.size() < 3: %lu", buffer.size());
+        return true;
     }
     
     const Buffer &b0 = buffer[0];
@@ -72,6 +91,7 @@ bool VirtIOBlock::virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t 
     
     const BufferHead *head = (BufferHead *)this->bus->get_ptr(b0.addr, sizeof(BufferHead));
     if (head == nullptr) {
+        WARN("head is nullptr");
         return false;
     }
 
@@ -80,7 +100,7 @@ bool VirtIOBlock::virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t 
     switch (head->type) {
         case VIRTIO_BLK_T_IN:  return this->blk_read (head->sector, b1.len, b1.addr, status);
         case VIRTIO_BLK_T_OUT: return this->blk_write(head->sector, b1.len, b1.addr, status);
-        default: return false;
+        default: WARN("Unknown type: %u", head->type); return false;
     }
 }
 
