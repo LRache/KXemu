@@ -2,6 +2,7 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "debug.h"
+
 #include <functional>
 
 using namespace kxemu::cpu;
@@ -11,6 +12,7 @@ void RVCore::init_csr() {
     this->csr.set_write_callbacks(CSR_STIMECMP, std::bind(&RVCore::update_stimecmp, this));
     this->csr.set_write_callbacks(CSR_SATP    , std::bind(&RVCore::update_satp    , this));
     this->csr.set_write_callbacks(CSR_MSTATUS , std::bind(&RVCore::update_mstatus , this));
+    this->csr.set_write_callbacks(CSR_SSTATUS , std::bind(&RVCore::update_mstatus , this));
 }
 
 word_t RVCore::read_csr(unsigned int addr, bool &valid) {
@@ -38,4 +40,4 @@ void RVCore::update_mstatus() {
     this->mstatus.mie = STATUS_MIE(mstatus);
     this->mstatus.sie = STATUS_SIE(mstatus);
     this->mstatus.sum = STATUS_SUM(mstatus);
-} 
+}
