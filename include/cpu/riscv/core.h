@@ -31,44 +31,53 @@ private:
 
     // Memory access
     enum MemType {
-        STORE = 1 << 1,
-        LOAD  = 1 << 2,
+        LOAD  = 1 << 1,
+        STORE = 1 << 2,
         FETCH = 1 << 3,
-        AMO   = STORE | LOAD,
+        AMO   = LOAD | STORE,
     };
     device::Bus *bus;
     device::AClint *aclint;
     device::PLIC *plic;
     bool   memory_fetch();
-    word_t memory_load (word_t addr, int len);
-    bool   memory_store(word_t addr, word_t data, int len);
+    word_t memory_load (word_t addr, unsigned int len);
+    bool   memory_store(word_t addr, word_t data, unsigned int len);
 
     // Virtual address translation
+    bool pm_read (word_t paddr, word_t &data, unsigned int len);
+    bool pm_write(word_t paddr, word_t  data, unsigned int len);
+    bool vm_fetch();
+    bool vm_read (word_t vaddr, word_t &data, unsigned int len);
+    bool vm_write(word_t vaddr, word_t  data, unsigned int len);
+
     enum VMResult {
         VM_OK,
         VM_PAGE_FAULT,
         VM_ACCESS_FAULT,
     };
-    word_t vaddr_translate(word_t addr, MemType type, VMResult &result);
+    word_t vaddr_translate(word_t addr, MemType type, VMResult &result, word_t &pgsize);
     
-    word_t vaddr_translate_bare(word_t addr, MemType type, VMResult &result);
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-    word_t vaddr_translate_sv(word_t addr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
+    word_t vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, word_t &pgsize); // The template function for sv32, sv39, sv48, sv57
+    
+    word_t vaddr_translate_bare(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
     #ifdef KXEMU_ISA32
-    word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result);
+    word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result, word_t &pgszie);
     #else
-    word_t vaddr_translate_sv39(word_t addr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv48(word_t addr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv57(word_t addr, MemType type, VMResult &result);
+    word_t vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
+    word_t vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
+    word_t vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
     #endif
     
     word_t satpPPN;
-    word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
+    word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result, word_t &pgsize);
     void update_satp();
-    void update_vm_addr_space();
 
     // Physical memory protection
-    bool check_pmp(word_t addr, int len, MemType type);
+    // bool check_pmp(word_t addr, int len, MemType type);
+    bool pmp_check_x(word_t paddr, unsigned int len);
+    bool pmp_check_r(word_t paddr, unsigned int len);
+    bool pmp_check_w(word_t paddr, unsigned int len);
 
     // Decoder
     struct DecodeInfo {

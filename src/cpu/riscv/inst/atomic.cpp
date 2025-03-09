@@ -19,15 +19,18 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
 
     word_t paddr = vaddr;
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
+        word_t pgsize;
         VMResult result;
-        paddr = this->vaddr_translate(vaddr, MemType::AMO, result);
+        
+        paddr = this->vaddr_translate(vaddr, MemType::AMO, result, pgsize);
+        
         switch (result) {
             case VM_OK: break;
             case VM_ACCESS_FAULT: this->trap(TRAP_AMO_ACCESS_FAULT); return -1;
             case VM_PAGE_FAULT:   this->trap(TRAP_AMO_PAGE_FAULT)  ; return -1;
         }
 
-        bool pmp = this->csr.pmp_check_w(paddr, len) && this->csr.pmp_check_r(paddr, len);
+        bool pmp = this->pmp_check_r(paddr, len) && this->pmp_check_w(paddr, len);
         if (unlikely(!pmp)) {
             this->trap(TRAP_AMO_ACCESS_FAULT);
             valid = false;
