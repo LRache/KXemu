@@ -8,6 +8,7 @@ void RVCore::do_sfence_vma(const DecodeInfo &) {
         return;
     }
     this->icache_fence();
+    this->tlb_fence();
 }
 
 void RVCore::do_fence(const DecodeInfo &) {
