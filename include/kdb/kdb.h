@@ -1,6 +1,7 @@
 #ifndef __KXEMU_KDB_KDB_H__
 #define __KXEMU_KDB_KDB_H__
 
+#include "device/mmio.h"
 #include "device/uart.h"
 #include "cpu/cpu.h"
 #include "device/bus.h"
@@ -30,10 +31,13 @@ namespace kxemu::kdb {
     int run_cpu();
     int step_core(unsigned int coreID);
 
-    // Bus
+    // Device
     extern device::Bus *bus;
-    void init_bus();
-    void deinit_bus();
+    namespace device {
+        void init();
+        void add(kxemu::device::MMIODev *dev);
+        void deinit();
+    }
 
     // Uart
     namespace uart{
