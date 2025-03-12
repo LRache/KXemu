@@ -1,19 +1,26 @@
 KXEMU = ../../build/riscv64-kxemu
 KXEMU_FLAGS += --source $(abspath ./xv6.kdb)
-KXEMU_FLAGS += --core 1
+KXEMU_FLAGS += --core 3
 KXEMU_FLAGS += --def elf=$(KERNEL_TARGET) --def fsimg=${FS_IMG}
 
 KERNEL_TARGET = ./xv6-riscv/kernel/kernel
 FS_IMG = ./xv6-riscv/fs.img
 
 $(KERNEL_TARGET):
-	make -C ./xv6-riscv kernel/kernel
+	$(info + MAKE kernel/kernel)
+	@ make -C ./xv6-riscv kernel/kernel
 
 $(FS_IMG):
-	make -C ./xv6-riscv fs.img
+	$(info + MAKE fs.img)
+	@ make -C ./xv6-riscv fs.img
 
 run: $(KERNEL_TARGET) $(FS_IMG)
-	$(KXEMU) $(KXEMU_FLAGS)
+	$(info + RUNNING KXEMU)
+	@ $(KXEMU) $(KXEMU_FLAGS)
 
-.PHONY: $(KERNEL_TARGET) $(FS_IMG)
+clean:
+	$(info + CLEANING)
+	@ make -s -C ./xv6-riscv clean
+
+.PHONY: $(KERNEL_TARGET) $(FS_IMG) clean
 .DEFAULT_GOAL := run
