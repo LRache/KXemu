@@ -35,6 +35,7 @@ bool kdb::uart::add(unsigned int id, word_t base, const std::string &ip, int por
     if (!add_uart_map(id, base, uart)) {
         return false;
     }
+    device::add(uart);
     return true;
 }
 
@@ -49,8 +50,5 @@ bool kdb::uart::puts(std::size_t index, const std::string &s) {
 }
 
 void kdb::uart::deinit() {
-    for (auto uart : kdb::uart::list) {
-        delete uart;
-    }
     kdb::uart::list.clear();
 }
