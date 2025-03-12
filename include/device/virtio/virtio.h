@@ -4,6 +4,7 @@
 #include "device/bus.h"
 #include "device/def.h"
 #include <cstdint>
+#include <mutex>
 #include <vector>
 
 namespace kxemu::device {
@@ -12,7 +13,7 @@ namespace kxemu::device {
 // See https://docs.oasis-open.org/virtio/virtio/v1.2/virtio-v1.2.pdf
 // for the specification.
 
-class VirtIO : public MMIOMap {
+class VirtIO : public MMIODev {
 protected:
     Bus *bus;
 
@@ -82,6 +83,7 @@ protected:
         uint64_t p_used  = 0;  // 0xa0, 0xa4 Pointer to Used Ring
         uint32_t queueNum = 12;
         bool ready = false;
+        uint16_t lastAvailIndex = 0;
     };
     VirtQueue *virtQueues;
 
@@ -98,6 +100,8 @@ protected:
     bool interrupt = false;
     bool interrupt_pending() override;
     void clear_interrupt() override;
+
+    std::mutex mtx;
 
 public:
     VirtIO(uint32_t deviceID, unsigned int featuresNumMax, unsigned int queueCount);

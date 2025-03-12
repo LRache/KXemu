@@ -19,7 +19,7 @@ namespace kxemu::device {
 // 0x4000 - 0x7ff0 | MTIMECMP |
 // 0xbff8 - 0xbfff | MTIME    |
 // 0xc000 - 0xffff | SSWI     | Supervisor-mode Software Interrupt Device
-class AClint : public device::MMIOMap {
+class AClint : public device::MMIODev {
 public:
     struct CoreObject {
         cpu::RVCore *core;         // Pointer to the core object

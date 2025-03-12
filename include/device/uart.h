@@ -12,7 +12,7 @@
 
 namespace kxemu::device {
 
-class Uart16650: public MMIOMap {
+class Uart16650: public MMIODev {
 public:
     word_t read(word_t offset, word_t size, bool &valid) override;
     bool  write(word_t offset, word_t data, word_t size) override;

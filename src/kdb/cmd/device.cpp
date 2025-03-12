@@ -40,7 +40,7 @@ static int device_ls(const cmd::args_t &args) {
     for (const auto &ioDevice : kdb::bus->mmioMaps) {
         std::cout << std::setfill(' ')
         << std::setw(4) << ioDevice->id << " | "
-        << std::setw(8) << ioDevice->map->get_type_name() << " | "
+        << std::setw(8) << ioDevice->dev->get_type_name() << " | "
         << FMT_STREAM_WORD_SPACE(ioDevice->start)  << " | "
         << FMT_STREAM_WORD_SPACE(ioDevice->start + ioDevice->size) << " | "
         << FMT_STREAM_WORD_SPACE(ioDevice->size) << " | "
@@ -99,7 +99,7 @@ static int device_add_virtio_block(unsigned int id, const cmd::args_t &args) {
     const std::string &imgType = args[5];
     const std::string &filepath = args[6];
 
-    device::VirtIOBlock *dev = new device::VirtIOBlock;
+    kxemu::device::VirtIOBlock *dev = new kxemu::device::VirtIOBlock;
     if (imgType == "raw") {
         if (!dev->open_raw_img(filepath)) {
             std::cerr << "Failed to open image file: " << imgType << std::endl;
@@ -116,6 +116,8 @@ static int device_add_virtio_block(unsigned int id, const cmd::args_t &args) {
         std::cerr << "Failed to add device."  << std::endl;
         return cmd::CmdError;
     }
+
+    kdb::device::add(dev);
 
     std::cout << "Add virtio-block device: id=" << id << ", base=" << FMT_STREAM_WORD(base.value()) << std::endl;
 

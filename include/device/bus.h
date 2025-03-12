@@ -29,16 +29,15 @@ public:
         word_t start;
         word_t size;
         unsigned int id = 0;
-        MMIOMap *map;
+        MMIODev *dev;
     };
     std::vector<MMIOMapBlock *> mmioMaps;
 
     MMIOMapBlock *match_mmio  (word_t addr, word_t length = 0) const;
     MemoryBlock  *match_memory(word_t addr, word_t length = 0) const;
-    bool add_mmio_map  (unsigned int id, word_t start, word_t length, MMIOMap *map);
-    bool add_mmio_map  (word_t start, word_t size, MMIOMap *map);
+    bool add_mmio_map  (unsigned int id, word_t start, word_t length, MMIODev *map);
+    bool add_mmio_map  (word_t start, word_t size, MMIODev *map);
     bool add_memory_map(word_t start, word_t size);
-    void free_all();
 
     word_t read (word_t addr, word_t length, bool &valid) const;
     bool   write(word_t addr, word_t data, word_t length);
@@ -56,7 +55,7 @@ public:
     bool memcpy(word_t addr, word_t length, void *dest);
     void *get_ptr(word_t addr) const;
     void *get_ptr(word_t addr, word_t length) const;
-    word_t   get_ptr_length(word_t addr) const;
+    word_t get_ptr_length(word_t addr) const;
 };
 
 } // namespace kxemu::device

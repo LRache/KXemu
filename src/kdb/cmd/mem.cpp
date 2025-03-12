@@ -107,7 +107,7 @@ static int cmd_mem_map(const cmd::args_t &) {
         std::cout << std::setfill(' ')
         << FMT_STREAM_WORD(m->start)  << " | "
         << FMT_STREAM_WORD(m->size) << " | "
-        << std::setw(6) << m->map->get_type_name() << std::endl;
+        << std::setw(6) << m->dev->get_type_name() << std::endl;
     }
     return cmd::Success;
 }

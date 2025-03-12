@@ -8,7 +8,7 @@
 
 namespace kxemu::device {
 
-class PLIC : public device::MMIOMap {
+class PLIC : public device::MMIODev {
 private:
     Bus *bus;
     
