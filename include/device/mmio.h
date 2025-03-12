@@ -7,9 +7,9 @@ namespace kxemu::device {
 
 class Bus;
 
-class MMIOMap {
+class MMIODev {
 public:
-    virtual ~MMIOMap() {};
+    virtual ~MMIODev() {};
         
     virtual void reset() {};
     virtual word_t read(word_t offset, word_t size, bool &valid) = 0;

@@ -162,13 +162,16 @@ void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
     }
     
     TargetContext &target = this->targetContexts[contextID];
+    if (target.claim != 0) {
+        return;
+    }
     
     uint32_t priority = target.threshold;
     uint32_t claim = 0;
-    MMIOMap *sourceDev = nullptr;
+    MMIODev *sourceDev = nullptr;
     
     for (auto &map : this->bus->mmioMaps) {
-        auto &dev = map->map;
+        auto &dev = map->dev;
         if (dev->interrupt_pending()) {
             auto &source = this->interruptSources[map->id];
             
