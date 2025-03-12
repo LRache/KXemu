@@ -5,6 +5,7 @@
 #include "log.h"
 
 #include <cstring>
+#include <mutex>
 
 using namespace kxemu::device;
 
@@ -37,6 +38,8 @@ bool VirtIOBlock::blk_read(uint32_t sector, uint32_t len, word_t bufferAddr, uin
         WARN("start + len >= this->imgSize");
         return false;
     }
+
+    std::lock_guard<std::mutex> lock(this->streamMtx);
     
     char *buffer = new char[len];
     this->fstream.seekg(start, std::ios::beg);
@@ -58,6 +61,8 @@ bool VirtIOBlock::blk_write(uint32_t sector, uint32_t len, word_t bufferAddr, ui
     if (buffer == nullptr) {
         return false;
     }
+
+    std::lock_guard<std::mutex> lock(this->streamMtx);
 
     std::size_t start = sector * 512;
     this->fstream.seekp(start, std::ios::beg);

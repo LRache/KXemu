@@ -29,6 +29,9 @@ VirtIO::~VirtIO() {
 
 void VirtIO::reset() {
     this->state = IDLE;
+    for (unsigned int i = 0; i < this->queueCount; i++) {
+        this->virtQueues[i].lastAvailIndex = 0;
+    }
 }
 
 word_t VirtIO::read_status() {
@@ -71,7 +74,7 @@ void VirtIO::write_status(word_t data) {
 void VirtIO::notify_queue(uint32_t queueIdx) {
     if (queueIdx > this->queueCount) return ;
 
-    const VirtQueue &queue = this->virtQueues[queueIdx];
+    VirtQueue &queue = this->virtQueues[queueIdx];
     
     // struct virtq_avail {
     //     #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
@@ -87,47 +90,48 @@ void VirtIO::notify_queue(uint32_t queueIdx) {
         return ;
     }
     
-    uint16_t availIdx = avail[1] % queue.queueNum;
+    uint16_t availIndex = *(uint16_t *)(avail + 2);
     uint16_t *ring = (uint16_t *)(avail + 4);
-    uint16_t descIdx = ring[availIdx];
     
     VirtQueueDescriptor *descriptors = (VirtQueueDescriptor *)this->bus->get_ptr(queue.p_desc, sizeof(VirtQueueDescriptor) * queue.queueNum);
     if (descriptors == nullptr) {
         WARN("Failed to get struct virtq_desc");
         return ;
     }
-    
-    VirtQueueDescriptor *descriptor = &descriptors[descIdx];
-    
-    if (descriptor->flags & VIRTQ_DESC_F_INDIRECT) {
-        NOT_IMPLEMENTED();
-    }
-    
-    std::vector<Buffer> buffer;
-    while (true) {
-        buffer.push_back({
-            descriptor->addr, 
-            descriptor->len, 
-            (descriptor->flags & VIRTQ_DESC_F_WRITE) != 0,
-        });
+
+    while (queue.lastAvailIndex != availIndex) {
+        uint16_t current = queue.lastAvailIndex % queue.queueNum;
         
-        if (!(descriptor->flags & VIRTQ_DESC_F_NEXT)) {
-            break;
+        uint16_t descIdx = ring[current];
+        VirtQueueDescriptor *descriptor = &descriptors[descIdx];
+        
+        if (descriptor->flags & VIRTQ_DESC_F_INDIRECT) {
+            NOT_IMPLEMENTED();
         }
         
-        descriptor = &descriptors[descriptor->next];
-    }
+        std::vector<Buffer> buffer;
+        while (true) {
+            buffer.push_back({
+                descriptor->addr, 
+                descriptor->len, 
+                (descriptor->flags & VIRTQ_DESC_F_WRITE) != 0,
+            });
+            
+            if (!(descriptor->flags & VIRTQ_DESC_F_NEXT)) {
+                break;
+            }
+            
+            descriptor = &descriptors[descriptor->next];
+        }
 
-    // if (buffer.size() < 3) {
-    //     INFO("descIndex=%u, availIndex=%u, p_avail=" FMT_WORD64, descIdx, avail[1], queue.p_avail);
-    //     INFO("%p %p %p", this->bus->get_ptr(queue.p_avail), this->bus->get_ptr(queue.p_desc), this->bus->get_ptr(queue.p_used));
-    // }
+        uint32_t len;
+        if (this->virtio_handle_req(buffer, len)) {
+            virtio_handle_done(len, queueIdx, descIdx);
+        } else {
+            WARN("Occured an error");
+        }
 
-    uint32_t len;
-    if (this->virtio_handle_req(buffer, len)) {
-        virtio_handle_done(len, queueIdx, descIdx);
-    } else {
-        WARN("Occured an error");
+        queue.lastAvailIndex++;
     }
 }
 
@@ -153,11 +157,10 @@ void VirtIO::virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned 
     bool noNotify = (*(uint16_t *)used) & VIRTQ_USED_F_NO_NOTIFY;
     
     uint16_t usedIndex = *(uint16_t *)(used + 2) % queue.queueNum;
-    VirtqUsedElem *ring = (VirtqUsedElem *)(((char *)used) + 4);
+    VirtqUsedElem *ring = (VirtqUsedElem *)(used + 4);
     ring[usedIndex].id  = descIndex;
     ring[usedIndex].len = len;
     
-    // ((uint16_t *)used)[1] ++; // Increase the used->idx
     ((uint16_t *)(used + 2))[0] ++; // Increase the used->idx
 
     if (!noNotify) {

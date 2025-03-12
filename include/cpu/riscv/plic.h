@@ -3,6 +3,7 @@
 
 #include "device/mmio.h"
 #include "cpu/riscv/namespace.h"
+#include "utils/spinlock.h"
 
 #include <cstdint>
 
@@ -27,6 +28,8 @@ private:
     };
     TargetContext targetContexts[32];
 
+    utils::SpinLock lock;
+
 public:
     void init(cpu::RVCore *cores, unsigned int coreCount);
     void reset() override;
@@ -38,6 +41,10 @@ public:
 
     const char *get_type_name() const override {
         return "PLIC";
+    }
+
+    utils::SpinLock *get_lock() {
+        return &this->lock;
     }
 };
 

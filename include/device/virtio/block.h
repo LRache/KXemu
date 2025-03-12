@@ -5,6 +5,7 @@
 #include "device/virtio/virtio.h"
 #include <cstdint>
 #include <fstream>
+#include <mutex>
 
 namespace kxemu::device {
 
@@ -17,6 +18,7 @@ private:
 
     std::fstream fstream;
     std::size_t imgSize;
+    std::mutex streamMtx;
 
     struct BufferHead {
         uint32_t type;
