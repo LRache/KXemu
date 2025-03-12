@@ -51,10 +51,9 @@ typedef void (*func_t)(uint8_t *, unsigned int);
 
 static void show_mem_value_helper(unsigned int count, unsigned int size, word_t addr, func_t f) {
     bool valid;
-    addr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
-    if (!valid) {
-        std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
-        return;
+    word_t paddr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
+    if (valid) {
+        addr = paddr;
     }
 
     uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(addr);
@@ -141,11 +140,12 @@ static void show_float(uint8_t *mem, unsigned int size) {
 
 static void show_inst(unsigned int count, unsigned int, word_t addr) {
     bool valid;
-    addr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
+    word_t paddr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
     if (!valid) {
-        std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+        paddr = addr;
         return;
     }
+    addr = paddr;
     
     uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(addr);
     word_t memSize = kdb::bus->get_ptr_length(addr);
