@@ -2,6 +2,7 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "macro.h"
+#include <mutex>
 
 using namespace kxemu::cpu;
 
@@ -16,12 +17,16 @@ void RVCore::update_stimecmp() {
 }
 
 void RVCore::set_interrupt(word_t code) {
+    std::lock_guard<std::mutex> lock(this->csrMtx);
+    
     word_t mip = this->csr.read_csr(CSR_MIP);
     mip |= 1 << code;
     this->csr.write_csr(CSR_MIP, mip);
 }
 
 void RVCore::clear_interrupt(word_t code) {
+    std::lock_guard<std::mutex> lock(this->csrMtx);
+    
     word_t mip = this->csr.read_csr(CSR_MIP);
     mip &= ~(1 << code);
     this->csr.write_csr(CSR_MIP, mip);

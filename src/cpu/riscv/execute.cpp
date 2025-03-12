@@ -3,6 +3,7 @@
 #include "cpu/word.h"
 #include "macro.h"
 #include "log.h"
+#include "word.h"
 
 #include <cstdint>
 #include <cstring>
@@ -56,7 +57,9 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
             if (unlikely(i & interruptFreq)) {
                 i = 0;
                 this->bus->update();
+                this->plic->get_lock()->lock();
                 this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
+                this->plic->get_lock()->unlock();
                 this->scan_interrupt();
             }
             
@@ -71,7 +74,11 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
             // Interrupt
             if (unlikely(i & interruptFreq)) {
                 this->bus->update();
+                
+                this->plic->get_lock()->lock();
                 this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
+                this->plic->get_lock()->unlock();
+                
                 this->scan_interrupt();
                 i = 0;
             }
@@ -104,6 +111,7 @@ void RVCore::execute() {
     #endif
     
     if (!this->memory_fetch()) {
+        this->pc = this->npc;
         return;
     }
     
