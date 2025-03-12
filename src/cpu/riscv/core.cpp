@@ -54,16 +54,9 @@ void RVCore::reset(word_t entry) {
     std::memset(this->gpr, 0, sizeof(this->gpr));
 
     #ifdef CONFIG_ICache
-    for (unsigned int i = 0; i < sizeof(this->icache) / sizeof(this->icache[0]); i++) {
-        this->icache[i].valid = false;
-    }
+    this->icache_fence();
     #endif
-
-    #ifdef CONFIG_DCache
-    for (unsigned int i = 0; i < sizeof(this->dcache) / sizeof(this->dcache[0]); i++) {
-        this->dcache[i].valid = false;
-    }
-    #endif
+    this->tlb_fence();
 }
 
 uint64_t RVCore::get_uptime() {

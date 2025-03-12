@@ -16,7 +16,15 @@
 #define DCACHE_SET_MASK ((word_t)((1ULL << DCACHE_SET_BITS) - 1) << DCACHE_OFF_BITS)
 #define DCACHE_TAG_MASK ((word_t)(((word_t)-1) & ~DCACHE_OFF_MASK & ~DCACHE_SET_MASK))
 #define DCACHE_OFF(addr)  ((addr) & DCACHE_OFF_MASK)
-#define DCACHE_SET(addr) (((addr) & DCACHE_SET_MASK) >> DCACHE_OFF_BITS)
+#define DCACHE_SET(addr) (((addr) & DCACHE_SET_MASK) >> DCACHE_BLOCK_BITS)
 #define DCACHE_TAG(addr)  ((addr) & DCACHE_TAG_MASK)
+
+#define TLB_TAG_BITS (WORD_BITS - TLB_SET_BITS - PGBITS)
+#define TLB_OFF_MASK ((word_t)((1ULL << PGBITS) - 1))
+#define TLB_SET_MASK ((word_t)((1ULL << TLB_SET_BITS) - 1) << (PGBITS))
+#define TLB_TAG_MASK ((word_t)((1ULL << TLB_TAG_BITS) - 1) << (PGBITS + TLB_SET_BITS))
+#define TLB_OFF(addr) ((addr) & TLB_OFF_MASK)
+#define TLB_SET(addr) (((addr) & TLB_SET_MASK) >> PGBITS)
+#define TLB_TAG(addr) ((addr) & TLB_TAG_MASK)
 
 #endif

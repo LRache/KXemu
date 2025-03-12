@@ -4,6 +4,7 @@
 #include "./local-decoder.h"
 #include "cpu/word.h"
 #include "device/bus.h"
+#include "log.h"
 #include <cstdint>
 
 using namespace kxemu::cpu;
@@ -19,15 +20,15 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
 
     word_t paddr = vaddr;
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
-        word_t pgsize;
-        VMResult result;
+        VMResult vmresult;
         
-        paddr = this->vaddr_translate(vaddr, MemType::AMO, result, pgsize);
+        paddr = this->vaddr_translate(vaddr, MemType::AMO, vmresult);
         
-        switch (result) {
+        switch (vmresult) {
             case VM_OK: break;
             case VM_ACCESS_FAULT: this->trap(TRAP_AMO_ACCESS_FAULT); return -1;
             case VM_PAGE_FAULT:   this->trap(TRAP_AMO_PAGE_FAULT)  ; return -1;
+            case VM_UNSET: PANIC("vmresult is not set.");
         }
 
         bool pmp = this->pmp_check_r(paddr, len) && this->pmp_check_w(paddr, len);

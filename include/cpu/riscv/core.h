@@ -41,9 +41,11 @@ private:
     device::PLIC *plic;
     bool   memory_fetch();
     word_t memory_load (word_t addr, unsigned int len);
-    bool   memory_store(word_t addr, word_t data, unsigned int len);
+    void   memory_store(word_t addr, word_t data, unsigned int len);
 
     // Virtual address translation
+    static constexpr unsigned int PGBITS = 12;
+    static constexpr word_t PGSIZE = (1 << PGBITS);
     bool pm_read (word_t paddr, word_t &data, unsigned int len);
     bool pm_write(word_t paddr, word_t  data, unsigned int len);
     bool vm_fetch();
@@ -54,27 +56,27 @@ private:
         VM_OK,
         VM_PAGE_FAULT,
         VM_ACCESS_FAULT,
+        VM_UNSET
     };
-    word_t vaddr_translate(word_t addr, MemType type, VMResult &result, word_t &pgsize);
+    word_t vaddr_translate(word_t addr, MemType type, VMResult &result);
     
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-    word_t vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, word_t &pgsize); // The template function for sv32, sv39, sv48, sv57
+    word_t vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
     
-    word_t vaddr_translate_bare(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
+    word_t vaddr_translate_bare(word_t vaddr, MemType type, VMResult &result);
     #ifdef KXEMU_ISA32
     word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result, word_t &pgszie);
     #else
-    word_t vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
-    word_t vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
-    word_t vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result, word_t &pgsize);
+    word_t vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result);
+    word_t vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result);
+    word_t vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result);
     #endif
     
     word_t satpPPN;
-    word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result, word_t &pgsize);
+    word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
     void update_satp();
 
     // Physical memory protection
-    // bool check_pmp(word_t addr, int len, MemType type);
     bool pmp_check_x(word_t paddr, unsigned int len);
     bool pmp_check_r(word_t paddr, unsigned int len);
     bool pmp_check_w(word_t paddr, unsigned int len);
@@ -152,6 +154,8 @@ private:
     const word_t *medelegh;
     const word_t *mideleg;
 
+    std::mutex csrMtx;
+
     void set_priv_mode(int mode);
 
     uint64_t get_uptime();
@@ -161,14 +165,14 @@ private:
     std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
     word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid);
     template<int len> void do_load_reserved(const DecodeInfo &decodeInfo);
-    template<int len> void do_store_conditional(const DecodeInfo &deocdeInfo);
-    template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &deocdeInfo);
+    template<int len> void do_store_conditional(const DecodeInfo &decodeInfo);
+    template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &decodeInfo);
 
     // Experimental ICache
     #ifdef CONFIG_ICache
     static constexpr unsigned int ICACHE_SET_BITS = 11;
     struct ICacheBlock {
-        bool valid;
+        bool valid = false;
         word_t tag;
         
         do_inst_t do_inst;
@@ -183,28 +187,17 @@ private:
     
     word_t gpr[33];
 
-    // Experimental DCache
-    #ifdef CONFIG_DCache
-    static constexpr unsigned int DCACHE_BLOCK_BITS = 10;
-    static constexpr unsigned int DCACHE_BLOCK_SIZE = 1 << DCACHE_BLOCK_BITS;
-    static constexpr unsigned int DCACHE_SET_BITS = 5;
-    struct DCacheBlock {
-        bool valid;
-        bool dirty;
+    static constexpr unsigned int TLB_SET_BITS = 5;
+    struct TLBBlock {
+        word_t paddr;
         word_t tag;
-        void *raw;
-        __attribute__((aligned(sizeof(word_t)))) 
-        uint8_t data[DCACHE_BLOCK_SIZE];
-        
-        #ifdef CONFIG_DEBUG
-        word_t addr;
-        #endif
+        word_t *pte = nullptr;
+        bool valid = false;
     };
-    DCacheBlock dcache[1 << DCACHE_SET_BITS];
-    DCacheBlock *dcache_hit(word_t addr, int len);
-    bool dcache_load (word_t addr, int len, word_t &data);
-    bool dcache_store(word_t addr, word_t data, int len);
-    #endif
+    TLBBlock tlb[1 << TLB_SET_BITS];
+    TLBBlock *tlb_push(word_t vaddr, word_t paddr);
+    TLBBlock *tlb_hit(word_t vaddr);
+    void tlb_fence();
 
 public:
     RVCore();

@@ -4,22 +4,53 @@
 #include "cpu/riscv/cache-def.h"
 #include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
+#include "debug.h"
 #include "word.h"
 #include "log.h"
 #include "macro.h"
 
+#include <cstddef>
 #include <cstring>
+
+#define PGALIGN(addr) ((addr) & ~(PGSIZE - 1))
+#define ADDR_PAGE_UNALIGNED(addr, len) unlikely(PGALIGN(addr) != (PGALIGN(addr + len - 1)))
 
 using namespace kxemu::cpu;
 
-word_t RVCore::vaddr_translate_bare(word_t addr, MemType type, VMResult &result, word_t &pgsize) {
+RVCore::TLBBlock *RVCore::tlb_push(word_t vaddr, word_t paddr) {
+    word_t set = TLB_SET(vaddr);
+    word_t tag = TLB_TAG(vaddr);
+    TLBBlock *block = &this->tlb[set];
+    block->paddr = paddr & ~TLB_OFF_MASK;
+    block->tag = tag;
+    block->valid = true;
+    return block;
+}
+
+RVCore::TLBBlock *RVCore::tlb_hit(word_t vaddr) {
+    word_t set = TLB_SET(vaddr);
+    word_t tag = TLB_TAG(vaddr);
+    TLBBlock *block = &this->tlb[set];
+    if (likely(block->tag == tag && block->valid)) {
+        return block;
+    } else {
+        return nullptr;
+    }
+}
+
+void RVCore::tlb_fence() {
+    for (unsigned int i = 0; i < sizeof(this->tlb) / sizeof(this->tlb[0]); i++) {
+        this->tlb[i].valid = false;
+    }
+}
+
+word_t RVCore::vaddr_translate_bare(word_t addr, MemType type, VMResult &result) {
     result = VM_OK;
-    pgsize = 0;
     return addr;
 }
 
 template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, word_t &pgsize) {
+word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) {
     constexpr word_t PGBITS = 12;
     constexpr word_t PGSIZE = 1 << PGBITS;
 
@@ -45,6 +76,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, 
 
         bool valid;
         word_t pte = this->bus->read(addr, PTESIZE, valid);
+        DEBUG("next level pte at " FMT_WORD, addr);
         if (!valid) {
             // DEBUG("Read PTE failed when translate vaddr=" FMT_WORD, vaddr);
             result = VM_ACCESS_FAULT;
@@ -81,7 +113,6 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, 
             if (i > 0) {
                 word_t ppn_lower = (pte >> 10) & ((1 << (VPNBITS * i)) - 1);
                 if (ppn_lower != 0) {
-                    INFO("Misaligned superpage");
                     result = VM_PAGE_FAULT;
                     return -1;
                 }
@@ -104,8 +135,8 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, 
 
             // Determine if the requested memory access is allowed by the pte.r, pte.w, and pte.x bits
             if ((pte & 0xf & type) != type) {
-                INFO("PTE is not valid for the access type");
-                INFO("Access type=%d, vaddr=" FMT_WORD " pte=" FMT_WORD " pte.addr=" FMT_WORD ", satp=" FMT_WORD, type, vaddr, pte, addr, this->get_csr_core(CSR_SATP));
+                // INFO("PTE is not valid for the access type");
+                // INFO("Access type=%d, vaddr=" FMT_WORD " pte=" FMT_WORD " pte.addr=" FMT_WORD ", satp=" FMT_WORD ", pc=" FMT_WORD, type, vaddr, pte, addr, this->get_csr_core(CSR_SATP), this->pc);
                 result = VM_ACCESS_FAULT;
                 return -1;
             }
@@ -118,7 +149,9 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result, 
 
             word_t paddr = ((pte << 2) & ~mask) | (vaddr & mask);
             result = VM_OK;
-            pgsize = (1 << (VPNBITS * i)) << PGBITS;
+
+            // this->tlb_push(vaddr, paddr);
+
             return paddr;
         } else {
             // This is a pointer to the next level of the page table
@@ -140,7 +173,7 @@ word_t RVCore::vaddr_translate_sv32(word_t vaddr, MemType type, VMResult &result
     return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 #else
-word_t RVCore::vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result, word_t &pgsize) {
+word_t RVCore::vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result) {
     // Instruction fetch addresses and load and store effective addresses,
     // which are 64 bits, must have bits 63–39 all equal to bit 38, 
     // or else a page-fault exception will occur.
@@ -153,142 +186,48 @@ word_t RVCore::vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result
     constexpr unsigned int PTESIZE = 8;
     constexpr unsigned int VPNBITS = 9;
 
-    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result, pgsize);
+    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 
-word_t RVCore::vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result, word_t &pgsize) {
+word_t RVCore::vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result) {
     constexpr unsigned int LEVELS  = 4;
     constexpr unsigned int PTESIZE = 8;
     constexpr unsigned int VPNBITS = 9;
 
-    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result, pgsize);
+    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 
-word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result, word_t &pgsize) {
+word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result) {
     constexpr unsigned int LEVELS  = 5;
     constexpr unsigned int PTESIZE = 8;
     constexpr unsigned int VPNBITS = 9;
 
-    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result, pgsize);
+    return this->vaddr_translate_sv<LEVELS, PTESIZE, VPNBITS>(vaddr, type, result);
 }
 
 #endif
 
-word_t RVCore::vaddr_translate(word_t vaddr, MemType type, VMResult &result, word_t &pgsize) {
-    return (this->*vaddr_translate_func)(vaddr, type, result, pgsize);
+word_t RVCore::vaddr_translate(word_t vaddr, MemType type, VMResult &result) {
+    TLBBlock *block = this->tlb_hit(vaddr);
+    if (likely(block != nullptr)) {
+        result = VM_OK;
+        return block->paddr + TLB_OFF(vaddr);
+    } else {
+        return (this->*vaddr_translate_func)(vaddr, type, result);
+    }
 }
 
 word_t RVCore::vaddr_translate(word_t vaddr, bool &valid) {
     VMResult result;
-    word_t _;
-    word_t paddr = this->vaddr_translate(vaddr, MemType::LOAD, result, _);
+    word_t paddr = this->vaddr_translate(vaddr, MemType::LOAD, result);
     if (result == VM_OK) {
         valid = true;
         return paddr;
     }
-    paddr = this->vaddr_translate(vaddr, MemType::FETCH, result, _);
+    paddr = this->vaddr_translate(vaddr, MemType::FETCH, result);
     valid = result == VM_OK;
     return paddr;
 }
-
-#ifdef CONFIG_DCache
-
-RVCore::DCacheBlock *RVCore::dcache_hit(word_t addr, int len) {
-    word_t set = DCACHE_SET(addr);
-    if (unlikely(set != DCACHE_SET(addr + len))) {
-        return nullptr;
-    }
-    
-    word_t tag = DCACHE_TAG(addr);
-    DCacheBlock *block = &this->dcache[set];
-    if (block->valid) {
-        if (block->tag == tag) {
-            // INFO("DCache hit, addr=" FMT_WORD64 ", pc=" FMT_WORD, addr, this->pc);
-            return block;
-        } else {
-            if (block->dirty) {
-                std::memcpy(block->raw, block->data, DCACHE_BLOCK_SIZE);
-                // INFO("WriteBack " FMT_WORD, block->addr);
-            }
-        }
-    }
-
-    if (!block->valid || block->tag != tag) {
-        // INFO("DCache miss, addr=" FMT_WORD64 ", pc=" FMT_WORD, addr, this->pc);
-    }
-
-    auto mem = this->bus->match_memory(addr, len);
-        
-    if (mem == nullptr) {
-        return nullptr;
-    }
-    if (mem->end - addr < DCACHE_BLOCK_SIZE) {
-        return nullptr;
-    }
-
-    block->tag = tag;
-    block->valid = true;
-    block->dirty = false;
-    block->raw = mem->data + (addr & ~DCACHE_OFF_MASK) - mem->start;
-    std::memcpy(block->data, block->raw, DCACHE_BLOCK_SIZE);
-
-    return block;
-}
-
-bool RVCore::dcache_load(word_t addr, int len, word_t &data) {
-    if (unlikely(DCACHE_SET(addr) != DCACHE_SET(addr + len))) {
-        return false;
-    }
-    
-    DCacheBlock *block = this->dcache_hit(addr, len);
-    if (block == nullptr) {
-        return false;
-    }
-
-    void *ptr = block->data + DCACHE_OFF(addr);
-    switch (len) {
-        case 1: data = *( uint8_t *)ptr; break;
-        case 2: data = *(uint16_t *)ptr; break;
-        case 4: data = *(uint32_t *)ptr; break;
-        case 8: data = *(uint64_t *)ptr; break;
-        default: PANIC("Invalid length");
-    }
-
-    #ifdef CONFIG_DEBUG_DCACHE
-    bool valid;
-    word_t ref = this->bus->read(addr, len, valid);
-    SELF_PROTECT(valid, "Cannot read from bus.");
-    SELF_PROTECT(data == ref, "Difftest Failed. ref=" FMT_WORD ", dut=" FMT_WORD ", pc=" FMT_WORD, ref, data, pc);
-    #endif
-
-    return true;
-}
-
-bool RVCore::dcache_store(word_t addr, word_t data, int len) {
-    DCacheBlock *block = this->dcache_hit(addr, len);
-    if (block == nullptr) {
-        return false;
-    }
-    
-    void *ptr = block->data + DCACHE_OFF(addr);
-    switch (len) {
-        case 1: *( uint8_t *)ptr = data; break;
-        case 2: *(uint16_t *)ptr = data; break;
-        case 4: *(uint32_t *)ptr = data; break;
-        case 8: *(uint64_t *)ptr = data; break;
-        default: PANIC("Invalid length");
-    }
-    block->dirty = true;
-
-    #ifdef CONFIG_DEBUG_DCACHE
-    bool s = this->bus->write(addr, data, len);
-    SELF_PROTECT(s, "Cannot write to bus");
-    #endif
-
-    return true;
-}
-
-#endif
 
 bool RVCore::pm_read(word_t paddr, word_t &data, unsigned int len) {
     bool valid;
@@ -303,18 +242,18 @@ bool RVCore::pm_write(word_t paddr, word_t data, unsigned int len) {
 bool RVCore::vm_fetch() {
     word_t vaddr = this->pc;
     
-    VMResult result;
-    word_t pgsize;
+    VMResult vmresult = VM_UNSET;
     
-    word_t paddr = this->vaddr_translate(vaddr, MemType::FETCH, result, pgsize);
-    switch (result) {
+    word_t paddr = this->vaddr_translate(vaddr, MemType::FETCH, vmresult);
+    switch (vmresult) {
         case VM_OK: break;
-        case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return -1;
-        case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT  , vaddr); return -1;
+        case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return false;
+        case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT  , vaddr); return false;
+        case VM_UNSET: PANIC("vmresult is not set");
     }
 
     word_t inst;
-    if (unlikely((paddr & ~(pgsize - 1)) != ((paddr + 3) & ~(pgsize - 1)))) {
+    if (ADDR_PAGE_UNALIGNED(vaddr, 4)) {
         if (unlikely(!this->csr.pmp_check_x(paddr, 2))) {
             HINT("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
             this->trap(TRAP_INST_ACCESS_FAULT, paddr);
@@ -327,11 +266,12 @@ bool RVCore::vm_fetch() {
             return false;
         }
 
-        paddr = this->vaddr_translate(vaddr + 2, MemType::FETCH, result, pgsize);
-        switch (result) {
+        paddr = this->vaddr_translate(vaddr + 2, MemType::FETCH, vmresult);
+        switch (vmresult) {
             case VM_OK: break;
-            case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return -1;
-            case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT  , vaddr); return -1;
+            case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return false;
+            case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT  , vaddr); return false;
+            case VM_UNSET: PANIC("vmresult is not set.");
         }
 
         word_t high;
@@ -360,31 +300,18 @@ bool RVCore::vm_fetch() {
 }
 
 bool RVCore::vm_read(word_t vaddr, word_t &data, unsigned int len) {
-    VMResult result;
-    word_t pgsize;
+    VMResult result = VM_UNSET;
     
-    word_t paddr = this->vaddr_translate(vaddr, MemType::LOAD, result, pgsize);
+    word_t paddr = this->vaddr_translate(vaddr, MemType::LOAD, result);
         
     switch (result) {
         case VM_OK: break;
         case VM_ACCESS_FAULT: this->trap(TRAP_LOAD_ACCESS_FAULT, vaddr); return false;
         case VM_PAGE_FAULT:   this->trap(TRAP_LOAD_PAGE_FAULT  , vaddr); return false;
+        case VM_UNSET: PANIC("vmresult is not set.")
     }
 
-    word_t pgsizeMask = ~(pgsize - 1);
-    // if (unlikely((paddr & pgsizeMask) != ((paddr + len) & pgsizeMask))) {
-    //     this->trap(TRAP_LOAD_ADDR_MISALIGNED, paddr);
-    //     return false;
-    // } else {
-    //     if (unlikely(!this->pmp_check_r(paddr, len))) {
-    //         WARN("Physical memory protection check failed when load, addr=" FMT_WORD ", len=%d", paddr, len);
-    //         this->trap(TRAP_LOAD_ACCESS_FAULT);
-    //         return false;
-    //     }
-    //     return this->pm_read(paddr, data, len);
-    // }
-
-    if (unlikely((paddr & pgsizeMask) != ((paddr + len - 1) & pgsizeMask))) {
+    if (ADDR_PAGE_UNALIGNED(vaddr, len)) {
         WARN("vm_read misaligned, paddr=" FMT_WORD ", len=%d, pc=" FMT_WORD, paddr, len, this->pc);
     }
     
@@ -398,18 +325,17 @@ bool RVCore::vm_read(word_t vaddr, word_t &data, unsigned int len) {
 }
 
 bool RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
-    VMResult result;
-    word_t pgsize;
+    VMResult vmresult;
     
-    word_t paddr = this->vaddr_translate(vaddr, MemType::STORE, result, pgsize);
-    switch (result) {
+    word_t paddr = this->vaddr_translate(vaddr, MemType::STORE, vmresult);
+    switch (vmresult) {
         case VM_OK: break;
         case VM_ACCESS_FAULT: this->trap(TRAP_STORE_ACCESS_FAULT, vaddr); return false;
         case VM_PAGE_FAULT:   this->trap(TRAP_STORE_PAGE_FAULT  , vaddr); return false;
+        case VM_UNSET: PANIC("vmresult is not set.");
     }
     
-    word_t pgsizeMask = ~(pgsize - 1);
-    if (unlikely((paddr & pgsizeMask) != ((paddr + len - 1) & pgsizeMask))) {
+    if (ADDR_PAGE_UNALIGNED(paddr, len)) {
         // this->trap(TRAP_STORE_ADDR_MISALIGNED);
         // return false;
         WARN("vm_write misaligned, paddr=" FMT_WORD ", len=%d, pc=" FMT_WORD, paddr, len, this->pc);
@@ -425,9 +351,9 @@ bool RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
 }
 
 bool RVCore::memory_fetch() {
-    if (this->privMode == PrivMode::MACHINE) {
+    if (unlikely(this->privMode == PrivMode::MACHINE)) {
         word_t inst;
-        if(!this->pm_read(this->pc, inst, 4)) {
+        if(unlikely(!this->pm_read(this->pc, inst, 4))) {
             this->trap(TRAP_INST_ACCESS_FAULT);
             return false;
         }
@@ -441,7 +367,7 @@ bool RVCore::memory_fetch() {
 word_t RVCore::memory_load(word_t addr, unsigned int len) {
     word_t data = -1;
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
-        if (!this->pm_read(addr, data, len)) {
+        if (unlikely(!this->pm_read(addr, data, len))) {
             this->trap(TRAP_LOAD_ACCESS_FAULT, addr);
         }
     } else {
@@ -450,15 +376,13 @@ word_t RVCore::memory_load(word_t addr, unsigned int len) {
     return data;
 }
 
-bool RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
+void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
-        if (!this->pm_write(addr, data, len)) {
-            this->trap(TRAP_STORE_ACCESS_FAULT, addr);
-            return false;
+        if (unlikely(!this->pm_write(addr, data, len))) {
+            this->trap(TRAP_STORE_ACCESS_FAULT);
         }
-        return true;
     } else {
-        return vm_write(addr, data, len);
+        vm_write(addr, data, len);
     }
 }
 
