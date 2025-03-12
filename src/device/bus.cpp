@@ -51,7 +51,7 @@ bool Bus::add_memory_map(word_t start, word_t size) {
     return true;
 }
 
-bool Bus::add_mmio_map(unsigned int id, word_t start, word_t length, MMIOMap *map) {
+bool Bus::add_mmio_map(unsigned int id, word_t start, word_t length, MMIODev *dev) {
     // check if overlap
     for (auto &m : mmioMaps) {
         if (m->start <= start && start < m->start + m->size) {
@@ -65,27 +65,15 @@ bool Bus::add_mmio_map(unsigned int id, word_t start, word_t length, MMIOMap *ma
     auto m = new MMIOMapBlock;
     m->start = start;
     m->size = length;
-    m->map = map;
+    m->dev = dev;
     m->id = id;
     mmioMaps.push_back(m);
-    map->connect_to_bus(this);
+    dev->connect_to_bus(this);
     return true;
 }
 
-bool Bus::add_mmio_map(word_t start, word_t length, MMIOMap *map) {
+bool Bus::add_mmio_map(word_t start, word_t length, MMIODev *map) {
     return this->add_mmio_map(0, start, length, map);
-}
-
-void Bus::free_all() {
-    for (auto &m : memoryMaps) {
-        ::operator delete[](m->data, std::align_val_t(8));    
-        delete m;
-    }
-    memoryMaps.clear();
-    for (auto &m : mmioMaps) {
-        delete m;
-    }
-    mmioMaps.clear();
 }
 
 word_t Bus::read(word_t addr, word_t length, bool &valid) const {
@@ -107,7 +95,7 @@ word_t Bus::read(word_t addr, word_t length, bool &valid) const {
 
     auto map = this->match_mmio(addr, length);
     if (likely(map != nullptr)) {
-        return map->map->read(addr - map->start, length, valid);
+        return map->dev->read(addr - map->start, length, valid);
     }
 
     valid = false;
@@ -130,7 +118,7 @@ bool Bus::write(word_t addr, word_t data, word_t length) {
 
     auto map = this->match_mmio(addr, length);
     if (map != nullptr) {
-        return map->map->write(addr - map->start, data, length);
+        return map->dev->write(addr - map->start, data, length);
     }
     return false;
 }
@@ -138,7 +126,7 @@ bool Bus::write(word_t addr, word_t data, word_t length) {
 void Bus::update() {
     this->updateLock.lock();
     for (auto &m : mmioMaps) {
-        m->map->update();
+        m->dev->update();
     }
     this->updateLock.unlock();
 }
@@ -187,7 +175,7 @@ word_t Bus::do_atomic(word_t addr, word_t data, word_t length, AMO amo, bool &va
         valid = false;
         return -1;
     }
-    return map->map->do_atomic(addr - map->start, data, length, amo, valid);
+    return map->dev->do_atomic(addr - map->start, data, length, amo, valid);
 }
 
 bool Bus::load_from_stream(std::istream &stream, word_t addr) {
@@ -328,7 +316,7 @@ void *Bus::get_ptr(word_t addr) const{
 
     auto map = match_mmio(addr);
     if (map != nullptr) {
-        return map->map->get_ptr(addr - map->start);
+        return map->dev->get_ptr(addr - map->start);
     }
 
     return nullptr;
@@ -357,7 +345,11 @@ word_t Bus::get_ptr_length(word_t addr) const {
 
 Bus::~Bus() {
     for (auto &m : memoryMaps) {
+        ::operator delete[](m->data, std::align_val_t(8));
         delete m;
     }
     memoryMaps.clear();
+    for (auto &m : mmioMaps) {
+        delete m;
+    }
 }
