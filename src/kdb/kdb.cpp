@@ -16,7 +16,7 @@ word_t kdb::programEntry;
 int kdb::returnCode = 0;
 
 void kdb::init(unsigned int coreCount) {
-    init_bus();
+    device::init();
 
     logFlag = DEBUG | INFO | WARN | PANIC;
 
@@ -32,7 +32,7 @@ void kdb::init(unsigned int coreCount) {
 void kdb::deinit() {
     delete cpu;
     cpu = nullptr;
-    deinit_bus();
+    device::deinit();
     uart::deinit();
 }
 
