@@ -2,26 +2,27 @@
 #define __KXEMU_UTILS_SPINLOCK_H__
 
 #include <atomic>
+#include <thread>
+
 namespace kxemu::utils {
 
 class SpinLock {
 private:
-    std::atomic<bool> spinlock = false;
+    std::atomic_flag spinlock = ATOMIC_FLAG_INIT;
 
-    public:
-
+public:
     void lock() {
-        bool expected = false;
-        while (this->spinlock.compare_exchange_weak(expected, true, std::memory_order_acquire)) {
-            // Spin
+        while (spinlock.test_and_set(std::memory_order_acquire)) {
+            std::this_thread::yield();
         }
     }
 
     void unlock() {
-        this->spinlock.store(false, std::memory_order_release);
+        spinlock.clear(std::memory_order_release);
     }
 };
 
 } // namespace kxemu::utils
+
 
 #endif
