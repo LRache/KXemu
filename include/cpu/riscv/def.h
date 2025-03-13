@@ -228,12 +228,14 @@
 #define SATP_MODE_SV57 10
 #define SATP_MODE_SV64 11
 
-#define PTE_V_MASK  (1 << 0)
-#define PTE_R_MASK  (1 << 1)
-#define PTE_W_MASK  (1 << 2)
-#define PTE_X_MASK  (1 << 3)
-#define PTE_U_MASK  (1 << 4)
-#define PTE_A_MASK  (1 << 6)
+#define PTE_V_MASK (1 << 0)
+#define PTE_R_MASK (1 << 1)
+#define PTE_W_MASK (1 << 2)
+#define PTE_X_MASK (1 << 3)
+#define PTE_U_MASK (1 << 4)
+#define PTE_G_MASK (1 << 5)
+#define PTE_A_MASK (1 << 6)
+#define PTE_D_MASK (1 << 7)
 
 #define PTE_V(pte) ((pte & PTE_V_MASK) >> 0)
 #define PTE_R(pte) ((pte & PTE_R_MASK) >> 1)
