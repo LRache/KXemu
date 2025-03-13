@@ -48,7 +48,8 @@ do { \
 #endif
 
 namespace kxemu {
-    enum LogFlag {
+    
+enum LogFlag {
     DEBUG = 1,
     INFO  = 2,
     WARN  = 4,
@@ -57,6 +58,7 @@ namespace kxemu {
 };
 
 extern int logFlag;
+
 } // namespace kxemu
 
 #endif

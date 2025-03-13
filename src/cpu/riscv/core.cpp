@@ -1,12 +1,9 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
-#include "cpu/riscv/cache-def.h"
 #include "cpu/word.h"
-#include "debug.h"
 #include "device/bus.h"
 #include "log.h"
-#include "macro.h"
 #include "word.h"
 
 #include <cstdint>

@@ -1,11 +1,13 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
 
-#include "./local-decoder.h"
 #include "cpu/word.h"
 #include "device/bus.h"
 #include "log.h"
+
 #include <cstdint>
+
+#include "./local-decoder.h"
 
 using namespace kxemu::cpu;
 using kxemu::device::AMO;
@@ -62,13 +64,13 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     DEST = value;
 }
 
-template<int len>
+template<int LEN>
 void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_RS2;
 
     bool valid;
     word_t addr = SRC1;
-    addr = this->amo_vaddr_translate_and_set_trap(addr, len, valid);
+    addr = this->amo_vaddr_translate_and_set_trap(addr, LEN, valid);
     if (!valid) return;
 
     auto iter = this->reservedMemory.find(addr);
@@ -84,7 +86,7 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     }
 
     word_t expected = iter->second;
-    word_t desired  = this->get_gpr(SRC2);
+    word_t desired  = SRC2;
     bool success = __atomic_compare_exchange_n((word_t *)ptr, &expected, desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     DEST = success ? 0 : 1;
 }

@@ -4,7 +4,6 @@
 #include "device/bus.h"
 #include "device/def.h"
 #include "device/mmio.h"
-#include "log.h"
 
 #include <cstdint>
 
@@ -177,8 +176,6 @@ void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
             
             source.pending = true;
             sourceDev = dev;
-
-            // INFO("PLIC: Interrupt %u is pending, enable=%d, p=%u", map->id, source.enable[contextID], source.priority);
             
             if (source.enable[contextID] && source.priority >= priority) {
                 priority = source.priority;
@@ -188,7 +185,6 @@ void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
     }
 
     if (claim != 0) {
-        // INFO("PLIC: Claiming interrupt %u for hart %u %s", claim, hartid, sourceDev->get_type_name());
         target.claim = claim;
         sourceDev->clear_interrupt();
         if (privMode == cpu::PrivMode::MACHINE) {

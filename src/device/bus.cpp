@@ -354,4 +354,5 @@ Bus::~Bus() {
     for (auto &m : mmioMaps) {
         delete m;
     }
+    mmioMaps.clear();
 }

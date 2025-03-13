@@ -1,8 +1,8 @@
 #include "cpu/riscv/core.h"
-#include "./local-decoder.h"
 #include "cpu/word.h"
 #include "macro.h"
 
+#include "./local-decoder.h"
 
 #define REQUIRE(cond) do {if (unlikely(!(cond))) { this->do_invalid_inst(); return; }} while(0);
 #define REQUIRE_NOT_x0(reg)  REQUIRE(!(reg##_is_x0))

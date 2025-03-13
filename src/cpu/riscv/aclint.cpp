@@ -4,7 +4,6 @@
 #include "utils/utils.h"
 #include "log.h"
 #include "debug.h"
-#include <cstddef>
 
 #define IN_RANGE(addr, name) (addr >= name##_BASE && addr < name##_BASE + name##_SIZE)
 
@@ -143,10 +142,8 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         word_t offset = addr - MTIME_BASE;
         if (offset == 0) {
             this->mtime = UPTIME_TO_MTIME(this->get_uptime());
-            // INFO("mtime low=" FMT_WORD64, this->mtime & 0xffffffffUL);
             return this->mtime & 0xffffffffUL;
         } else {
-            // INFO("mtime high=" FMT_WORD64, (this->mtime >> 32))
             return this->mtime >> 32;
         }
         #endif

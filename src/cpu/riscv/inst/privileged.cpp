@@ -3,8 +3,6 @@
 #include "cpu/word.h"
 #include "log.h"
 
-#include <ctime>
-
 using namespace kxemu::cpu;
 
 void RVCore::set_priv_mode(int mode) {

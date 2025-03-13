@@ -66,7 +66,6 @@ void VirtIO::write_status(word_t data) {
             if (data & VIRTIO_STATUS_DRIVER_OK) this->state = DRIVER_OK;
             else break;
         case DRIVER_OK:
-            // INFO("%p %p %p", this->bus->get_ptr(virtQueues[0].p_avail), this->bus->get_ptr(virtQueues[0].p_desc), this->bus->get_ptr(virtQueues[0].p_used));
             break;
     }
 }

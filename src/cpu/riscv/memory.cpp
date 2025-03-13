@@ -4,12 +4,10 @@
 #include "cpu/riscv/cache-def.h"
 #include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
-#include "debug.h"
 #include "word.h"
 #include "log.h"
 #include "macro.h"
 
-#include <cstddef>
 #include <cstring>
 
 #define PGALIGN(addr) ((addr) & ~(PGSIZE - 1))

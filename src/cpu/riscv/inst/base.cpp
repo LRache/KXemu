@@ -1,10 +1,10 @@
 #include "cpu/riscv/core.h"
 #include "cpu/word.h"
-
-#include "./local-decoder.h"
 #include "macro.h"
 
 #include <cstdint>
+
+#include "./local-decoder.h"
 
 #ifdef KXEMU_ISA64
     #define SHAMT_MASK 0x3f

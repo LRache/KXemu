@@ -2,7 +2,6 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "macro.h"
-#include <mutex>
 
 using namespace kxemu::cpu;
 

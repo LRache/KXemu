@@ -1,9 +1,11 @@
 #include "cpu/riscv/core.h"
-#include "./local-decoder.h"
 #include "cpu/word.h"
 #include "macro.h"
 #include "word.h"
+
 #include <cstdint>
+
+#include "./local-decoder.h"
 
 using namespace kxemu::cpu;
 

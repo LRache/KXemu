@@ -1,6 +1,5 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/cache-def.h"
-#include "debug.h"
 
 using namespace kxemu::cpu;
 

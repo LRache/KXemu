@@ -3,7 +3,6 @@
 #include "cpu/word.h"
 #include "macro.h"
 #include "log.h"
-#include "word.h"
 
 #include <cstdint>
 #include <cstring>

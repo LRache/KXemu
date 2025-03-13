@@ -227,8 +227,6 @@ bool Uart16650::open_socket(const std::string &ip, int port) {
         WARN("Failed to open socket.");
         return false;
     }
-    // uartSocketRunning = true;
-    // recvThread = new std::thread(&Uart16650::recv_thread_loop, this);
     mode = Mode::SOCKET;
     lsr |= LSR_TX_READY;
     return true;
