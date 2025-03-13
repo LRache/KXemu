@@ -36,7 +36,8 @@ bool VirtIOBlock::blk_read(uint32_t sector, uint32_t len, word_t bufferAddr, uin
     std::size_t start = sector * 512;
     if (start + len >= this->imgSize) {
         WARN("start + len >= this->imgSize");
-        return false;
+        *status = 0;
+        return true;
     }
 
     std::lock_guard<std::mutex> lock(this->streamMtx);
@@ -65,6 +66,12 @@ bool VirtIOBlock::blk_write(uint32_t sector, uint32_t len, word_t bufferAddr, ui
     std::lock_guard<std::mutex> lock(this->streamMtx);
 
     std::size_t start = sector * 512;
+    if (start + len >= this->imgSize) {
+        WARN("start + len >= this->imgSize");
+        *status = 0;
+        return true;
+    }
+
     this->fstream.seekp(start, std::ios::beg);
 
     this->fstream.write(buffer, len);
