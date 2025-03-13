@@ -8,11 +8,11 @@ FS_IMG = ./xv6-riscv/fs.img
 
 $(KERNEL_TARGET):
 	$(info + MAKE kernel/kernel)
-	@ make -C ./xv6-riscv kernel/kernel
+	@ make -s -C ./xv6-riscv kernel/kernel
 
 $(FS_IMG):
 	$(info + MAKE fs.img)
-	@ make -C ./xv6-riscv fs.img
+	@ make -s -C ./xv6-riscv fs.img
 
 run: $(KERNEL_TARGET) $(FS_IMG)
 	$(info + RUNNING KXEMU)
