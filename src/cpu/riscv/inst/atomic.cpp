@@ -22,7 +22,7 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
         VMResult vmresult;
         
-        paddr = this->vaddr_translate(vaddr, MemType::AMO, vmresult);
+        paddr = this->vaddr_translate_core(vaddr, MemType::AMO, vmresult);
         
         switch (vmresult) {
             case VM_OK: break;
