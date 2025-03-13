@@ -17,12 +17,17 @@
 
 using namespace kxemu::cpu;
 
-RVCore::TLBBlock *RVCore::tlb_push(word_t vaddr, word_t paddr) {
+RVCore::TLBBlock *RVCore::tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t flag) {
     word_t set = TLB_SET(vaddr);
     word_t tag = TLB_TAG(vaddr);
     TLBBlock *block = &this->tlb[set];
+    if (block->valid) {
+        this->pm_write(block->pteAddr, block->flag, 1);
+    }
     block->paddr = paddr & ~TLB_OFF_MASK;
     block->tag = tag;
+    block->pteAddr = pteAddr;
+    block->flag = flag;
     block->valid = true;
     return block;
 }
@@ -60,33 +65,20 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
     }
 
     // Whether the page which has the U bit set in the PTE is accessible by the current privilege mode
-    // bool uPageAccessible = this->privMode == USER || STATUS_SUM(*this->mstatus);
     bool uPageAccessible = this->privMode == USER || this->mstatus.sum;
 
-    // word_t base = SATP_PPN(*this->satp) * PGSIZE;
     word_t base = this->satpPPN * PGSIZE;
     for (int i = LEVELS - 1; i >= 0; i--) {
-        word_t addr = base + vpn[i] * PTESIZE;
-        
-        if (!pmp_check_r(addr, PTESIZE)) {
-            // DEBUG("PMP check failed when translate vaddr=" FMT_WORD, vaddr);
-            result = VM_ACCESS_FAULT;
-            return -1;
-        }
+        word_t pteAddr = base + vpn[i] * PTESIZE;
 
-        bool valid;
-        word_t pte = this->bus->read(addr, PTESIZE, valid);
-        DEBUG("next level pte at " FMT_WORD, addr);
-        if (!valid) {
-            // DEBUG("Read PTE failed when translate vaddr=" FMT_WORD, vaddr);
+        word_t pte;
+        if (unlikely(!this->pm_read_check(pteAddr, pte, PTESIZE))) {
             result = VM_ACCESS_FAULT;
             return -1;
         }
 
         bool v = PTE_V(pte);
         if (!v) {
-            DEBUG("PTE is not valid: PTE=" FMT_WORD ", vpn=" FMT_WORD, pte, vpn[i]);
-            DEBUG("pte.addr=" FMT_WORD, addr);
             result = VM_PAGE_FAULT;
             return -1;
         }
@@ -122,22 +114,20 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             if (u) {
                 if (!uPageAccessible) {
                     // INFO("Supervisor access user PTE");
-                    result = VM_ACCESS_FAULT;
+                    result = VM_PAGE_FAULT;
                     return -1;
                 } 
             } else {
                 if (this->privMode == PrivMode::USER) {
-                    // INFO("User access supervisor PTE");
-                    result = VM_ACCESS_FAULT;
+                    // INFO("User access supervisor PTE, vaddr=" FMT_WORD, vaddr);
+                    result = VM_PAGE_FAULT;
                     return -1;
                 }
             }
 
             // Determine if the requested memory access is allowed by the pte.r, pte.w, and pte.x bits
             if ((pte & 0xf & type) != type) {
-                // INFO("PTE is not valid for the access type");
-                // INFO("Access type=%d, vaddr=" FMT_WORD " pte=" FMT_WORD " pte.addr=" FMT_WORD ", satp=" FMT_WORD ", pc=" FMT_WORD, type, vaddr, pte, addr, this->get_csr_core(CSR_SATP), this->pc);
-                result = VM_ACCESS_FAULT;
+                result = VM_PAGE_FAULT;
                 return -1;
             }
 
@@ -150,7 +140,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             word_t paddr = ((pte << 2) & ~mask) | (vaddr & mask);
             result = VM_OK;
 
-            // this->tlb_push(vaddr, paddr);
+            this->tlb_push(vaddr, paddr, pteAddr, pte & 0xff);
 
             return paddr;
         } else {
@@ -159,13 +149,12 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             base = ppn * PGSIZE;
         }
     }
-    INFO("PTE is not valid");
     result = VM_PAGE_FAULT;
     return -1;
 }
 
 #ifdef KXEMU_ISA32
-word_t RVCore::vaddr_translate_sv32(word_t vaddr, MemType type, VMResult &result, word_t &pgsize) {
+word_t RVCore::vaddr_translate_sv32(word_t vaddr, MemType type, VMResult &result) {
     constexpr unsigned int LEVELS  = 2;
     constexpr unsigned int PTESIZE = 4;
     constexpr unsigned int VPNBITS = 10;
@@ -207,11 +196,21 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 
 #endif
 
-word_t RVCore::vaddr_translate(word_t vaddr, MemType type, VMResult &result) {
+word_t RVCore::vaddr_translate_core(word_t vaddr, MemType type, VMResult &result) {
     TLBBlock *block = this->tlb_hit(vaddr);
     if (likely(block != nullptr)) {
-        result = VM_OK;
-        return block->paddr + TLB_OFF(vaddr);
+        bool u = PTE_U(block->flag) ? this->privMode == USER || this->mstatus.sum : this->privMode == SUPERVISOR;
+        if (likely((block->flag & type) == type && (u))) {
+            block->flag |= PTE_A_MASK;
+            if (type & STORE) {
+                block->flag |= PTE_D_MASK;
+            }
+            result = VM_OK;
+            return block->paddr + TLB_OFF(vaddr);
+        } else {
+            result = VM_PAGE_FAULT;
+            return -1;
+        }
     } else {
         return (this->*vaddr_translate_func)(vaddr, type, result);
     }
@@ -219,12 +218,7 @@ word_t RVCore::vaddr_translate(word_t vaddr, MemType type, VMResult &result) {
 
 word_t RVCore::vaddr_translate(word_t vaddr, bool &valid) {
     VMResult result;
-    word_t paddr = this->vaddr_translate(vaddr, MemType::LOAD, result);
-    if (result == VM_OK) {
-        valid = true;
-        return paddr;
-    }
-    paddr = this->vaddr_translate(vaddr, MemType::FETCH, result);
+    word_t paddr = this->vaddr_translate_core(vaddr, MemType::DontCare, result);
     valid = result == VM_OK;
     return paddr;
 }
@@ -236,7 +230,22 @@ bool RVCore::pm_read(word_t paddr, word_t &data, unsigned int len) {
 }
 
 bool RVCore::pm_write(word_t paddr, word_t data, unsigned int len) {
-    return this->bus->write(paddr, data, len);
+    bool valid = this->bus->write(paddr, data, len);
+    return valid;
+}
+
+bool RVCore::pm_read_check(word_t paddr, word_t &data, unsigned int len) {
+    if (unlikely(!this->pmp_check_r(paddr, len))) {
+        return false;
+    }
+    return this->pm_read(paddr, data, len);
+}
+
+bool RVCore::pm_write_check(word_t paddr, word_t data, unsigned int len) {
+    if (unlikely(!this->pmp_check_w(paddr, len))) {
+        return false;
+    }
+    return this->pm_write(paddr, data, len);
 }
 
 bool RVCore::vm_fetch() {
@@ -244,7 +253,7 @@ bool RVCore::vm_fetch() {
     
     VMResult vmresult = VM_UNSET;
     
-    word_t paddr = this->vaddr_translate(vaddr, MemType::FETCH, vmresult);
+    word_t paddr = this->vaddr_translate_core(vaddr, MemType::FETCH, vmresult);
     switch (vmresult) {
         case VM_OK: break;
         case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return false;
@@ -266,7 +275,7 @@ bool RVCore::vm_fetch() {
             return false;
         }
 
-        paddr = this->vaddr_translate(vaddr + 2, MemType::FETCH, vmresult);
+        paddr = this->vaddr_translate_core(vaddr + 2, MemType::FETCH, vmresult);
         switch (vmresult) {
             case VM_OK: break;
             case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return false;
@@ -302,7 +311,7 @@ bool RVCore::vm_fetch() {
 bool RVCore::vm_read(word_t vaddr, word_t &data, unsigned int len) {
     VMResult result = VM_UNSET;
     
-    word_t paddr = this->vaddr_translate(vaddr, MemType::LOAD, result);
+    word_t paddr = this->vaddr_translate_core(vaddr, MemType::LOAD, result);
         
     switch (result) {
         case VM_OK: break;
@@ -327,7 +336,7 @@ bool RVCore::vm_read(word_t vaddr, word_t &data, unsigned int len) {
 bool RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
     VMResult vmresult;
     
-    word_t paddr = this->vaddr_translate(vaddr, MemType::STORE, vmresult);
+    word_t paddr = this->vaddr_translate_core(vaddr, MemType::STORE, vmresult);
     switch (vmresult) {
         case VM_OK: break;
         case VM_ACCESS_FAULT: this->trap(TRAP_STORE_ACCESS_FAULT, vaddr); return false;
