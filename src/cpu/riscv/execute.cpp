@@ -38,6 +38,10 @@ void RVCore::step() {
     }
 }
 
+void RVCore::set_device_mtx(std::mutex *mtx) {
+    this->deviceMtx = mtx;
+}
+
 void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     std::unordered_set<word_t> breakpoints;
     for (unsigned int i = 0; i < n; i++) {
@@ -89,14 +93,16 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
 }
 
 void RVCore::update_device() {
-    if (this->bus->get_lock()->try_lock()) {
+    if (unlikely(this->deviceMtx != nullptr)) {
+        if (unlikely(this->deviceMtx->try_lock())) {
+            this->bus->update();
+            this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
+            this->deviceMtx->unlock();
+        }
+    } else {
         this->bus->update();
-        this->bus->get_lock()->unlock();
+        this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
     }
-    
-    this->plic->get_lock()->lock();
-    this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
-    this->plic->get_lock()->unlock();
 }
 
 void RVCore::execute() {

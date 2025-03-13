@@ -46,11 +46,13 @@ void RVCPU::core_thread_worker(unsigned int coreID, const word_t *breakpoints, u
 void RVCPU::run(bool blocked, const word_t *breakpoints, unsigned int n) {
     aclint.start_timer();
     if (this->coreCount == 1) {
+        cores[0].set_device_mtx(nullptr);
         cores[0].run(breakpoints, n);
         aclint.stop_timer();
     } else {
         this->coreThread = new std::thread[coreCount];
         for (unsigned int i = 0; i < coreCount; i++) {
+            cores[i].set_device_mtx(&deviceMtx);
             coreThread[i] = std::thread(&RVCPU::core_thread_worker, this, i, breakpoints, n);
         }
 

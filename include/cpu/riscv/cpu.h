@@ -7,6 +7,7 @@
 #include "cpu/riscv/core.h"
 #include "utils/task-timer.h"
 
+#include <mutex>
 #include <thread>
 
 namespace kxemu::cpu {
@@ -21,6 +22,7 @@ private:
     device::AClint aclint;
     device::PLIC plic;
     utils::TaskTimer taskTimer;
+    std::mutex deviceMtx;
     
 public:
     RVCPU();

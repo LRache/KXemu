@@ -23,6 +23,8 @@ RVCore::RVCore() {
 #endif
 
     this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
+
+    this->deviceMtx = nullptr;
 }
 
 void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, device::PLIC *plic) {

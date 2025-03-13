@@ -8,6 +8,7 @@
 #include "cpu/riscv/csr.h"
 #include "device/bus.h"
 
+#include <mutex>
 #include <unordered_map>
 #include <cstdint>
 
@@ -40,6 +41,7 @@ private:
     device::Bus *bus;
     device::AClint *aclint;
     device::PLIC *plic;
+    std::mutex *deviceMtx;
     void update_device();
     bool   memory_fetch();
     word_t memory_load (word_t addr, unsigned int len);
@@ -214,6 +216,7 @@ public:
     void reset(word_t entry) override;
     void step() override;
     void run(const word_t *breakpoints = nullptr, unsigned int n = 0) override;
+    void set_device_mtx(std::mutex *mtx);
     
     bool is_error()   override;
     bool is_break()   override;
