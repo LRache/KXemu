@@ -35,8 +35,6 @@ def main():
                 if char == '\x03':
                     running = False
                     break
-                if char == '\r':
-                    char = '\n'
                 sendClient.send(char.encode())
             elif r == recvClient:
                 data = recvClient.recv(1024)
