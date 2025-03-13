@@ -124,12 +124,12 @@ void RVCore::interrupt_s(word_t code) {
 }
 
 static constexpr word_t INTER_BITS[] = {
-    INTERRUPT_SOFTWARE_S,
+    INTERRUPT_EXTERNAL_M,
     INTERRUPT_SOFTWARE_M,
-    INTERRUPT_TIMER_S,
     INTERRUPT_TIMER_M,
     INTERRUPT_EXTERNAL_S,
-    INTERRUPT_EXTERNAL_M
+    INTERRUPT_SOFTWARE_S,
+    INTERRUPT_TIMER_S,
 };
 
 bool RVCore::scan_interrupt() {
