@@ -1,8 +1,6 @@
 #include "cpu/riscv/csr.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
-#include "log.h"
-#include "word.h"
 
 using namespace kxemu::cpu;
 
