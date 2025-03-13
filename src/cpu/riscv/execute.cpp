@@ -55,12 +55,9 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
 
             // Interrupt
             if (unlikely(i & interruptFreq)) {
-                i = 0;
-                this->bus->update();
-                this->plic->get_lock()->lock();
-                this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
-                this->plic->get_lock()->unlock();
+                this->update_device();
                 this->scan_interrupt();
+                i = 0;
             }
             
             this->pc = this->npc;
@@ -73,12 +70,7 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
 
             // Interrupt
             if (unlikely(i & interruptFreq)) {
-                this->bus->update();
-                
-                this->plic->get_lock()->lock();
-                this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
-                this->plic->get_lock()->unlock();
-                
+                this->update_device();
                 this->scan_interrupt();
                 i = 0;
             }
@@ -97,10 +89,22 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     }
 }
 
+void RVCore::update_device() {
+    if (this->bus->get_lock()->try_lock()) {
+        this->bus->update();
+        this->bus->get_lock()->unlock();
+    }
+    
+    this->plic->get_lock()->lock();
+    this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
+    this->plic->get_lock()->unlock();
+}
+
 void RVCore::execute() {
     if (unlikely(this->pc & 0x1)) {
         // Instruction address misaligned
         this->trap(TRAP_INST_ADDR_MISALIGNED);
+        this->pc = this->npc;
         return;
     }
 

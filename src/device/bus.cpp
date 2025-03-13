@@ -124,11 +124,9 @@ bool Bus::write(word_t addr, word_t data, word_t length) {
 }
 
 void Bus::update() {
-    this->updateLock.lock();
     for (auto &m : mmioMaps) {
         m->dev->update();
     }
-    this->updateLock.unlock();
 }
 
 #define AMO_FUNC(name, op) \
@@ -341,6 +339,10 @@ word_t Bus::get_ptr_length(word_t addr) const {
         return map->size - (addr - map->start);
     }
     return 0;
+}
+
+std::mutex *Bus::get_lock() {
+    return &this->lock;
 }
 
 Bus::~Bus() {

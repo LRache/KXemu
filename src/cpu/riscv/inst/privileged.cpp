@@ -93,7 +93,6 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 
 void RVCore::do_wfi(const DecodeInfo &) {
     while (!this->scan_interrupt()) {
-        this->bus->update();
-        this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
+        this->update_device();
     }
 }

@@ -31,6 +31,7 @@ private:
 
     // Memory access
     enum MemType {
+        DontCare = 0,
         LOAD  = 1 << 1,
         STORE = 1 << 2,
         FETCH = 1 << 3,
@@ -39,6 +40,7 @@ private:
     device::Bus *bus;
     device::AClint *aclint;
     device::PLIC *plic;
+    void update_device();
     bool   memory_fetch();
     word_t memory_load (word_t addr, unsigned int len);
     void   memory_store(word_t addr, word_t data, unsigned int len);
@@ -48,6 +50,8 @@ private:
     static constexpr word_t PGSIZE = (1 << PGBITS);
     bool pm_read (word_t paddr, word_t &data, unsigned int len);
     bool pm_write(word_t paddr, word_t  data, unsigned int len);
+    bool pm_read_check (word_t paddr, word_t &data, unsigned int len); // With PMP check
+    bool pm_write_check(word_t paddr, word_t  data, unsigned int len);
     bool vm_fetch();
     bool vm_read (word_t vaddr, word_t &data, unsigned int len);
     bool vm_write(word_t vaddr, word_t  data, unsigned int len);
@@ -58,7 +62,7 @@ private:
         VM_ACCESS_FAULT,
         VM_UNSET
     };
-    word_t vaddr_translate(word_t addr, MemType type, VMResult &result);
+    word_t vaddr_translate_core(word_t addr, MemType type, VMResult &result);
     
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
     word_t vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
@@ -191,11 +195,13 @@ private:
     struct TLBBlock {
         word_t paddr;
         word_t tag;
-        word_t *pte = nullptr;
+        word_t pteAddr;
         bool valid = false;
+        bool accessed;
+        uint8_t flag;
     };
     TLBBlock tlb[1 << TLB_SET_BITS];
-    TLBBlock *tlb_push(word_t vaddr, word_t paddr);
+    TLBBlock *tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t type);
     TLBBlock *tlb_hit(word_t vaddr);
     void tlb_fence();
 
