@@ -7,6 +7,7 @@
 #include "device/bus.h"
 #include "log.h"
 #include "macro.h"
+#include "word.h"
 
 #include <cstdint>
 #include <cstring>
@@ -23,12 +24,6 @@ RVCore::RVCore() {
 #ifdef KXEMU_ISA32
     this->medelegh= this->csr.get_csr_ptr_readonly(CSR_MEDELEGH);
 #endif
-
-    #ifdef CONFIG_DCache
-    INFO("dcache off mask = " FMT_WORD, DCACHE_OFF_MASK);
-    INFO("dcache set mask = " FMT_WORD, DCACHE_SET_MASK);
-    INFO("dcache tag mask = " FMT_WORD, DCACHE_TAG_MASK);
-    #endif
 
     this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
 }
