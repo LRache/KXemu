@@ -341,10 +341,6 @@ word_t Bus::get_ptr_length(word_t addr) const {
     return 0;
 }
 
-std::mutex *Bus::get_lock() {
-    return &this->lock;
-}
-
 Bus::~Bus() {
     for (auto &m : memoryMaps) {
         ::operator delete[](m->data, std::align_val_t(8));

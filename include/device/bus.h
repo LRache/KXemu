@@ -13,9 +13,6 @@
 namespace kxemu::device {
 
 class Bus {
-private:
-    std::mutex lock;
-
 public:
     ~Bus();
 
@@ -57,8 +54,6 @@ public:
     void *get_ptr(word_t addr) const;
     void *get_ptr(word_t addr, word_t length) const;
     word_t get_ptr_length(word_t addr) const;
-
-    std::mutex *get_lock();
 };
 
 } // namespace kxemu::device
