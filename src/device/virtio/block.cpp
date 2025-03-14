@@ -91,7 +91,7 @@ bool VirtIOBlock::virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t 
         if (head != nullptr) {
             INFO("head->sector: %lu", head->sector);
         } else {
-            WARN("head is nullptr, head.addr: " FMT_WORD ", pc=", buffer[0].addr);
+            WARN("head is nullptr, head.addr: " FMT_WORD64, buffer[0].addr);
         }
         WARN("buffer.size() < 3: %lu", buffer.size());
         return true;

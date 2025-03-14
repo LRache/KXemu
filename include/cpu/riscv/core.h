@@ -71,7 +71,7 @@ private:
     
     word_t vaddr_translate_bare(word_t vaddr, MemType type, VMResult &result);
     #ifdef KXEMU_ISA32
-    word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result, word_t &pgszie);
+    word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result);
     #else
     word_t vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result);
     word_t vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result);
