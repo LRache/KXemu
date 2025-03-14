@@ -61,7 +61,12 @@ static int write_reg(void *args, int regno, size_t value) {
 }
 
 static int read_mem(void *, size_t addr, size_t len, void *val) {
-    bool s = kdb::bus->memcpy(addr, len, val);
+    bool valid;
+    kdb::word_t paddr = kdb::cpu->get_core(currentCore)->vaddr_translate(addr, valid);
+    if (!valid) {
+        paddr = addr;
+    }
+    bool s = kdb::bus->memcpy(paddr, len, val);
     if (s) {
         return 0;
     } else {
@@ -70,7 +75,12 @@ static int read_mem(void *, size_t addr, size_t len, void *val) {
 }
 
 static int write_mem(void *, size_t addr, size_t len, void *val) {
-    bool s = kdb::bus->load_from_memory(val, addr, len);
+    bool valid;
+    kdb::word_t paddr = kdb::cpu->get_core(currentCore)->vaddr_translate(addr, valid);
+    if (!valid) {
+        paddr = addr;
+    }
+    bool s = kdb::bus->load_from_memory(val, paddr, len);
     if (s) {
         return 0;
     } else {
