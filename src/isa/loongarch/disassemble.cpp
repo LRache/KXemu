@@ -36,7 +36,6 @@ void init_disasm() {
 
     MCTargetOptions MCOptions;
     gSTI = target->createMCSubtargetInfo(targetTriple, "", "");
-    // gSTI->ApplyFeatureFlag("+c");
     auto gMII = target->createMCInstrInfo();
     auto gMRI = target->createMCRegInfo(targetTriple);
     auto asmInfo = target->createMCAsmInfo(*gMRI, targetTriple, MCOptions);
