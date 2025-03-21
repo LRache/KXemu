@@ -28,7 +28,7 @@ LIBS += am klib
 LIBS_ARCHIVE = $(foreach name, $(LIBS), $(AM_DIR)/$(name)/build/$(ARCH)-$(name).a)
 
 # Kxemu configuration
-KXEMU = $(AM_DIR)/../../build/$(KXEMU_ISA)-kxemu
+KXEMU = $(AM_DIR)/../../build/kxemu-system-$(KXEMU_ISA)
 KXEMU_FLAGS += --def elf=$(abspath $(ELF)) --source $(AM_DIR)/scripts/kdb/init.kdb
 KXEMU_FLAGS += $(addprefix --source , $(KDB_INIT_SRC))
 QEMU_FLAGS += -serial stdio -monitor none

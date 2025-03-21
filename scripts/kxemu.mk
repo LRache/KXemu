@@ -9,7 +9,7 @@ ifneq ($(CONFIG_DEBUG), y)
 	LDFLAGS  += -flto
 endif
 
-TARGET = $(BUILD_DIR)/$(ISA)-kxemu
+TARGET = $(BUILD_DIR)/kxemu-system-$(ISA)
 
 MINIGDBSTUB = utils/mini-gdbstub/build/libgdbstub.a
 
