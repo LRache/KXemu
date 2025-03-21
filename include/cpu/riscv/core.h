@@ -3,6 +3,7 @@
 
 #include "cpu/core.h"
 #include "cpu/riscv/aclint.h"
+#include "cpu/riscv/namespace.h"
 #include "cpu/riscv/plic.h"
 #include "cpu/word.h"
 #include "cpu/riscv/csr.h"
@@ -89,15 +90,19 @@ private:
 
     // Decoder
     struct DecodeInfo {
-        unsigned int rd;
-        unsigned int rs1;
+        unsigned char rd;
+        unsigned char rs1;
         union {
-            unsigned int rs2;
-            unsigned int csr;
+            struct {
+                unsigned char rs2;
+                unsigned char flag;
+            };
+            unsigned short csr;
         };
         union {
             word_t imm;
             word_t npc;
+            unsigned char rs3;
         };
 
     #ifdef CONFIG_DEBUG_DECODER
@@ -112,8 +117,8 @@ private:
     DecodeInfo gDecodeInfo;
     
     typedef void (RVCore::*do_inst_t)(const DecodeInfo &decodeInfo);
-    do_inst_t decode_and_exec  ();
-    do_inst_t decode_and_exec_c(); // for compressed instructions
+    do_inst_t decode_and_exec  (DecodeInfo &decodeInfo);
+    do_inst_t decode_and_exec_c(DecodeInfo &decodeInfo); // for compressed instructions
 
     #include "./local-include/decode-list.h"
 
@@ -148,7 +153,7 @@ private:
     void   set_csr_core(unsigned int addr, word_t value);
     
     void update_mstatus();
-    struct MstatusField {
+    struct {
         bool mie;
         bool sie;
         bool sum;
@@ -174,24 +179,37 @@ private:
     template<int len> void do_store_conditional(const DecodeInfo &decodeInfo);
     template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &decodeInfo);
 
+    word_t gpr[33];
+    
+    // Floating-point extension
+    static_assert(sizeof(float) == 4, "sizeof(float) != 4");
+    static_assert(sizeof(double) == 8, "sizeof(double) != 8");
+    union {
+        double f64;
+        struct {
+            uint32_t high;
+            float f32;
+        };
+    } fpr[32];
+    unsigned int frm;
+    void update_fcsr();
+
     // Experimental ICache
     #ifdef CONFIG_ICache
     static constexpr unsigned int ICACHE_SET_BITS = 11;
     struct ICacheBlock {
-        bool valid = false;
         word_t tag;
         
         do_inst_t do_inst;
         DecodeInfo decodeInfo;
         unsigned int instLen;
+        bool valid = false;
     };
     ICacheBlock icache[1 << ICACHE_SET_BITS];
     #endif
-    void icache_push(do_inst_t do_inst, unsigned int instLen);
+    void icache_push(do_inst_t do_inst, unsigned int instLen, const DecodeInfo &decodeInfo);
     bool icache_decode_and_exec();
     void icache_fence();
-    
-    word_t gpr[33];
 
     static constexpr unsigned int TLB_SET_BITS = 5;
     struct TLBBlock {
@@ -199,7 +217,6 @@ private:
         word_t tag;
         word_t pteAddr;
         bool valid = false;
-        bool accessed;
         uint8_t flag;
     };
     TLBBlock tlb[1 << TLB_SET_BITS];

@@ -6,7 +6,6 @@
 
 #include "cpu/riscv/namespace.h"
 #include "config/config.h"
-#include "word.h"
 
 // AClint
 #define ACLINT_BASE   0x02000000
@@ -88,6 +87,11 @@
 
 // Supervisor Protection and Translation
 #define CSR_SATP  0x180
+
+// Unprivileged Floating-Point CSRs
+#define CSR_FFLAGS 0x001
+#define CSR_FRM    0x002
+#define CSR_FCSR   0x003
 
 // Unprivileged Counter/Timers
 #define CSR_CYCLE 0xc00
@@ -312,6 +316,21 @@
     (1 << STATUS_SD_OFF)      \
 )
 #endif
+
+#define FRM_RNE 0
+#define FRM_RTZ 1
+#define FRM_RDN 2
+#define FRM_RUP 3
+#define FRM_RMM 4
+#define FRM_DYN 7
+
+#define FCSR_FLAGS_OFF 0
+#define FCSR_RM_OFF    5
+#define FCSR_FLAGS_MASK (0x1f << FCSR_FLAGS_OFF)
+#define FCSR_RM_MASK    (0x7  << FCSR_RM_OFF   )
+
+#define FCSR_RM(fcsr)     ((fcsr & FCSR_RM_MASK   ) >> FCSR_RM_OFF   )
+#define FCSR_FLAGS(fcsr)  ((fcsr & FCSR_FLAGS_MASK) >> FCSR_FLAGS_OFF)
 
 #define UPTIME_TO_MTIME(uptime) (uptime / 100)
 #define MTIME_TO_UPTIME(mtime)  (mtime * 100)

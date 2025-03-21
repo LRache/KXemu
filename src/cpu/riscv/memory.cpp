@@ -111,13 +111,11 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             // Determine if the requested memory access is allowed by the pte.u bit     
             if (u) {
                 if (!uPageAccessible) {
-                    // INFO("Supervisor access user PTE");
                     result = VM_PAGE_FAULT;
                     return -1;
                 } 
             } else {
                 if (this->privMode == PrivMode::USER) {
-                    // INFO("User access supervisor PTE, vaddr=" FMT_WORD, vaddr);
                     result = VM_PAGE_FAULT;
                     return -1;
                 }

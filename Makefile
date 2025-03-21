@@ -41,7 +41,7 @@ ifneq ($(CORECOUNT), )
 endif
 
 CXXFLAGS += -Wall -Wextra -Werror -pedantic -std=c++17
-CXXFLAGS += -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field
+CXXFLAGS += -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field -Wno-gnu-anonymous-struct -Wno-nested-anon-types
 CXXFLAGS += $(INCFLAGS)
 
 LDFLAGS += $(LIBFLAGS)
@@ -63,7 +63,7 @@ clean:
 
 count:
 	$(info Counting lines in src and include directories...)
-	@ find $(SRC_DIR) ./include ./scripts -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.py" | xargs cat | sed '/^\s*$$/d' | wc -l
+	@ find $(SRC_DIR) ./include ./scripts -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.py" -or -name "*.instpat" | xargs cat | sed '/^\s*$$/d' | wc -l
 
 tidy:
 	clang-tidy $(SRCS) -checks='clang-analyzer-*,readability-*'

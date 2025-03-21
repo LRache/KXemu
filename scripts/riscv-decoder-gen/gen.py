@@ -41,6 +41,7 @@ def read_file(filename: str) -> List[List[InstPattern]]:
             else:
                 raise ValueError(f"Invalid type '{t}'")
         instName = instName.replace(".", "_")
+        decoderName = decoderName.replace(".", "_")
         group.append(InstPattern(pattern, instName, decoderName, t))
     groups.append(group)
 
@@ -61,14 +62,19 @@ def build_decode_table(groups: List[List[InstPattern]]) -> List[Dict[int, List[I
     return cases
 
 
+def fmt_hex(n: int) -> str:
+    # 0x + 8 digits
+    return f"0x{n:08x}"
+
+
 def gen_code_normal(instList: List[InstPattern], key) -> str:
     def helper(inst: InstPattern):
         if inst.instType == InstType.Only32:
-            return f"        __INST32(case {hex(inst.key)}: this->decode_insttype_{inst.decoderName}(); this->do_{inst.instName}(this->gDecodeInfo); return &RVCore::do_{inst.instName};)\n"
+            return f"        __INST32(case 0x{inst.key:08x}: this->decode_insttype_{inst.decoderName}(decodeInfo); this->do_{inst.instName}(decodeInfo); return &RVCore::do_{inst.instName};)\n"
         elif inst.instType == InstType.Only64:
-            return f"        __INST64(case {hex(inst.key)}: this->decode_insttype_{inst.decoderName}(); this->do_{inst.instName}(this->gDecodeInfo); return &RVCore::do_{inst.instName};)\n"
+            return f"        __INST64(case 0x{inst.key:08x}: this->decode_insttype_{inst.decoderName}(decodeInfo); this->do_{inst.instName}(decodeInfo); return &RVCore::do_{inst.instName};)\n"
         else:
-            return f"        case {hex(inst.key)}: this->decode_insttype_{inst.decoderName}(); this->do_{inst.instName}(this->gDecodeInfo); return &RVCore::do_{inst.instName};\n"
+            return f"        case 0x{inst.key:08x}: this->decode_insttype_{inst.decoderName}(decodeInfo); this->do_{inst.instName}(decodeInfo); return &RVCore::do_{inst.instName};\n"
     code  = "{\n"
     code += "    switch (inst & " + hex(key) + ") {\n"
     code += "".join(map(helper, instList))

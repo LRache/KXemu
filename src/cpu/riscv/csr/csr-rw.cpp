@@ -142,6 +142,34 @@ word_t RVCSR::write_satp(unsigned int addr, word_t value, bool &valid) {
     return value;
 }
 
+word_t RVCSR::read_fflags(unsigned int addr, word_t value, bool &valid) {
+    valid = true;
+    word_t fcsr = this->read_csr(CSR_FCSR);
+    return FCSR_FLAGS(fcsr);
+}
+
+word_t RVCSR::write_fflags(unsigned int addr, word_t value, bool &valid) {
+    valid = true;
+    word_t fcsr = this->read_csr(CSR_FCSR);
+    fcsr = (fcsr & ~FCSR_FLAGS_MASK) | (value & 0x1f);
+    this->write_csr(CSR_FCSR, fcsr);
+    return 0;
+}
+
+word_t RVCSR::read_frm(unsigned int addr, word_t value, bool &valid) {
+    valid = true;
+    word_t fcsr = this->read_csr(CSR_FCSR);
+    return FCSR_RM(fcsr);
+}
+
+word_t RVCSR::write_frm(unsigned int addr, word_t value, bool &valid) {
+    valid = true;
+    word_t fcsr = this->read_csr(CSR_FCSR);
+    fcsr = (fcsr & ~FCSR_RM_MASK) | (value & 0x7);
+    this->write_csr(CSR_FCSR, fcsr);
+    return 0;
+}
+
 word_t RVCSR::read_time(unsigned int addr, word_t value, bool &valid) {
     if (!MCNTEN_TM(this->csr[CSR_MCNTEN].value) && this->privMode != PrivMode::MACHINE) {
         valid = false;
@@ -164,5 +192,3 @@ word_t RVCSR::read_time(unsigned int addr, word_t value, bool &valid) {
 #endif
     return mtime;
 }
-
-

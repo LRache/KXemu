@@ -11,14 +11,14 @@
 
 using namespace kxemu::cpu;
 
-RVCore::do_inst_t RVCore::decode_and_exec() {
+RVCore::do_inst_t RVCore::decode_and_exec(DecodeInfo &decodeInfo) {
     uint32_t inst = this->inst;
-    #include "./autogen/base-decoder.h"
+    #include "./autogen/base-decoder.inc"
 }
 
-RVCore::do_inst_t RVCore::decode_and_exec_c() {
+RVCore::do_inst_t RVCore::decode_and_exec_c(DecodeInfo &decodeInfo) {
     uint32_t inst = this->inst & 0xffff;
-    #include "./autogen/compressed-decoder.h"
+    #include "./autogen/compressed-decoder.inc"
 }
 
 void RVCore::step() {
@@ -135,20 +135,21 @@ void RVCore::execute() {
     
     unsigned int instLen;
     do_inst_t do_inst;
+    DecodeInfo decodeInfo;
     if (unlikely((this->inst & 0x3) == 0x3)) {
         this->npc = this->pc + 4;
         instLen = 4;
-        do_inst = this->decode_and_exec();
+        do_inst = this->decode_and_exec(decodeInfo);
     } 
     else {
         this->npc = this->pc + 2;
         instLen = 2;
-        do_inst = this->decode_and_exec_c();
+        do_inst = this->decode_and_exec_c(decodeInfo);
     }
     
     if (unlikely(do_inst == nullptr)) {
         this->do_invalid_inst();
     } else {
-        this->icache_push(do_inst, instLen);
+        this->icache_push(do_inst, instLen, decodeInfo);
     }
 }

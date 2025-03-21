@@ -14,8 +14,8 @@ RVCSR::RVCSR() {
     pmpCfgCount = 0;
 
     // Machine Information Registers
-    add_csr(CSR_MVENDORID, MVENDORID, nullptr, nullptr); // mvendorid, Not implemented
-    add_csr(CSR_MARCHID  , MARCHID, nullptr, nullptr); // marchid, Not implemented
+    add_csr(CSR_MVENDORID, MVENDORID); // mvendorid
+    add_csr(CSR_MARCHID  , MARCHID  ); // marchid
     add_csr(CSR_MIMPID ); // mimpid, Not implemented
     add_csr(CSR_MHARTID); // mhartid
     add_csr(CSR_MCFGPTR); // mconfigptr, Not implemented
@@ -82,12 +82,17 @@ RVCSR::RVCSR() {
     // Supervisor Protection and Translation
     add_csr(CSR_SATP, 0, nullptr, &RVCSR::write_satp); // satp
 
+    // Unprivileged Floating-Point CSRs
+    add_csr(CSR_FFLAGS); // fflags, Not implemented
+    add_csr(CSR_FRM   ); // frm, Not implemented
+    add_csr(CSR_FCSR  ); // fcsr, Not implemented
+
     // Uprivileged Counter/Timers
-    add_csr(CSR_CYCLE, 0, nullptr, nullptr); // cycle, Not implemented
+    add_csr(CSR_CYCLE); // cycle, Not implemented
     add_csr(CSR_TIME , 0, &RVCSR::read_time, nullptr); // time
 #ifdef KXEMU_ISA32
-    add_csr(CSR_CYCLEH, 0, nullptr, nullptr); // cycleh, Not implemented
-    add_csr(CSR_TIMEH, 0, nullptr, nullptr); // timeh
+    add_csr(CSR_CYCLEH); // cycleh, Not implemented
+    add_csr(CSR_TIMEH ); // timeh
 #endif
 }
 

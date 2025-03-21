@@ -13,6 +13,16 @@
 #define IMM  ( decodeInfo.imm)
 #define NPC  ( decodeInfo.npc)
 
+#define FDESTS (this->fpr[decodeInfo.rd ].f32)
+#define FSRC1S (this->fpr[decodeInfo.rs1].f32)
+#define FSRC2S (this->fpr[decodeInfo.rs2].f32)
+#define FSRC3S (this->fpr[decodeInfo.rs3].f32)
+
+#define FDESTD (this->fpr[decodeInfo.rd ].f64)
+#define FSRC1D (this->fpr[decodeInfo.rs1].f64)
+#define FSRC2D (this->fpr[decodeInfo.rs2].f64)
+#define FSRC3D (this->fpr[decodeInfo.rs3].f64)
+
 // #define  rd_is_x0 (decodeInfo.rd  == &this->gpr[32])
 // #define rs1_is_x0 (decodeInfo.rs1 == &this->gpr[ 0])
 #define  rd_is_x0 (decodeInfo.rd  == 32)
@@ -35,5 +45,6 @@
 #define TAG_IMM
 #define TAG_CSR
 #define TAG_NPC
+#define TAG_FRD
 
 #endif

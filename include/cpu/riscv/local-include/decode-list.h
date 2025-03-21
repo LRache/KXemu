@@ -1,4 +1,4 @@
-#define _DECODE(name) void decode_insttype_##name();
+#define _DECODE(name) void decode_insttype_##name(DecodeInfo &decodeInfo);
 
 _DECODE(r)
 _DECODE(i)
@@ -9,6 +9,12 @@ _DECODE(b)
 _DECODE(lui)
 _DECODE(auipc)
 _DECODE(j)
+
+_DECODE(i_f)
+_DECODE(r4_frm)
+_DECODE(r_frm )
+_DECODE(r_f   )
+
 _DECODE(csrr)
 _DECODE(csri)
 

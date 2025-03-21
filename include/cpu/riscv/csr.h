@@ -77,6 +77,14 @@ private:
     word_t  read_satp(unsigned int addr, word_t value, bool &valid);
     word_t write_satp(unsigned int addr, word_t value, bool &valid);
 
+    // fflags
+    word_t  read_fflags(unsigned int addr, word_t value, bool &valid);
+    word_t write_fflags(unsigned int addr, word_t value, bool &valid);
+    
+    // frm
+    word_t  read_frm(unsigned int addr, word_t value, bool &valid);
+    word_t write_frm(unsigned int addr, word_t value, bool &valid);
+
     // time
     word_t  read_time(unsigned int addr, word_t value, bool &valid);
 

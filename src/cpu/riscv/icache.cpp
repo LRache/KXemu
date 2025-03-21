@@ -5,13 +5,13 @@ using namespace kxemu::cpu;
 
 #ifdef CONFIG_ICache
 
-void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen) {
+void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen, const DecodeInfo &decodeInfo) {
     word_t set = ICACHE_SET(this->pc);
     this->icache[set].valid = true;
     this->icache[set].tag = ICACHE_TAG(this->pc);
     this->icache[set].do_inst = do_inst;
     this->icache[set].instLen = instLen;
-    this->icache[set].decodeInfo = this->gDecodeInfo;
+    this->icache[set].decodeInfo = decodeInfo;
 }
 
 bool RVCore::icache_decode_and_exec() {
