@@ -22,9 +22,9 @@ static MCInstPrinter *gIP = nullptr;
 static MCSubtargetInfo *gSTI = nullptr;
 
 void init_disasm() {
-    InitializeAllTargetInfos();
-    InitializeAllTargetMCs();
-    InitializeAllDisassemblers();
+    LLVMInitializeRISCVTargetInfo();
+    LLVMInitializeRISCVTargetMC();
+    LLVMInitializeRISCVDisassembler();
     
     #ifdef KXEMU_ISA64
     std::string targetTriple = "riscv64-unknown-elf";
