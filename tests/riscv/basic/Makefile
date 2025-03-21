@@ -10,4 +10,4 @@ else
 endif
 
 -include ./$(NAME)/Makefile
-include ../abstract-machine/Makefile
+include ../../abstract-machine/Makefile
