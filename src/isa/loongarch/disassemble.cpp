@@ -22,9 +22,9 @@ static MCInstPrinter *gIP = nullptr;
 static MCSubtargetInfo *gSTI = nullptr;
 
 void init_disasm() {
-    InitializeAllTargetInfos();
-    InitializeAllTargetMCs();
-    InitializeAllDisassemblers();
+    LLVMInitializeLoongArchTargetInfo();
+    LLVMInitializeLoongArchTargetMC();
+    LLVMInitializeLoongArchDisassembler();
     
     #ifdef KXEMU_ISA64
     std::string targetTriple = "loongarch64-unknown-elf";
