@@ -507,6 +507,23 @@ void RVCore::do_fclass_d(const DecodeInfo &decodeInfo) {
     }
 }
 
+void RVCore::do_fcvt_s_d(const DecodeInfo &decodeInfo) {
+    SET_FPU;
+    
+    FDESTS = (float)FSRC1D;
+    FILL_DEST_HIGH;
+    
+    RESTORE_FPU;
+}
+
+void RVCore::do_fcvt_d_s(const DecodeInfo &decodeInfo) {
+    SET_FPU;
+    
+    FDESTD = (double)FSRC1S;
+    
+    RESTORE_FPU;
+}
+
 void RVCore::do_fcvt_w_d(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
