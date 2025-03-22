@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
+option(TARGET_APP "Build Executable" ON)
+option(TARGET_LIB "Build Libarary" OFF)
+
 include(scripts/config.cmake)
 
 set(KXEMU_TARGET kxemu-system-${ISA})
@@ -16,6 +19,16 @@ add_compile_options(
     -Ofast -O3
 )
 
-include(${CMAKE_SOURCE_DIR}/scripts/kxemu.cmake)
+set(KXEMU_TARGET kxemu-system-${ISA})
+set(LIB_TARGET kxemu-${ISA})
+
+include(${CMAKE_SOURCE_DIR}/scripts/filelist.cmake)
+if (TARGET_APP)
+    include(${CMAKE_SOURCE_DIR}/scripts/kxemu.cmake)
+endif()
+
+if (TARGET_LIB)
+    include(${CMAKE_SOURCE_DIR}/scripts/libkxemu.cmake)
+endif()
 
 include(${CMAKE_SOURCE_DIR}/scripts/isa/${BASE_ISA}.cmake)

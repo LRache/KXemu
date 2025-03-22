@@ -1,7 +1,3 @@
-set(KXEMU_TARGET kxemu-system-${ISA})
-
-include(${CMAKE_SOURCE_DIR}/scripts/filelist.cmake)
-
 # LLVM
 find_package(LLVM REQUIRED CONFIG)
 
@@ -9,7 +5,7 @@ llvm_map_components_to_libnames(LLVM_LIBS
     Core
     MC
     Support
-    RISCVDisassembler
+    ${BASE_ISA_UPPER}Disassembler
 )
 
 include_directories(${LLVM_INCLUDE_DIRS})
@@ -27,7 +23,7 @@ link_libraries(
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-add_executable(kxemu-system-${ISA}
+add_executable(${KXEMU_TARGET}
     ${EMU_SRCS}
     ${KDB_SRCS}
 )

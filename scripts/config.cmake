@@ -25,3 +25,5 @@ function(parse_kconfig config_file)
 endfunction()
 
 parse_kconfig(${CMAKE_SOURCE_DIR}/configs/.config)
+
+string(TOUPPER ${BASE_ISA} BASE_ISA_UPPER)
