@@ -7,6 +7,9 @@ build
 compile_commands.json
 .cache
 
+#CLion
+.idea
+
 autogen
 autoconf.h
 /export
