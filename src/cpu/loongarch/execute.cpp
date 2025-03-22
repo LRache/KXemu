@@ -30,7 +30,7 @@ void LACore::execute() {
 }
 
 bool LACore::decode_and_exec() {
-    #include "./autogen/inst-decoder.h"
+    #include "./autogen/inst-decoder.inc"
 }
 
 void LACore::do_illegal_inst() {
