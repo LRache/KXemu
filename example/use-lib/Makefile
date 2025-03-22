@@ -2,7 +2,7 @@ CXX = clang++
 
 BUILD_DIR = ./build
 TARGET = $(BUILD_DIR)/main
-KXEMU_LIB = $(abspath ../../export/riscv64/riscv64-kxemu.a)
+KXEMU_LIB = $(abspath ../../build/libkxemu-riscv64.a)
 
 INCPATH += $(abspath ../../export/riscv64/include)
 INCFLAGS = $(addprefix -I,$(INCPATH))
