@@ -1,4 +1,4 @@
-KXEMU = ../../../build/riscv64-kxemu
+KXEMU = ../../../build/kxemu-system-riscv64
 KXEMU_FLAGS += --source $(abspath ./xv6.kdb)
 KXEMU_FLAGS += --core 3
 KXEMU_FLAGS += --def elf=$(KERNEL_TARGET) --def fsimg=${FS_IMG}
