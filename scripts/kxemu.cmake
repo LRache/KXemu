@@ -21,8 +21,6 @@ link_libraries(
     ${CMAKE_SOURCE_DIR}/utils/mini-gdbstub/build/libgdbstub.a
 )
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
 add_executable(${KXEMU_TARGET}
     ${EMU_SRCS}
     ${KDB_SRCS}

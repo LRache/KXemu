@@ -1,60 +1,5 @@
 include ./scripts/config.mk
 
-CXX = clang++
-ifeq ($(shell which ccache > /dev/null 2>&1; echo $$?), 0)
-	CXX := ccache $(CXX)
-endif
-LD  = clang++
-
-remove_quote = $(patsubst "%",%,$(1))
-ISA := $(call remove_quote,$(CONFIG_ISA))
-BASE_ISA := $(call remove_quote,$(CONFIG_BASE_ISA))
-
-include ./scripts/filelist.mk
-
-OBJ_DIR = $(BUILD_DIR)/$(ISA)
-OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
-DEPS = $(OBJS:.o=.d)
-
--include ./scripts/isa/$(BASE_ISA).mk
-ifeq ($(MAKECMDGOALS), export)
-	include ./scripts/export.mk
-else
-	include ./scripts/kxemu.mk
-endif
-
-INCPATH += $(abspath ./include)
-INCFLAGS = $(addprefix -I,$(INCPATH))
-
-LIBFLAGS = $(addprefix -l,$(LIBS))
-
-ifeq ($(CONFIG_DEBUG), y)
-	CXXFLAGS += -g -O0 -fsanitize=address
-	LDFLAGS  += -g -O0 -fsanitize=address
-else
-	CXXFLAGS += -Ofast -O3 -mavx2 -march=native
-endif
-
-ifneq ($(CORECOUNT), )
-	KXEMU_FLAGS += --core $(CORECOUNT)
-	QEMU_FLAGS += -smp $(CORECOUNT)
-endif
-
-CXXFLAGS += -Wall -Wextra -Werror -pedantic -std=c++17
-CXXFLAGS += -Wno-unused-command-line-argument -Wno-unused-parameter -Wno-unused-private-field -Wno-gnu-anonymous-struct -Wno-nested-anon-types
-CXXFLAGS += $(INCFLAGS)
-
-LDFLAGS += $(LIBFLAGS)
-
-# for llvm
-CXXFLAGS += $(shell llvm-config --cxxflags) -fexceptions # for expection handling
-LDFLAGS  += $(shell llvm-config --libs)
-
-override CXXFLAGS := $(subst -std=c++14,-std=c++17,$(CXXFLAGS))
-
--include $(DEPS)
-include ./scripts/build.mk
-
 clean:
 	$(info + CLEAN ./build)
 	@ rm -rf ./build
@@ -63,10 +8,18 @@ clean:
 
 count:
 	$(info Counting lines in src and include directories...)
-	@ find $(SRC_DIR) ./include ./scripts -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.py" -or -name "*.instpat" | xargs cat | sed '/^\s*$$/d' | wc -l
+	@ find ./src ./include ./scripts -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.py" -or -name "*.instpat" -or -name "*.cmake" | xargs cat | sed '/^\s*$$/d' | wc -l
 
-tidy:
-	clang-tidy $(SRCS) -checks='clang-analyzer-*,readability-*'
+kxemu:
+	@ mkdir -p ./build
+	@ cd ./build && cmake .. -DTARGET_APP=ON -DTARGET_LIB=OFF && cmake --build .
 
-.PHONY: kxemu run clean
+export:
+	@ mkdir -p ./build
+	@ mkdir -p ./export
+	@ cd ./build && cmake .. -DTARGET_LIB=ON -DTARGET_APP=OFF && cmake --build .
+	$(info + Exporting Headers $(ISA))
+	@ python3 ./scripts/export/export.py
+
+.PHONY: kxemu export run clean
 .DEFAULT_GOAL := kxemu

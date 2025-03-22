@@ -22,7 +22,10 @@ add_compile_options(
 set(KXEMU_TARGET kxemu-system-${ISA})
 set(LIB_TARGET kxemu-${ISA})
 
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
 include(${CMAKE_SOURCE_DIR}/scripts/filelist.cmake)
+
 if (TARGET_APP)
     include(${CMAKE_SOURCE_DIR}/scripts/kxemu.cmake)
 endif()

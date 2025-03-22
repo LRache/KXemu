@@ -26,8 +26,9 @@ add_custom_target(instpat
     DEPENDS ${INSTPAT_DST_FILES}
 )
 
-add_dependencies(kxemu-system-${ISA} instpat)
-
-llvm_map_components_to_libnames(LLVM_LIBS
-    RISCVDisassembler
-)
+if (${TARGET_APP})
+    add_dependencies(${KXEMU_TARGET} instpat)
+    llvm_map_components_to_libnames(LLVM_LIBS
+        RISCVDisassembler
+    )
+endif()
