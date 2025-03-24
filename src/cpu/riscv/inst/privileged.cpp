@@ -2,6 +2,7 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "log.h"
+#include <thread>
 
 using namespace kxemu::cpu;
 
@@ -91,6 +92,7 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 
 void RVCore::do_wfi(const DecodeInfo &) {
     while (!this->scan_interrupt()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         this->update_device();
     }
 }
