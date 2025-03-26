@@ -7,6 +7,7 @@
 #include "word.h"
 #include "log.h"
 #include "macro.h"
+#include "debug.h"
 
 #include <cstring>
 
@@ -315,7 +316,9 @@ bool RVCore::vm_read(word_t vaddr, word_t &data, unsigned int len) {
     }
 
     if (ADDR_PAGE_UNALIGNED(vaddr, len)) {
+        // vaddr is unaligned, need to concat two memory access
         WARN("vm_read misaligned, paddr=" FMT_WORD ", len=%d, pc=" FMT_WORD, paddr, len, this->pc);
+        NOT_IMPLEMENTED();
     }
     
     if (unlikely(!this->pmp_check_r(paddr, len))) {
@@ -338,10 +341,10 @@ bool RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
         case VM_UNSET: PANIC("vmresult is not set.");
     }
     
-    if (ADDR_PAGE_UNALIGNED(paddr, len)) {
-        // this->trap(TRAP_STORE_ADDR_MISALIGNED);
-        // return false;
+    if (ADDR_PAGE_UNALIGNED(vaddr, len)) {
+        // vaddr is unaligned, need to concat two memory access
         WARN("vm_write misaligned, paddr=" FMT_WORD ", len=%d, pc=" FMT_WORD, paddr, len, this->pc);
+        NOT_IMPLEMENTED();
     } 
 
     if (unlikely(!this->csr.pmp_check_w(vaddr, len))) {
