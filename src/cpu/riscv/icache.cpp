@@ -36,7 +36,9 @@ void RVCore::icache_fence() {
 
 #else
 
-void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen) {}
+#include "debug.h"
+
+void RVCore::icache_push(do_inst_t, unsigned int, const DecodeInfo &) {}
 
 bool RVCore::icache_decode_and_exec() {
     NOT_IMPLEMENTED();
