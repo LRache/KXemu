@@ -15,30 +15,27 @@
 
 using namespace kxemu::cpu;
 
-RVCore::TLBBlock *RVCore::tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t flag) {
+RVCore::TLBBlock &RVCore::tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t flag) {
     word_t set = TLB_SET(vaddr);
     word_t tag = TLB_TAG(vaddr);
-    TLBBlock *block = &this->tlb[set];
-    if (block->valid) {
-        this->pm_write(block->pteAddr, block->flag, 1);
+    TLBBlock &block = this->tlb[set];
+    if (block.valid) {
+        this->pm_write(block.pteAddr, block.flag, 1);
     }
-    block->paddr = paddr & ~TLB_OFF_MASK;
-    block->tag = tag;
-    block->pteAddr = pteAddr;
-    block->flag = flag;
-    block->valid = true;
+    block.paddr = paddr & ~TLB_OFF_MASK;
+    block.tag = tag;
+    block.pteAddr = pteAddr;
+    block.flag = flag;
+    block.valid = true;
     return block;
 }
 
-RVCore::TLBBlock *RVCore::tlb_hit(word_t vaddr) {
+RVCore::TLBBlock &RVCore::tlb_hit(word_t vaddr, bool &hit) {
     word_t set = TLB_SET(vaddr);
     word_t tag = TLB_TAG(vaddr);
-    TLBBlock *block = &this->tlb[set];
-    if (likely(block->tag == tag && block->valid)) {
-        return block;
-    } else {
-        return nullptr;
-    }
+    TLBBlock &block = this->tlb[set];
+    hit = block.valid && block.tag == tag;
+    return block;
 }
 
 void RVCore::tlb_fence() {
@@ -193,16 +190,17 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 #endif
 
 word_t RVCore::vaddr_translate_core(word_t vaddr, MemType type, VMResult &result) {
-    TLBBlock *block = this->tlb_hit(vaddr);
-    if (likely(block != nullptr)) {
-        bool u = PTE_U(block->flag) ? this->privMode == USER || this->mstatus.sum : this->privMode == SUPERVISOR;
-        if (likely((block->flag & type) == type && (u))) {
-            block->flag |= PTE_A_MASK;
+    bool tlbHit;
+    TLBBlock &block = this->tlb_hit(vaddr, tlbHit);
+    if (likely(tlbHit)) {
+        bool u = PTE_U(block.flag) ? this->privMode == USER || this->mstatus.sum : this->privMode == SUPERVISOR;
+        if (likely((block.flag & type) == type && (u))) {
+            block.flag |= PTE_A_MASK;
             if (type & STORE) {
-                block->flag |= PTE_D_MASK;
+                block.flag |= PTE_D_MASK;
             }
             result = VM_OK;
-            return block->paddr + TLB_OFF(vaddr);
+            return block.paddr + TLB_OFF(vaddr);
         } else {
             result = VM_PAGE_FAULT;
             return -1;

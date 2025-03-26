@@ -220,8 +220,8 @@ private:
         uint8_t flag;
     };
     TLBBlock tlb[1 << TLB_SET_BITS];
-    TLBBlock *tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t type);
-    TLBBlock *tlb_hit(word_t vaddr);
+    TLBBlock &tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t type);
+    TLBBlock &tlb_hit(word_t vaddr, bool &hit);
     void tlb_fence();
 
 public:
