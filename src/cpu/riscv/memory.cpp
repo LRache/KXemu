@@ -9,6 +9,7 @@
 #include "macro.h"
 #include "debug.h"
 
+#include <cstdint>
 #include <cstring>
 
 #define PGALIGN(addr) ((addr) & ~(PGSIZE - 1))
@@ -67,22 +68,24 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
     for (int i = LEVELS - 1; i >= 0; i--) {
         word_t pteAddr = base + vpn[i] * PTESIZE;
 
-        word_t pte;
-        if (unlikely(!this->pm_read_check(pteAddr, pte, PTESIZE))) {
+        word_t pteData;
+        if (unlikely(!this->pm_read_check(pteAddr, pteData, PTESIZE))) {
             result = VM_ACCESS_FAULT;
             return -1;
         }
 
-        bool v = PTE_V(pte);
+        PTE pte = pteData;
+        PTEFlag pteFlag = pte.flag();
+        bool v = pteFlag.v();
         if (!v) {
             result = VM_PAGE_FAULT;
             return -1;
         }
         
-        bool r = PTE_R(pte);
-        bool w = PTE_W(pte);
-        bool x = PTE_X(pte);
-        bool u = PTE_U(pte);
+        bool r = pteFlag.r();
+        bool w = pteFlag.w();
+        bool x = pteFlag.x();
+        bool u = pteFlag.u();
         
         // If any bits or encodings that are reserved for future standard use 
         // are set within pte, stop and raise a page-fault exception.
@@ -99,7 +102,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             // If i>0 and pte.ppn[i-1:0] ≠ 0, this is a misaligned superpage; 
             // stop and raise a page-fault exception
             if (i > 0) {
-                word_t ppn_lower = (pte >> 10) & ((1 << (VPNBITS * i)) - 1);
+                word_t ppn_lower = pte.ppn() & ((1 << (VPNBITS * i)) - 1);
                 if (ppn_lower != 0) {
                     result = VM_PAGE_FAULT;
                     return -1;
@@ -120,7 +123,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             }
 
             // Determine if the requested memory access is allowed by the pte.r, pte.w, and pte.x bits
-            if ((pte & 0xf & type) != type) {
+            if ((pteFlag & 0xf & type) != type) {
                 result = VM_PAGE_FAULT;
                 return -1;
             }
@@ -131,15 +134,15 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             // If i>0, then pa.ppn[i-1:0] = va.vpn[i-1:0]
             mask |= ((1 << (VPNBITS * i)) - 1) << PGBITS; // Mask for superpage ppn
 
-            word_t paddr = ((pte << 2) & ~mask) | (vaddr & mask);
+            word_t paddr = ((pte.pte << 2) & ~mask) | (vaddr & mask);
             result = VM_OK;
 
-            this->tlb_push(vaddr, paddr, pteAddr, pte & 0xff);
+            this->tlb_push(vaddr, paddr, pteAddr, pte.flag());
 
             return paddr;
         } else {
             // This is a pointer to the next level of the page table
-            word_t ppn = pte >> 10;
+            word_t ppn = pte.ppn();
             base = ppn * PGSIZE;
         }
     }
@@ -190,15 +193,18 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 
 #endif
 
+#define PTE_A_MASK (1 << 6)
+#define PTE_D_MASK (1 << 7)
+
 word_t RVCore::vaddr_translate_core(word_t vaddr, MemType type, VMResult &result) {
     bool tlbHit;
     TLBBlock &block = this->tlb_hit(vaddr, tlbHit);
     if (likely(tlbHit)) {
-        bool u = PTE_U(block.flag) ? this->privMode == USER || this->mstatus.sum : this->privMode == SUPERVISOR;
+        bool u = block.flag.u() ? this->privMode == USER || this->mstatus.sum : this->privMode == SUPERVISOR;
         if (likely((block.flag & type) == type && (u))) {
-            block.flag |= PTE_A_MASK;
+            block.flag.set_a();
             if (type & STORE) {
-                block.flag |= PTE_D_MASK;
+                block.flag.set_d();
             }
             result = VM_OK;
             return block.paddr + TLB_OFF(vaddr);
@@ -251,8 +257,8 @@ bool RVCore::vm_fetch() {
     word_t paddr = this->vaddr_translate_core(vaddr, MemType::FETCH, vmresult);
     switch (vmresult) {
         case VM_OK: break;
-        case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return false;
-        case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT  , vaddr); return false;
+        case VM_ACCESS_FAULT: this->trap(TrapCode::INST_ACCESS_FAULT, vaddr); return false;
+        case VM_PAGE_FAULT:   this->trap(TrapCode::INST_PAGE_FAULT  , vaddr); return false;
         case VM_UNSET: PANIC("vmresult is not set");
     }
 
@@ -260,27 +266,27 @@ bool RVCore::vm_fetch() {
     if (ADDR_PAGE_UNALIGNED(vaddr, 4)) {
         if (unlikely(!this->csr.pmp_check_x(paddr, 2))) {
             HINT("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
-            this->trap(TRAP_INST_ACCESS_FAULT, paddr);
+            this->trap(TrapCode::INST_ACCESS_FAULT, paddr);
             return false;
         }
 
         word_t low;
         if (!this->pm_read(paddr, low, 2)) {
-            this->trap(TRAP_INST_ACCESS_FAULT);
+            this->trap(TrapCode::INST_ACCESS_FAULT);
             return false;
         }
 
         paddr = this->vaddr_translate_core(vaddr + 2, MemType::FETCH, vmresult);
         switch (vmresult) {
             case VM_OK: break;
-            case VM_ACCESS_FAULT: this->trap(TRAP_INST_ACCESS_FAULT, vaddr); return false;
-            case VM_PAGE_FAULT:   this->trap(TRAP_INST_PAGE_FAULT  , vaddr); return false;
+            case VM_ACCESS_FAULT: this->trap(TrapCode::INST_ACCESS_FAULT, vaddr); return false;
+            case VM_PAGE_FAULT:   this->trap(TrapCode::INST_PAGE_FAULT  , vaddr); return false;
             case VM_UNSET: PANIC("vmresult is not set.");
         }
 
         word_t high;
         if (!this->pm_read(paddr, high, 2)) {
-            this->trap(TRAP_INST_ACCESS_FAULT);
+            this->trap(TrapCode::INST_ACCESS_FAULT);
             return false;
         }
         
@@ -289,11 +295,11 @@ bool RVCore::vm_fetch() {
     } else {
         if (unlikely(!this->csr.pmp_check_x(paddr, 4))) {
             HINT("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
-            this->trap(TRAP_INST_ACCESS_FAULT, paddr);
+            this->trap(TrapCode::INST_ACCESS_FAULT, paddr);
             return false;
         }
         if (!this->pm_read(paddr, inst, 4)) {
-            this->trap(TRAP_INST_ACCESS_FAULT);
+            this->trap(TrapCode::INST_ACCESS_FAULT);
             return false;
         }
     }
@@ -310,8 +316,8 @@ bool RVCore::vm_read(word_t vaddr, word_t &data, unsigned int len) {
         
     switch (result) {
         case VM_OK: break;
-        case VM_ACCESS_FAULT: this->trap(TRAP_LOAD_ACCESS_FAULT, vaddr); return false;
-        case VM_PAGE_FAULT:   this->trap(TRAP_LOAD_PAGE_FAULT  , vaddr); return false;
+        case VM_ACCESS_FAULT: this->trap(TrapCode::LOAD_ACCESS_FAULT, vaddr); return false;
+        case VM_PAGE_FAULT:   this->trap(TrapCode::LOAD_PAGE_FAULT  , vaddr); return false;
         case VM_UNSET: PANIC("vmresult is not set.")
     }
 
@@ -323,7 +329,7 @@ bool RVCore::vm_read(word_t vaddr, word_t &data, unsigned int len) {
     
     if (unlikely(!this->pmp_check_r(paddr, len))) {
         WARN("Physical memory protection check failed when load, addr=" FMT_WORD ", len=%d", paddr, len);
-        this->trap(TRAP_LOAD_ACCESS_FAULT);
+        this->trap(TrapCode::LOAD_ACCESS_FAULT);
         return false;
     }
     
@@ -336,8 +342,8 @@ bool RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
     word_t paddr = this->vaddr_translate_core(vaddr, MemType::STORE, vmresult);
     switch (vmresult) {
         case VM_OK: break;
-        case VM_ACCESS_FAULT: this->trap(TRAP_STORE_ACCESS_FAULT, vaddr); return false;
-        case VM_PAGE_FAULT:   this->trap(TRAP_STORE_PAGE_FAULT  , vaddr); return false;
+        case VM_ACCESS_FAULT: this->trap(TrapCode::STORE_ACCESS_FAULT, vaddr); return false;
+        case VM_PAGE_FAULT:   this->trap(TrapCode::STORE_PAGE_FAULT  , vaddr); return false;
         case VM_UNSET: PANIC("vmresult is not set.");
     }
     
@@ -349,7 +355,7 @@ bool RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
 
     if (unlikely(!this->csr.pmp_check_w(vaddr, len))) {
         WARN("Physical memory protection check failed when store, addr=" FMT_WORD ", len=%d", paddr, len);
-        this->trap(TRAP_STORE_ACCESS_FAULT);
+        this->trap(TrapCode::STORE_ACCESS_FAULT);
         return false;
     }
 
@@ -360,7 +366,7 @@ bool RVCore::memory_fetch() {
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
         word_t inst;
         if(unlikely(!this->pm_read(this->pc, inst, 4))) {
-            this->trap(TRAP_INST_ACCESS_FAULT);
+            this->trap(TrapCode::INST_ACCESS_FAULT);
             return false;
         }
         this->inst = inst;
@@ -374,7 +380,7 @@ word_t RVCore::memory_load(word_t addr, unsigned int len) {
     word_t data = -1;
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
         if (unlikely(!this->pm_read(addr, data, len))) {
-            this->trap(TRAP_LOAD_ACCESS_FAULT, addr);
+            this->trap(TrapCode::LOAD_ACCESS_FAULT, addr);
         }
     } else {
         vm_read(addr, data, len);
@@ -385,7 +391,7 @@ word_t RVCore::memory_load(word_t addr, unsigned int len) {
 void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
         if (unlikely(!this->pm_write(addr, data, len))) {
-            this->trap(TRAP_STORE_ACCESS_FAULT);
+            this->trap(TrapCode::STORE_ACCESS_FAULT);
         }
     } else {
         vm_write(addr, data, len);
@@ -393,20 +399,20 @@ void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
 }
 
 void RVCore::update_satp() {
-    word_t satp = this->csr.read_csr(CSR_SATP);
+    word_t satp = this->csr.read_csr(CSRAddr::SATP);
     this->satpPPN = SATP_PPN(satp);
     #ifdef KXEMU_ISA32
-    if (SATP_MODE(satp) == SATP_MODE_SV32) {
+    if (SATP_MODE(satp) == SATPMode::SV32) {
         this->vaddr_translate_func = &RVCore::vaddr_translate_sv32;
     } else {
         this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
     }
     #else
     switch (SATP_MODE(satp)) {
-        case SATP_MODE_BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
-        case SATP_MODE_SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
-        case SATP_MODE_SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
-        case SATP_MODE_SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
+        case SATPMode::BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
+        case SATPMode::SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
+        case SATPMode::SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
+        case SATPMode::SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
         default: PANIC("Invalid SATP mode"); break;
     }
     #endif

@@ -1,5 +1,4 @@
 #include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "macro.h"
 #include "log.h"
@@ -106,7 +105,7 @@ void RVCore::update_device() {
 void RVCore::execute() {
     if (unlikely(this->pc & 0x1)) {
         // Instruction address misaligned
-        this->trap(TRAP_INST_ADDR_MISALIGNED);
+        this->trap(TrapCode::INST_ADDR_MISALIGNED);
         this->pc = this->npc;
         return;
     }

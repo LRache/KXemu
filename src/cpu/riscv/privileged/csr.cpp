@@ -9,10 +9,10 @@ using namespace kxemu::cpu;
 
 void RVCore::init_csr() {
     this->csr.init(this->coreID, std::bind(&RVCore::get_uptime, this));
-    this->csr.set_write_callbacks(CSR_STIMECMP, std::bind(&RVCore::update_stimecmp, this));
-    this->csr.set_write_callbacks(CSR_SATP    , std::bind(&RVCore::update_satp    , this));
-    this->csr.set_write_callbacks(CSR_MSTATUS , std::bind(&RVCore::update_mstatus , this));
-    this->csr.set_write_callbacks(CSR_SSTATUS , std::bind(&RVCore::update_mstatus , this));
+    this->csr.set_write_callbacks(CSRAddr::STIMECMP, std::bind(&RVCore::update_stimecmp, this));
+    this->csr.set_write_callbacks(CSRAddr::SATP    , std::bind(&RVCore::update_satp    , this));
+    this->csr.set_write_callbacks(CSRAddr::MSTATUS , std::bind(&RVCore::update_mstatus , this));
+    this->csr.set_write_callbacks(CSRAddr::SSTATUS , std::bind(&RVCore::update_mstatus , this));
 }
 
 word_t RVCore::read_csr(unsigned int addr, bool &valid) {
@@ -36,7 +36,7 @@ void RVCore::set_csr_core(unsigned int addr, word_t value) {
 }
 
 void RVCore::update_mstatus() {
-    const word_t mstatus = this->csr.read_csr(CSR_MSTATUS);
+    const word_t mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
     this->mstatus.mie = STATUS_MIE(mstatus);
     this->mstatus.sie = STATUS_SIE(mstatus);
     this->mstatus.sum = STATUS_SUM(mstatus);

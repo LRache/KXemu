@@ -4,7 +4,6 @@
 #include "cpu/word.h"
 
 #include <functional>
-#include <mutex>
 #include <unordered_map>
 #include <cstdint>
 
@@ -14,7 +13,7 @@ class RVCore;
 
 class RVCSR {
 private:
-    using csr_rw_func_t = word_t (RVCSR::*)(unsigned int addr, word_t value, bool &valid);
+    using csr_rw_func_t = word_t (RVCSR::*)(unsigned int, word_t, bool &);
     using callback_t = std::function<void ()>;
     struct CSR {
         csr_rw_func_t  readFunc;

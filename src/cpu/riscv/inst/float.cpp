@@ -14,29 +14,29 @@ using namespace kxemu::cpu;
 
 static void set_fpu_rounding_mode(unsigned int rm) {
     switch (rm) {
-        case FRM_RNE:
+        case FRM::RNE:
             fesetround(FE_TONEAREST);
             break;
-        case FRM_RTZ:
+        case FRM::RTZ:
             fesetround(FE_TOWARDZERO);
             break;
-        case FRM_RDN:
+        case FRM::RDN:
             fesetround(FE_DOWNWARD);
             break;
-        case FRM_RUP:
+        case FRM::RUP:
             fesetround(FE_UPWARD);
             break;
-        case FRM_RMM:
+        case FRM::RMM:
             fesetround(FE_TONEAREST);
             break;
-        case FRM_DYN:
+        case FRM::DYN:
             break;
     }
 }
 
 #define SET_FPU \
     unsigned int rm = this->frm; \
-    if (rm == FRM_DYN) { \
+    if (rm == FRM::DYN) { \
         rm = decodeInfo.flag; \
         if (unlikely(rm == 5 || rm == 6)) { \
             this->do_invalid_inst(); \
@@ -49,7 +49,7 @@ static void set_fpu_rounding_mode(unsigned int rm) {
 #define RESTORE_FPU fesetround(old);
 
 void RVCore::update_fcsr() {
-    this->frm = FCSR_RM(this->csr.read_csr(CSR_FCSR));
+    this->frm = FCSR_RM(this->csr.read_csr(CSRAddr::FCSR));
 }
 
 void RVCore::do_flw(const DecodeInfo &decodeInfo) {

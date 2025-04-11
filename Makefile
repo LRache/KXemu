@@ -1,5 +1,7 @@
 include ./scripts/config.mk
 
+all: kxemu
+
 clean:
 	$(info + CLEAN ./build)
 	@ rm -rf ./build
@@ -21,5 +23,5 @@ export:
 	$(info + Exporting Headers $(ISA))
 	@ python3 ./scripts/export/export.py
 
-.PHONY: kxemu export run clean
-.DEFAULT_GOAL := kxemu
+.PHONY: kxemu export run clean all
+.DEFAULT_GOAL := all

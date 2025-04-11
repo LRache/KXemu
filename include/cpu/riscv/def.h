@@ -8,112 +8,98 @@
 #include "config/config.h"
 
 // AClint
-#define ACLINT_BASE   0x02000000
-#define ACLINT_SIZE   0x00010000
-#define MSWI_BASE     0x0000
-#define MSWI_SIZE     0x4000
-#define MTIMECMP_BASE 0x4000
-#define MTIMECMP_SIZE 0x4000
-#define MTIME_BASE    0xbff8
-#define MTIME_SIZE    0x0008
-#define SSWI_BASE     0xc000
-#define SSWI_SIZE     0x4000
+// #define ACLINT_BASE   0x02000000
+// #define ACLINT_SIZE   0x00010000
+// #define MSWI_BASE     0x0000
+// #define MSWI_SIZE     0x4000
+// #define MTIMECMP_BASE 0x4000
+// #define MTIMECMP_SIZE 0x4000
+// #define MTIME_BASE    0xbff8
+// #define MTIME_SIZE    0x0008
+// #define SSWI_BASE     0xc000
+// #define SSWI_SIZE     0x4000
 
 // PLIC
-#define PLIC_BASE     0x0c000000
-#define PLIC_SIZE     0x4000000
+// #define PLIC_BASE     0x0c000000
+// #define PLIC_SIZE     0x4000000
 
 #define CSR_READ_ONLY  0b110000000000
 #define IS_CSR_READ_ONLY(addr) ((addr & CSR_READ_ONLY) == CSR_READ_ONLY)
 
-// CSR Address
-// Machine Information Registers
-#define CSR_MVENDORID 0xf11
-#define CSR_MARCHID   0xf12
-#define CSR_MIMPID    0xf13
-#define CSR_MHARTID   0xf14
-#define CSR_MCFGPTR   0xf15
+// // CSR Address
+// // Machine Information Registers
+// #define CSR_MVENDORID 0xf11
+// #define CSR_MARCHID   0xf12
+// #define CSR_MIMPID    0xf13
+// #define CSR_MHARTID   0xf14
+// #define CSR_MCFGPTR   0xf15
 
-// Machine Trap Setup
-#define CSR_MSTATUS 0x300
-#define CSR_MISA    0x301
-#define CSR_MEDELEG 0x302
-#define CSR_MIDELEG 0x303
-#define CSR_MIE     0x304
-#define CSR_MTVEC   0x305
-#define CSR_MCNTEN  0x306
-#ifdef KXEMU_ISA32
-    #define CSR_MSTATUSH 0x310
-    #define CSR_MEDELEGH 0x312
-#endif
+// // Machine Trap Setup
+// #define CSR_MSTATUS 0x300
+// #define CSR_MISA    0x301
+// #define CSR_MEDELEG 0x302
+// #define CSR_MIDELEG 0x303
+// #define CSR_MIE     0x304
+// #define CSR_MTVEC   0x305
+// #define CSR_MCNTEN  0x306
+// #ifdef KXEMU_ISA32
+//     #define CSR_MSTATUSH 0x310
+//     #define CSR_MEDELEGH 0x312
+// #endif
 
-// Machine Trap Handling
-#define CSR_MSCRATCH 0x340
-#define CSR_MEPC     0x341
-#define CSR_MCAUSE   0x342
-#define CSR_MTVAL    0x343
-#define CSR_MIP      0x344
-#define CSR_MTINST   0x34a
-#define CSR_MTVAL2   0x34b
+// // Machine Trap Handling
+// #define CSR_MSCRATCH 0x340
+// #define CSR_MEPC     0x341
+// #define CSR_MCAUSE   0x342
+// #define CSR_MTVAL    0x343
+// #define CSR_MIP      0x344
+// #define CSR_MTINST   0x34a
+// #define CSR_MTVAL2   0x34b
 
-// Machine Configuration
-#define CSR_MENVCFG 0x30a
-#define CSR_MSECCFG 0x747
-#ifdef KXEMU_ISA32
-    #define CSR_MENVCFGH 0x31a
-    #define CSR_MSECCFGH 0x757
-#endif
+// // Machine Configuration
+// #define CSR_MENVCFG 0x30a
+// #define CSR_MSECCFG 0x747
+// #ifdef KXEMU_ISA32
+//     #define CSR_MENVCFGH 0x31a
+//     #define CSR_MSECCFGH 0x757
+// #endif
 
-// Machine Memory Protection
-#define CSR_PMPCFG0  0x3a0
-#define CSR_PMPADDR0 0x3b0
+// // Machine Memory Protection
+// #define CSR_PMPCFG0  0x3a0
+// #define CSR_PMPADDR0 0x3b0
 
-// Supervisor Trap Setup
-#define CSR_SSTATUS 0x100
-#define CSR_SIE     0x104
-#define CSR_STVEC   0x105
-#define CSR_SCNTEN  0x106
+// // Supervisor Trap Setup
+// #define CSR_SSTATUS 0x100
+// #define CSR_SIE     0x104
+// #define CSR_STVEC   0x105
+// #define CSR_SCNTEN  0x106
 
-// Supervisor Trap Handling
-#define CSR_SSCRATCH 0x140
-#define CSR_SEPC     0x141
-#define CSR_SCAUSE   0x142
-#define CSR_STVAL    0x143
-#define CSR_SIP      0x144
-#define CSR_STIMECMP 0x14d // SSTC extension
-#ifdef KXEMU_ISA32
-    #define CSR_STIMECMPH 0x15d
-#endif
+// // Supervisor Trap Handling
+// #define CSR_SSCRATCH 0x140
+// #define CSR_SEPC     0x141
+// #define CSR_SCAUSE   0x142
+// #define CSR_STVAL    0x143
+// #define CSR_SIP      0x144
+// #define CSR_STIMECMP 0x14d // SSTC extension
+// #ifdef KXEMU_ISA32
+//     #define CSR_STIMECMPH 0x15d
+// #endif
 
-// Supervisor Protection and Translation
-#define CSR_SATP  0x180
+// // Supervisor Protection and Translation
+// #define CSR_SATP  0x180
 
-// Unprivileged Floating-Point CSRs
-#define CSR_FFLAGS 0x001
-#define CSR_FRM    0x002
-#define CSR_FCSR   0x003
+// // Unprivileged Floating-Point CSRs
+// #define CSR_FFLAGS 0x001
+// #define CSR_FRM    0x002
+// #define CSR_FCSR   0x003
 
-// Unprivileged Counter/Timers
-#define CSR_CYCLE 0xc00
-#define CSR_TIME  0xc01
-#ifdef KXEMU_ISA32
-    #define CSR_CYCLEH 0xc80
-    #define CSR_TIMEH  0xc81
-#endif
-
-#define MISA_A (1 <<  0) // Atomic Extension
-#define MISA_B (1 <<  1) // B Extesnion
-#define MISA_C (1 <<  2) // Compressed Extension
-#define MISA_D (1 <<  3) // Double-precision Extension
-#define MISA_E (1 <<  4) // RV32E/RV64E Base ISA
-#define MISA_F (1 <<  5) // Single-precision Extension
-#define MISA_H (1 <<  7) // Hypervisor Extension
-#define MISA_I (1 <<  8) // RV32I/RV64I/RV128I Base ISA
-#define MISA_M (1 << 12) // Integer Mutiply/Divide Extension
-#define MISA_Q (1 << 16) // Quad-precision floating-point Extension
-#define MISA_S (1 << 18) // Supervisor mode Implemented
-#define MISA_U (1 << 20) // User mode Implemented
-#define MISA_V (1 << 21) // Vector Extension
+// // Unprivileged Counter/Timers
+// #define CSR_CYCLE 0xc00
+// #define CSR_TIME  0xc01
+// #ifdef KXEMU_ISA32
+//     #define CSR_CYCLEH 0xc80
+//     #define CSR_TIMEH  0xc81
+// #endif
 
 #define STATUS_SIE_OFF    1
 #define STATUS_MIE_OFF    3
@@ -194,10 +180,10 @@
 #define PMPCFG_X_MASK (1 << PMPCFG_X_OFF)
 #define PMPCFG_A_MASK (3 << PMPCFG_A_OFF)
 
-#define PMPCONFIG_A_OFF   0
-#define PMPCONFIG_A_TOR   1
-#define PMPCONFIG_A_NA4   2
-#define PMPCONFIG_A_NAPOT 3
+// #define PMPCONFIG_A_OFF   0
+// #define PMPCONFIG_A_TOR   1
+// #define PMPCONFIG_A_NA4   2
+// #define PMPCONFIG_A_NAPOT 3
 
 #ifdef KXEMU_ISA64
     #define CAUSE_INTERRUPT_OFF 63
@@ -225,65 +211,65 @@
 
 #define SATP_PPN(satp) (satp & SATP_PPN_MASK)
 #define SATP_MODE(satp) ((satp & SATP_MODE_MASK) >> SATP_MODE_OFF)
-#define SATP_MODE_BARE  0
-#define SATP_MODE_SV32  1
-#define SATP_MODE_SV39  8
-#define SATP_MODE_SV48  9
-#define SATP_MODE_SV57 10
-#define SATP_MODE_SV64 11
+// #define SATP_MODE_BARE  0
+// #define SATP_MODE_SV32  1
+// #define SATP_MODE_SV39  8
+// #define SATP_MODE_SV48  9
+// #define SATP_MODE_SV57 10
+// #define SATP_MODE_SV64 11
 
-#define PTE_V_MASK (1 << 0)
-#define PTE_R_MASK (1 << 1)
-#define PTE_W_MASK (1 << 2)
-#define PTE_X_MASK (1 << 3)
-#define PTE_U_MASK (1 << 4)
-#define PTE_G_MASK (1 << 5)
-#define PTE_A_MASK (1 << 6)
-#define PTE_D_MASK (1 << 7)
+// #define PTE_V_MASK (1 << 0)
+// #define PTE_R_MASK (1 << 1)
+// #define PTE_W_MASK (1 << 2)
+// #define PTE_X_MASK (1 << 3)
+// #define PTE_U_MASK (1 << 4)
+// #define PTE_G_MASK (1 << 5)
+// #define PTE_A_MASK (1 << 6)
+// #define PTE_D_MASK (1 << 7)
 
-#define PTE_V(pte) ((pte & PTE_V_MASK) >> 0)
-#define PTE_R(pte) ((pte & PTE_R_MASK) >> 1)
-#define PTE_W(pte) ((pte & PTE_W_MASK) >> 2)
-#define PTE_X(pte) ((pte & PTE_X_MASK) >> 3)
-#define PTE_U(pte) ((pte & PTE_U_MASK) >> 4)
-#define PTE_A(pte) ((pte & PTE_A_MASK) >> 6)
+// #define PTE_V(pte) ((pte & PTE_V_MASK) >> 0)
+// #define PTE_R(pte) ((pte & PTE_R_MASK) >> 1)
+// #define PTE_W(pte) ((pte & PTE_W_MASK) >> 2)
+// #define PTE_X(pte) ((pte & PTE_X_MASK) >> 3)
+// #define PTE_U(pte) ((pte & PTE_U_MASK) >> 4)
+// #define PTE_A(pte) ((pte & PTE_A_MASK) >> 6)
 
 // Exception Code
 // INTERRUPT
-#define INTERRUPT_SOFTWARE_S   0
-#define INTERRUPT_SOFTWARE_M   3
-#define INTERRUPT_TIMER_S      5
-#define INTERRUPT_TIMER_M      7
-#define INTERRUPT_EXTERNAL_S   9
-#define INTERRUPT_EXTERNAL_M  11
-#define INTERRUPT_COUNTER     13
+// #define INTERRUPT_SOFTWARE_S   0
+// #define INTERRUPT_SOFTWARE_M   3
+// #define INTERRUPT_TIMER_S      5
+// #define INTERRUPT_TIMER_M      7
+// #define INTERRUPT_EXTERNAL_S   9
+// #define INTERRUPT_EXTERNAL_M  11
+// #define INTERRUPT_COUNTER     13
 
 // TRAP
-#define TRAP_INST_ADDR_MISALIGNED   0
-#define TRAP_INST_ACCESS_FAULT      1
-#define TRAP_ILLEGAL_INST           2
-#define TRAP_BREAKPOINT             3
-#define TRAP_LOAD_ADDR_MISALIGNED   4
-#define TRAP_LOAD_ACCESS_FAULT      5
-#define TRAP_STORE_ADDR_MISALIGNED  6
-#define TRAP_AMO_ACCESS_MISALIGNED  6
-#define TRAP_STORE_ACCESS_FAULT     7
-#define TRAP_AMO_ACCESS_FAULT       7
-#define TRAP_ECALL_U                8
-#define TRAP_ECALL_S                9
-#define TRAP_ECALL_M               11
-#define TRAP_INST_PAGE_FAULT       12
-#define TRAP_LOAD_PAGE_FAULT       13
-#define TRAP_STORE_PAGE_FAULT      15
-#define TRAP_AMO_PAGE_FAULT        15
-#define TRAP_DOUBLE_TRAP           16
-#define TRAP_SOFTWARE_CHECK        18
-#define TRAP_HARDWARE_ERROR        19
+// #define TRAP_INST_ADDR_MISALIGNED   0
+// #define TRAP_INST_ACCESS_FAULT      1
+// #define TRAP_ILLEGAL_INST           2
+// #define TRAP_BREAKPOINT             3
+// #define TRAP_LOAD_ADDR_MISALIGNED   4
+// #define TRAP_LOAD_ACCESS_FAULT      5
+// #define TRAP_STORE_ADDR_MISALIGNED  6
+// #define TRAP_AMO_ACCESS_MISALIGNED  6
+// #define TRAP_STORE_ACCESS_FAULT     7
+// #define TRAP_AMO_ACCESS_FAULT       7
+// #define TRAP_ECALL_U                8
+// #define TRAP_ECALL_S                9
+// #define TRAP_ECALL_M               11
+// #define TRAP_INST_PAGE_FAULT       12
+// #define TRAP_LOAD_PAGE_FAULT       13
+// #define TRAP_STORE_PAGE_FAULT      15
+// #define TRAP_AMO_PAGE_FAULT        15
+// #define TRAP_DOUBLE_TRAP           16
+// #define TRAP_SOFTWARE_CHECK        18
+// #define TRAP_HARDWARE_ERROR        19
 
 // Machine or Supervisor Trap-Vector Mode
 #define TVEC_MODE_MASK     (3 << 0)
-#define TVEC_MODE_DIRECT   0x0
-#define TVEC_MODE_VECTORED 0x1
+// #define TVEC_MODE_DIRECT   0x0
+// #define TVEC_MODE_VECTORED 0x1
 
 // #define SSTATUS_MASK 0b10000000000011011110011101100010
 #ifdef KXEMU_ISA64
@@ -317,12 +303,12 @@
 )
 #endif
 
-#define FRM_RNE 0
-#define FRM_RTZ 1
-#define FRM_RDN 2
-#define FRM_RUP 3
-#define FRM_RMM 4
-#define FRM_DYN 7
+// #define FRM_RNE 0
+// #define FRM_RTZ 1
+// #define FRM_RDN 2
+// #define FRM_RUP 3
+// #define FRM_RMM 4
+// #define FRM_DYN 7
 
 #define FCSR_FLAGS_OFF 0
 #define FCSR_RM_OFF    5

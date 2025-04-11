@@ -1,6 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
 #include "device/bus.h"
 #include "log.h"
@@ -12,14 +13,14 @@
 using namespace kxemu::cpu;
 
 RVCore::RVCore() {    
-    this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
-    this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
-    this->mie     = this->csr.get_csr_ptr_readonly(CSR_MIE);
-    this->mip     = this->csr.get_csr_ptr(CSR_MIP);
+    this->medeleg = this->csr.get_csr_ptr_readonly(CSRAddr::MEDELEG);
+    this->mideleg = this->csr.get_csr_ptr_readonly(CSRAddr::MIDELEG);
+    this->mie     = this->csr.get_csr_ptr_readonly(CSRAddr::MIE);
+    this->mip     = this->csr.get_csr_ptr(CSRAddr::MIP);
 
     // RV32 only
 #ifdef KXEMU_ISA32
-    this->medelegh= this->csr.get_csr_ptr_readonly(CSR_MEDELEGH);
+    this->medelegh= this->csr.get_csr_ptr_readonly(CSRAddr::MEDELEGH);
 #endif
 
     this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
@@ -63,7 +64,7 @@ void RVCore::do_invalid_inst() {
     WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
 
     // Illegal instruction trap
-    this->trap(TRAP_ILLEGAL_INST, this->inst);
+    this->trap(TrapCode::ILLEGAL_INST, this->inst);
 }
 
 void RVCore::do_invalid_inst(const DecodeInfo &) {
@@ -134,63 +135,63 @@ word_t RVCore::get_register(const std::string &name, bool &success) {
     } 
     
     if (name == "mstatus") {
-        return this->get_csr_core(CSR_MSTATUS);
+        return this->get_csr_core(CSRAddr::MSTATUS);
     } else if (name == "misa") {
-        return this->get_csr_core(CSR_MISA);
+        return this->get_csr_core(CSRAddr::MISA);
     } else if (name == "medeleg") {
-        return this->get_csr_core(CSR_MEDELEG);
+        return this->get_csr_core(CSRAddr::MEDELEG);
     } else if (name == "mideleg") {
-        return this->get_csr_core(CSR_MIDELEG);
+        return this->get_csr_core(CSRAddr::MIDELEG);
     } else if (name == "mie") {
-        return this->get_csr_core(CSR_MIE);
+        return this->get_csr_core(CSRAddr::MIE);
     } else if (name == "mtvec") {
-        return this->get_csr_core(CSR_MTVEC);
+        return this->get_csr_core(CSRAddr::MTVEC);
     } else if (name == "mcnten") {
-        return this->get_csr_core(CSR_MCNTEN);
+        return this->get_csr_core(CSRAddr::MCNTEN);
     }
     
     if (name == "mscratch") {
-        return this->get_csr_core(CSR_MSCRATCH);
+        return this->get_csr_core(CSRAddr::MSCRATCH);
     } else if (name == "mepc") {
-        return this->get_csr_core(CSR_MEPC);
+        return this->get_csr_core(CSRAddr::MEPC);
     } else if (name == "mcause") {
-        return this->get_csr_core(CSR_MCAUSE);
+        return this->get_csr_core(CSRAddr::MCAUSE);
     } else if (name == "mtval") {
-        return this->get_csr_core(CSR_MTVAL);
+        return this->get_csr_core(CSRAddr::MTVAL);
     } else if (name == "mip") {
-        return this->get_csr_core(CSR_MIP);
+        return this->get_csr_core(CSRAddr::MIP);
     } else if (name == "mtinst") {
-        return this->get_csr_core(CSR_MTINST);
+        return this->get_csr_core(CSRAddr::MTINST);
     } else if (name == "mtval2") {
-        return this->get_csr_core(CSR_MTVAL2);
+        return this->get_csr_core(CSRAddr::MTVAL2);
     }
 
     if (name == "sstatus") {
-        return this->get_csr_core(CSR_SSTATUS);
+        return this->get_csr_core(CSRAddr::SSTATUS);
     } else if (name == "sie") {
-        return this->get_csr_core(CSR_SIE);
+        return this->get_csr_core(CSRAddr::SIE);
     } else if (name == "stvec") {
-        return this->get_csr_core(CSR_STVEC);
+        return this->get_csr_core(CSRAddr::STVEC);
     } else if (name == "scnten") {
-        return this->get_csr_core(CSR_SCNTEN);
+        return this->get_csr_core(CSRAddr::SCNTEN);
     }
     
     if (name == "sscratch") {
-        return this->get_csr_core(CSR_SSCRATCH);
+        return this->get_csr_core(CSRAddr::SSCRATCH);
     } else if (name == "sepc") {
-        return this->get_csr_core(CSR_SEPC);
+        return this->get_csr_core(CSRAddr::SEPC);
     } else if (name == "scause") {
-        return this->get_csr_core(CSR_SCAUSE);
+        return this->get_csr_core(CSRAddr::SCAUSE);
     } else if (name == "stval") {
-        return this->get_csr_core(CSR_STVAL);
+        return this->get_csr_core(CSRAddr::STVAL);
     } else if (name == "sip") {
-        return this->get_csr_core(CSR_SIP);
+        return this->get_csr_core(CSRAddr::SIP);
     } else if (name == "stimecmp") {
-        return this->get_csr_core(CSR_STIMECMP);
+        return this->get_csr_core(CSRAddr::STIMECMP);
     }
     
     if (name == "satp") {
-        return this->get_csr_core(CSR_SATP);
+        return this->get_csr_core(CSRAddr::SATP);
     }
     
     success = false;

@@ -1,5 +1,4 @@
 #include "cpu/riscv/cpu.h"
-#include "cpu/riscv/def.h"
 #include "device/bus.h"
 #include "log.h"
 
@@ -21,8 +20,8 @@ void RVCPU::init(Bus *bus, int flags, unsigned int coreCount) {
     }
     this->aclint.init(this->cores, coreCount);
     this->plic.init(this->cores, coreCount);
-    bus->add_mmio_map(ACLINT_BASE, ACLINT_SIZE, &aclint);
-    bus->add_mmio_map(PLIC_BASE, PLIC_SIZE, &plic);
+    bus->add_mmio_map(ACLINT.BASE, ACLINT.SIZE, &aclint);
+    bus->add_mmio_map(PLIC.BASE, PLIC.SIZE, &plic);
     this->coreCount = coreCount;
 }
 

@@ -5,6 +5,7 @@
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/namespace.h"
 #include "cpu/riscv/plic.h"
+#include "cpu/riscv/pte.h"
 #include "cpu/word.h"
 #include "cpu/riscv/csr.h"
 #include "device/bus.h"
@@ -129,14 +130,14 @@ private:
     void execute();
 
     // Trap
-    void trap(word_t code, word_t value = 0);
+    void trap(TrapCode code, word_t value = 0);
     
     // Interrupt
-    void   set_interrupt(word_t code);
-    void clear_interrupt(word_t code);
+    void   set_interrupt(InterruptCode code);
+    void clear_interrupt(InterruptCode code);
     bool scan_interrupt();
-    void interrupt_m(word_t code);
-    void interrupt_s(word_t code);
+    void interrupt_m(InterruptCode code);
+    void interrupt_s(InterruptCode code);
 
     // Do instructions
     void do_invalid_inst();
@@ -217,7 +218,7 @@ private:
         word_t tag;
         word_t pteAddr;
         bool valid = false;
-        uint8_t flag;
+        PTEFlag flag;
     };
     TLBBlock tlb[1 << TLB_SET_BITS];
     TLBBlock &tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t type);

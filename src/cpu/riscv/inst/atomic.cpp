@@ -1,5 +1,4 @@
 #include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
 
 #include "cpu/word.h"
 #include "device/bus.h"
@@ -16,7 +15,7 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
     valid = false;
     
     if (vaddr & (len - 1)) {
-        this->trap(TRAP_AMO_ACCESS_FAULT, vaddr);
+        this->trap(TrapCode::AMO_ACCESS_FAULT, vaddr);
         return -1;
     }
 
@@ -28,14 +27,14 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
         
         switch (vmresult) {
             case VM_OK: break;
-            case VM_ACCESS_FAULT: this->trap(TRAP_AMO_ACCESS_FAULT); return -1;
-            case VM_PAGE_FAULT:   this->trap(TRAP_AMO_PAGE_FAULT)  ; return -1;
+            case VM_ACCESS_FAULT: this->trap(TrapCode::AMO_ACCESS_FAULT); return -1;
+            case VM_PAGE_FAULT:   this->trap(TrapCode::AMO_PAGE_FAULT)  ; return -1;
             case VM_UNSET: PANIC("vmresult is not set.");
         }
 
         bool pmp = this->pmp_check_r(paddr, len) && this->pmp_check_w(paddr, len);
         if (unlikely(!pmp)) {
-            this->trap(TRAP_AMO_ACCESS_FAULT);
+            this->trap(TrapCode::AMO_ACCESS_FAULT);
             valid = false;
             return -1;
         }
@@ -56,7 +55,7 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
 
     word_t value = this->bus->read(addr, len, valid);
     if (!valid) {
-        this->trap(TRAP_AMO_ACCESS_FAULT, addr);
+        this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
         return;
     }
 
@@ -81,7 +80,7 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
 
     void *ptr = this->bus->get_ptr(addr);
     if (ptr == nullptr) {
-        this->trap(TRAP_AMO_ACCESS_FAULT, addr);
+        this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
         return;
     }
 
@@ -106,7 +105,7 @@ void RVCore::do_amo_inst(const DecodeInfo &decodeInfo) {
     sw_t oldValue = this->bus->do_atomic(addr, src, len, amo, valid); // signed extend
     
     if (!valid) {
-        this->trap(TRAP_AMO_ACCESS_FAULT, addr);
+        this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
         return;
     }
 

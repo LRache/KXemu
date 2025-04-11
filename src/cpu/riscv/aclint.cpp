@@ -1,9 +1,19 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/namespace.h"
 #include "utils/utils.h"
 #include "log.h"
 #include "debug.h"
+
+#define MSWI_BASE     cpu::MSWI.BASE
+#define MSWI_SIZE     cpu::MSWI.SIZE
+#define MTIMECMP_BASE cpu::MTIMECMP.BASE
+#define MTIMECMP_SIZE cpu::MTIMECMP.SIZE
+#define MTIME_BASE    cpu::MTIME.BASE
+#define MTIME_SIZE    cpu::MTIME.SIZE
+#define SSWI_BASE     cpu::SSWI.BASE
+#define SSWI_SIZE     cpu::SSWI.SIZE
 
 #define IN_RANGE(addr, name) (addr >= name##_BASE && addr < name##_BASE + name##_SIZE)
 
@@ -55,7 +65,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
             return -1;
         }
 
-        unsigned int coreID = (addr - MSWI_BASE) >> 2;
+        unsigned int coreID = (addr - cpu::MSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {

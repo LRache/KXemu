@@ -1,5 +1,6 @@
 #include "cpu/riscv/csr.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
 
 using namespace kxemu::cpu;
@@ -11,28 +12,29 @@ word_t RVCSR::read_misa(unsigned int addr, word_t value, bool &valid) {
 word_t RVCSR::write_misa(unsigned int addr, word_t value, bool &valid) {
     valid = true;
     // Field MISA_E is read-only
-    if (value & MISA_I) {
-        value |= MISA_E;
-    }
-    // Field MISA_D depends on the value of MISA_F
-    if (!(value & MISA_F)) {
-        value &= ~MISA_D;
-    }
+    // if (value & MISAFlag::I) {
+    //     value |= MISA_E;
+    // }
+    // // Field MISA_D depends on the value of MISA_F
+    // if (!(value & MISA_F)) {
+    //     value &= ~MISA_D;
+    // }
+    value = this->csr[CSRAddr::MISA].value;
     return value;
 }
 
 #define INTER_MASK_M \
-        ((1 << INTERRUPT_SOFTWARE_S) | \
-         (1 << INTERRUPT_SOFTWARE_M) | \
-         (1 << INTERRUPT_TIMER_S)    | \
-         (1 << INTERRUPT_TIMER_M)    | \
-         (1 << INTERRUPT_EXTERNAL_S) | \
-         (1 << INTERRUPT_EXTERNAL_M))
+        ((1 << InterruptCode::SOFTWARE_S) | \
+         (1 << InterruptCode::SOFTWARE_M) | \
+         (1 << InterruptCode::TIMER_S)    | \
+         (1 << InterruptCode::TIMER_M)    | \
+         (1 << InterruptCode::EXTERNAL_S) | \
+         (1 << InterruptCode::EXTERNAL_M))
 
 #define INTER_MASK_S \
-        ((1 << INTERRUPT_SOFTWARE_S) | \
-         (1 << INTERRUPT_TIMER_S)    | \
-         (1 << INTERRUPT_EXTERNAL_S))
+        ((1 << InterruptCode::SOFTWARE_S) | \
+         (1 << InterruptCode::TIMER_S)    | \
+         (1 << InterruptCode::EXTERNAL_S))
 
 // Bits in MIP register
 // NAME   | MIP
@@ -49,7 +51,7 @@ word_t RVCSR::read_mip(unsigned int addr, word_t value, bool &valid) {
 
 word_t RVCSR::write_mip(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    return value & ((1 << INTERRUPT_SOFTWARE_S) | (1 << INTERRUPT_TIMER_S));
+    return value & ((1 << InterruptCode::SOFTWARE_S) | (1 << InterruptCode::TIMER_S));
 }
 
 word_t RVCSR::read_mie(unsigned int addr, word_t value, bool &valid) {
@@ -62,42 +64,42 @@ word_t RVCSR::write_mie(unsigned int addr, word_t value, bool &valid) {
 }
 
 word_t RVCSR::read_sip(unsigned int addr, word_t value, bool &valid) {
-    return this->csr[CSR_MIE].value & INTER_MASK_S;
+    return this->csr[CSRAddr::MIE].value & INTER_MASK_S;
 }
 
 word_t RVCSR::write_sip(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    value &= (1 << INTERRUPT_SOFTWARE_S);
-    this->csr[CSR_MIP].value &= ~(1 << INTERRUPT_SOFTWARE_S);
-    this->csr[CSR_MIP].value |= value;
+    value &= (1 << InterruptCode::SOFTWARE_S);
+    this->csr[CSRAddr::MIP].value &= ~(1 << InterruptCode::SOFTWARE_S);
+    this->csr[CSRAddr::MIP].value |= value;
     return 0;
 }
 
 word_t RVCSR::read_sie(unsigned int addr, word_t value, bool &valid) {
-    return this->csr[CSR_MIE].value & INTER_MASK_S;
+    return this->csr[CSRAddr::MIE].value & INTER_MASK_S;
 }
 
 word_t RVCSR::write_sie(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    this->csr[CSR_MIE].value &= ~(INTER_MASK_S);
-    this->csr[CSR_MIE].value |= value & INTER_MASK_S;
+    this->csr[CSRAddr::MIE].value &= ~(INTER_MASK_S);
+    this->csr[CSRAddr::MIE].value |= value & INTER_MASK_S;
     return 0;
 }
 
 word_t RVCSR::read_sstatus(unsigned int addr, word_t value, bool &valid) {
-    return this->csr[CSR_MSTATUS].value & SSTATUS_MASK;
+    return this->csr[CSRAddr::MSTATUS].value & SSTATUS_MASK;
 }
 
 word_t RVCSR::write_sstatus(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t &mstatus = this->csr[CSR_MSTATUS].value;
+    word_t &mstatus = this->csr[CSRAddr::MSTATUS].value;
     mstatus &= ~SSTATUS_MASK;
     mstatus |= value & SSTATUS_MASK;
     return 0;
 }
 
 word_t RVCSR::write_stimecmp(unsigned int addr, word_t value, bool &valid) {
-    this->csr[CSR_STIMECMP].value = value;
+    this->csr[CSRAddr::STIMECMP].value = value;
     valid = true;
     return value;
 }
@@ -121,10 +123,10 @@ word_t RVCSR::write_satp(unsigned int addr, word_t value, bool &valid) {
     #ifdef KXEMU_ISA64
     // Check if the mode is valid
     static constexpr word_t validSatpMode64[] = {
-        SATP_MODE_BARE,
-        SATP_MODE_SV39,
-        SATP_MODE_SV48,
-        SATP_MODE_SV57
+        SATPMode::BARE,
+        SATPMode::SV39,
+        SATPMode::SV48,
+        SATPMode::SV57
     };
     word_t mode = SATP_MODE(value);
     bool flag = true;
@@ -144,42 +146,42 @@ word_t RVCSR::write_satp(unsigned int addr, word_t value, bool &valid) {
 
 word_t RVCSR::read_fflags(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSR_FCSR);
+    word_t fcsr = this->read_csr(CSRAddr::FCSR);
     return FCSR_FLAGS(fcsr);
 }
 
 word_t RVCSR::write_fflags(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSR_FCSR);
+    word_t fcsr = this->read_csr(CSRAddr::FCSR);
     fcsr = (fcsr & ~FCSR_FLAGS_MASK) | (value & 0x1f);
-    this->write_csr(CSR_FCSR, fcsr);
+    this->write_csr(CSRAddr::FCSR, fcsr);
     return 0;
 }
 
 word_t RVCSR::read_frm(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSR_FCSR);
+    word_t fcsr = this->read_csr(CSRAddr::FCSR);
     return FCSR_RM(fcsr);
 }
 
 word_t RVCSR::write_frm(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSR_FCSR);
+    word_t fcsr = this->read_csr(CSRAddr::FCSR);
     fcsr = (fcsr & ~FCSR_RM_MASK) | (value & 0x7);
-    this->write_csr(CSR_FCSR, fcsr);
+    this->write_csr(CSRAddr::FCSR, fcsr);
     return 0;
 }
 
 word_t RVCSR::read_time(unsigned int addr, word_t value, bool &valid) {
-    if (!MCNTEN_TM(this->csr[CSR_MCNTEN].value) && this->privMode != PrivMode::MACHINE) {
+    if (!MCNTEN_TM(this->csr[CSRAddr::MCNTEN].value) && this->privMode != PrivMode::MACHINE) {
         valid = false;
         return 0;
     }
     bool sstc;
 #ifdef KXEMU_ISA32
-    sstc = MENVCFG_STCE(this->csr[CSR_MENVCFGH].value);
+    sstc = MENVCFG_STCE(this->csr[CSRAddr::MENVCFGH].value);
 #else
-    sstc = MENVCFG_STCE(this->csr[CSR_MENVCFG].value);
+    sstc = MENVCFG_STCE(this->csr[CSRAddr::MENVCFG].value);
 #endif
     if (!sstc && this->privMode != PrivMode::MACHINE) {
         valid = false;
@@ -188,7 +190,7 @@ word_t RVCSR::read_time(unsigned int addr, word_t value, bool &valid) {
 
     uint64_t mtime = UPTIME_TO_MTIME(this->get_uptime());
 #ifdef KXEMU_ISA32
-    csr[CSR_TIMEH].value = mtime >> 32;
+    csr[CSRAddr::TIMEH].value = mtime >> 32;
 #endif
     return mtime;
 }

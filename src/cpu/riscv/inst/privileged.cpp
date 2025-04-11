@@ -1,8 +1,8 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
 #include "log.h"
-#include <thread>
 
 using namespace kxemu::cpu;
 
@@ -19,11 +19,11 @@ void RVCore::set_priv_mode(int mode) {
 }
 
 void RVCore::do_ecall(const DecodeInfo &) {
-    word_t code;
+    TrapCode code;
     switch (this->privMode) {
-        case PrivMode::MACHINE:    code = TRAP_ECALL_M; break;
-        case PrivMode::SUPERVISOR: code = TRAP_ECALL_S; break;
-        case PrivMode::USER:       code = TRAP_ECALL_U; break;
+        case PrivMode::MACHINE:    code = TrapCode::ECALL_M; break;
+        case PrivMode::SUPERVISOR: code = TrapCode::ECALL_S; break;
+        case PrivMode::USER:       code = TrapCode::ECALL_U; break;
         default: PANIC("Invalid current privileged mode."); return;
     }
     trap(code); 
@@ -34,7 +34,7 @@ void RVCore::do_ecall(const DecodeInfo &) {
 // changed to y; xPIE is set to 1; and xPP is set to the least-privileged supported mode (U if U-mode is
 // implemented, else M). If y≠M, xRET also sets MPRV=0.
 void RVCore::do_mret(const DecodeInfo &) {
-    word_t mstatus = this->get_csr_core(CSR_MSTATUS);
+    word_t mstatus = this->get_csr_core(CSRAddr::MSTATUS);
     
     // change to previous privilege mode
     word_t mpp = ((mstatus) >> STATUS_MPP_OFF) & 0x3;
@@ -51,12 +51,12 @@ void RVCore::do_mret(const DecodeInfo &) {
     // set mstatus.MPP to the lowest privilege mode
     mstatus = (mstatus & ~STATUS_MPP_MASK) | (PrivMode::USER << STATUS_MPP_OFF);
 
-    this->set_csr_core(CSR_MSTATUS, mstatus);
-    this->npc = this->get_csr_core(CSR_MEPC);
+    this->set_csr_core(CSRAddr::MSTATUS, mstatus);
+    this->npc = this->get_csr_core(CSRAddr::MEPC);
 }
 
 void RVCore::do_sret(const DecodeInfo &) {    
-    word_t mstatus = this->get_csr_core(CSR_MSTATUS);
+    word_t mstatus = this->get_csr_core(CSRAddr::MSTATUS);
 
     // change to previous privilege mode
     word_t spp = (mstatus >> STATUS_SPP_OFF) & 0x1;
@@ -76,8 +76,8 @@ void RVCore::do_sret(const DecodeInfo &) {
     // set mstatus.MPRV to 0
     mstatus &= ~STATUS_MPRV_OFF;
 
-    this->set_csr_core(CSR_MSTATUS, mstatus);
-    this->npc = this->get_csr_core(CSR_SEPC);
+    this->set_csr_core(CSRAddr::MSTATUS, mstatus);
+    this->npc = this->get_csr_core(CSRAddr::SEPC);
 }
 
 void RVCore::do_ebreak(const DecodeInfo &) {
@@ -87,7 +87,7 @@ void RVCore::do_ebreak(const DecodeInfo &) {
     this->haltPC = this->pc;
     
     // breakpoint trap
-    this->trap(TRAP_BREAKPOINT); 
+    this->trap(TrapCode::BREAKPOINT); 
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
