@@ -2,8 +2,7 @@
 #define __KXEMU_CPU_RISCV_PLIC_H__
 
 #include "device/mmio.h"
-#include "cpu/riscv/namespace.h"
-#include "utils/spinlock.h"
+#include "cpu/riscv/def.h"
 
 #include <cstdint>
 

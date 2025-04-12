@@ -12,8 +12,18 @@
 using namespace kxemu;
 using namespace kxemu::kdb;
 
-int cmd::reset(const args_t &) {
-    kdb::reset_cpu();
+int cmd::reset(const args_t &args) {
+    if (args.size() != 1) {
+        try {
+            word_t entry = std::stoul(args[1], nullptr, 0);
+            kdb::reset_cpu(entry);
+        } catch (const std::exception &e) {
+            std::cout << "Invalid entry point: " << args[1] << std::endl;
+            return cmd::InvalidArgs;
+        }
+    } else {
+        kdb::reset_cpu();
+    }
     return 0;
 }
 

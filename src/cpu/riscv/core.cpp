@@ -1,7 +1,5 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
-#include "cpu/riscv/def.h"
-#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
 #include "device/bus.h"
 #include "log.h"

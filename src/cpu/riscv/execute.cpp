@@ -137,8 +137,7 @@ void RVCore::execute() {
         this->npc = this->pc + 4;
         instLen = 4;
         do_inst = this->decode_and_exec(decodeInfo);
-    } 
-    else {
+    } else {
         this->npc = this->pc + 2;
         instLen = 2;
         do_inst = this->decode_and_exec_c(decodeInfo);

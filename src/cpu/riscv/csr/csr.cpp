@@ -1,6 +1,6 @@
 #include "cpu/riscv/csr.h"
+#include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/def.h"
-#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
 #include "log.h"
 #include "debug.h"
@@ -9,17 +9,14 @@
 
 using namespace kxemu::cpu;
 
-#define KXEMU_MVENDORID 0x584b5343 // "CSKX" in little-endian
-#define KXEMU_MARCHID   0x00CAFFEE // Our architecture ID
-
 static constexpr word_t misaFlag = MISAFlag::A | MISAFlag::C | MISAFlag::D | MISAFlag::E | MISAFlag::F | MISAFlag::I | MISAFlag::M | MISAFlag::S | MISAFlag::U;
 
 RVCSR::RVCSR() {
     pmpCfgCount = 0;
 
     // Machine Information Registers
-    add_csr(CSRAddr::MVENDORID, KXEMU_MVENDORID); // mvendorid
-    add_csr(CSRAddr::MARCHID  , KXEMU_MARCHID  ); // marchid
+    add_csr(CSRAddr::MVENDORID, KXEMU_VENDORID); // mvendorid
+    add_csr(CSRAddr::MARCHID  , KXEMU_ARCHID  ); // marchid
     add_csr(CSRAddr::MIMPID ); // mimpid, Not implemented
     add_csr(CSRAddr::MHARTID); // mhartid
     add_csr(CSRAddr::MCFGPTR); // mconfigptr, Not implemented
@@ -135,15 +132,15 @@ void RVCSR::reload_pmpcfg() {
     for (unsigned int i = 0; i < 16; i++) {
         for (unsigned int j = 0; j < 4; j++) {
     #endif
-            word_t cfg = this->csr[CSRAddr::PMPCFG0 + i].value >> (j * 8);
-            word_t a = ((cfg & PMPCFG_A_MASK) >> PMPCFG_A_OFF);
+            csr::PMPCfgItem cfg = this->csr[CSRAddr::PMPCFG0 + i].value >> (j * 8);
+            // word_t a = ((cfg & PMPCFG_A_MASK) >> PMPCFG_A_OFF);
             
             auto &pmpConfig = pmpCfgArray[pmpCfgCount];
-            pmpConfig.r = cfg & PMPCFG_R_MASK;
-            pmpConfig.w = cfg & PMPCFG_W_MASK;
-            pmpConfig.x = cfg & PMPCFG_X_MASK;
+            pmpConfig.r = cfg.r();
+            pmpConfig.w = cfg.w();
+            pmpConfig.x = cfg.x();
 
-            switch (a) {
+            switch (cfg.a()) {
                 case PMPConfigAFlag::OFF: break;
                 case PMPConfigAFlag::TOR: {
                     if (index == 0) {
@@ -297,7 +294,7 @@ word_t RVCSR::read_csr(unsigned int addr) {
 
 bool RVCSR::write_csr(unsigned int addr, word_t value) {
     // Whether the destination csr is read-only should be checked in the Core
-    SELF_PROTECT((addr & CSR_READ_ONLY) != CSR_READ_ONLY, "Write to read-only CSR 0x%03x", addr);
+    SELF_PROTECT(csr_read_only(addr), "Write to read-only CSR 0x%03x", addr);
 
     auto iter = this->csr.find(addr);
     if (iter == this->csr.end()) {

@@ -1,7 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
-#include "cpu/riscv/namespace.h"
 #include "utils/utils.h"
 #include "log.h"
 #include "debug.h"
@@ -140,7 +139,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         }
 
         valid = true;
-        return UPTIME_TO_MTIME(this->get_uptime());
+        return cpu::uptime_to_mtime(this->get_uptime());
         
         #else
         if (size != 4 || (addr & 0x3) != 0) {
@@ -303,7 +302,7 @@ void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {
         this->taskTimer.remove_task(coreObj->stimerID);
     }
 
-    uint64_t uptimecmp = MTIME_TO_UPTIME(stimecmp);
+    uint64_t uptimecmp = cpu::mtime_to_uptime(stimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
     this->coreObjects[coreID].stimerID = this->taskTimer.add_task(delay, [coreObj]() {
@@ -327,7 +326,7 @@ void AClint::update_core_mtimecmp(unsigned int coreID) {
     coreObj.core->clear_timer_interrupt_m();
 
     uint64_t mtimecmp = coreObj.mtimecmp;
-    uint64_t uptimecmp = MTIME_TO_UPTIME(mtimecmp);
+    uint64_t uptimecmp = cpu::mtime_to_uptime(mtimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
     this->coreObjects[coreID].mtimerID = this->taskTimer.add_task(delay, [this, coreID]() {

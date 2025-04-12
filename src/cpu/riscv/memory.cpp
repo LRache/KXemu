@@ -1,16 +1,12 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
-#include "cpu/riscv/def.h"
+#include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/cache-def.h"
-#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
 #include "word.h"
 #include "log.h"
 #include "macro.h"
 #include "debug.h"
-
-#include <cstdint>
-#include <cstring>
 
 #define PGALIGN(addr) ((addr) & ~(PGSIZE - 1))
 #define ADDR_PAGE_UNALIGNED(addr, len) unlikely(PGALIGN(addr) != (PGALIGN(addr + len - 1)))
@@ -399,16 +395,19 @@ void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
 }
 
 void RVCore::update_satp() {
-    word_t satp = this->csr.read_csr(CSRAddr::SATP);
-    this->satpPPN = SATP_PPN(satp);
+    csr::Satp satp = this->get_csr_core(CSRAddr::SATP);
+    
+    // this->satpPPN = SATP_PPN(satp);
+    this->satpPPN = satp.ppn();
+    
     #ifdef KXEMU_ISA32
-    if (SATP_MODE(satp) == SATPMode::SV32) {
+    if (satp.mode() == SATPMode::SV32) {
         this->vaddr_translate_func = &RVCore::vaddr_translate_sv32;
     } else {
         this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
     }
     #else
-    switch (SATP_MODE(satp)) {
+    switch (satp.mode()) {
         case SATPMode::BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
         case SATPMode::SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
         case SATPMode::SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;

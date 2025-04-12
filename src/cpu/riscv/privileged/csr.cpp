@@ -1,5 +1,5 @@
 #include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
+#include "cpu/riscv/csr-field.h"
 #include "cpu/word.h"
 #include "debug.h"
 
@@ -23,21 +23,21 @@ bool RVCore::write_csr(unsigned int addr, word_t value) {
     return this->csr.write_csr(addr, value);
 }
 
-word_t RVCore::get_csr_core(unsigned int addr) {
+word_t RVCore::get_csr_core(CSRAddr addr) {
     bool valid;
     word_t t = this->csr.read_csr(addr, valid);
     SELF_PROTECT(valid, "Get csr failed.");
     return t;
 }
 
-void RVCore::set_csr_core(unsigned int addr, word_t value) {
+void RVCore::set_csr_core(CSRAddr addr, word_t value) {
     bool valid = this->csr.write_csr(addr, value);
     SELF_PROTECT(valid, "Set csr failed.");
 }
 
 void RVCore::update_mstatus() {
-    const word_t mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
-    this->mstatus.mie = STATUS_MIE(mstatus);
-    this->mstatus.sie = STATUS_SIE(mstatus);
-    this->mstatus.sum = STATUS_SUM(mstatus);
+    const csr::MStatus mstatus = this->get_csr_core(CSRAddr::MSTATUS);
+    this->mstatus.mie = mstatus.mie();
+    this->mstatus.sie = mstatus.sie();
+    this->mstatus.sum = mstatus.sum();
 }

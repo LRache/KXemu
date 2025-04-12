@@ -102,7 +102,7 @@ public:
 
     word_t *get_csr_ptr(unsigned int addr);
     const word_t *get_csr_ptr_readonly(unsigned int addr) const;
-
+ 
     bool pmp_check_r(word_t addr, int len);
     bool pmp_check_w(word_t addr, int len);
     bool pmp_check_x(word_t addr, int len);

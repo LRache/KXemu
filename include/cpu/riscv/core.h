@@ -3,7 +3,7 @@
 
 #include "cpu/core.h"
 #include "cpu/riscv/aclint.h"
-#include "cpu/riscv/namespace.h"
+#include "cpu/riscv/def.h"
 #include "cpu/riscv/plic.h"
 #include "cpu/riscv/pte.h"
 #include "cpu/word.h"
@@ -12,7 +12,6 @@
 
 #include <mutex>
 #include <unordered_map>
-#include <cstdint>
 
 namespace kxemu::cpu {
 
@@ -150,8 +149,8 @@ private:
     void init_csr();
     word_t  read_csr(unsigned int addr, bool &valid);
     bool   write_csr(unsigned int addr, word_t value);
-    word_t get_csr_core(unsigned int addr);
-    void   set_csr_core(unsigned int addr, word_t value);
+    word_t get_csr_core(CSRAddr addr);
+    void   set_csr_core(CSRAddr addr, word_t value);
     
     void update_mstatus();
     struct {

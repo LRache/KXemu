@@ -1,5 +1,5 @@
 #include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
+#include "cpu/riscv/csr-field.h"
 
 #include <cfenv>
 #include <cstdint>
@@ -49,7 +49,9 @@ static void set_fpu_rounding_mode(unsigned int rm) {
 #define RESTORE_FPU fesetround(old);
 
 void RVCore::update_fcsr() {
-    this->frm = FCSR_RM(this->csr.read_csr(CSRAddr::FCSR));
+    csr::FCSR fcsr = this->get_csr_core(CSRAddr::FCSR);
+    // this->frm = FCSR_RM(this->csr.read_csr(CSRAddr::FCSR));
+    this->frm = fcsr.frm();
 }
 
 void RVCore::do_flw(const DecodeInfo &decodeInfo) {

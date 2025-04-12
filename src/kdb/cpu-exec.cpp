@@ -16,6 +16,12 @@ void kdb::reset_cpu() {
     kdb::returnCode = 0;
 }
 
+void kdb::reset_cpu(word_t entry) {
+    cpu->reset(entry);
+    kdb::programEntry = entry;
+    kdb::returnCode = 0;
+}
+
 static int print_halt(unsigned int coreID) {
     auto core = kdb::cpu->get_core(coreID);
     int r;

@@ -1,6 +1,6 @@
 #include "cpu/riscv/csr.h"
+#include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/def.h"
-#include "cpu/riscv/namespace.h"
 #include "cpu/word.h"
 
 using namespace kxemu::cpu;
@@ -87,14 +87,14 @@ word_t RVCSR::write_sie(unsigned int addr, word_t value, bool &valid) {
 }
 
 word_t RVCSR::read_sstatus(unsigned int addr, word_t value, bool &valid) {
-    return this->csr[CSRAddr::MSTATUS].value & SSTATUS_MASK;
+    return csr::MStatus(this->csr[CSRAddr::MSTATUS].value).sstatus();
 }
 
 word_t RVCSR::write_sstatus(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t &mstatus = this->csr[CSRAddr::MSTATUS].value;
-    mstatus &= ~SSTATUS_MASK;
-    mstatus |= value & SSTATUS_MASK;
+    csr::MStatus mstatus = this->csr[CSRAddr::MSTATUS].value;
+    mstatus.set_sstatus(value);
+    this->csr[CSRAddr::MSTATUS].value = mstatus;
     return 0;
 }
 
@@ -119,7 +119,13 @@ word_t RVCSR::write_pmpaddr(unsigned int addr, word_t value, bool &valid) {
 }
 
 word_t RVCSR::write_satp(unsigned int addr, word_t value, bool &valid) {
-    value &= ~SATP_ASID_MASK; // ASID is WARL
+    // value &= ~SATP_ASID_MASK; // ASID is WARL
+    
+    csr::Satp satp = value;
+    
+    // ASID is WARL, so we need to set it to 0
+    satp.set_asid(0);
+
     #ifdef KXEMU_ISA64
     // Check if the mode is valid
     static constexpr word_t validSatpMode64[] = {
@@ -128,7 +134,7 @@ word_t RVCSR::write_satp(unsigned int addr, word_t value, bool &valid) {
         SATPMode::SV48,
         SATPMode::SV57
     };
-    word_t mode = SATP_MODE(value);
+    word_t mode = satp.mode();
     bool flag = true;
     for (unsigned int i = 0; i < sizeof(validSatpMode64) / sizeof(word_t); i++) {
         if (mode == validSatpMode64[i]) {
@@ -137,58 +143,68 @@ word_t RVCSR::write_satp(unsigned int addr, word_t value, bool &valid) {
         }
     }
     if (flag) {
-        value &= ~SATP_MODE_MASK; // Set mode to Bare
+        // value &= ~SATP_MODE_MASK; // Set mode to Bare
+        satp.set_mode(SATPMode::BARE);
     }
     #endif
+    
     valid = true;
-    return value;
+    return satp;
 }
 
 word_t RVCSR::read_fflags(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSRAddr::FCSR);
-    return FCSR_FLAGS(fcsr);
+    csr::FCSR fcsr = this->read_csr(CSRAddr::FCSR);
+    return fcsr.fflags();
 }
 
 word_t RVCSR::write_fflags(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSRAddr::FCSR);
-    fcsr = (fcsr & ~FCSR_FLAGS_MASK) | (value & 0x1f);
+    csr::FCSR fcsr = this->read_csr(CSRAddr::FCSR);
+    fcsr.set_fflags(value);
+    // fcsr = (fcsr & ~FCSR_FLAGS_MASK) | (value & 0x1f);
     this->write_csr(CSRAddr::FCSR, fcsr);
     return 0;
 }
 
 word_t RVCSR::read_frm(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSRAddr::FCSR);
-    return FCSR_RM(fcsr);
+    csr::FCSR fcsr = this->read_csr(CSRAddr::FCSR);
+    return fcsr.frm();
 }
 
 word_t RVCSR::write_frm(unsigned int addr, word_t value, bool &valid) {
     valid = true;
-    word_t fcsr = this->read_csr(CSRAddr::FCSR);
-    fcsr = (fcsr & ~FCSR_RM_MASK) | (value & 0x7);
+    csr::FCSR fcsr = this->read_csr(CSRAddr::FCSR);
+    // fcsr = (fcsr & ~FCSR_RM_MASK) | (value & 0x7);
+    fcsr.set_frm(value);
     this->write_csr(CSRAddr::FCSR, fcsr);
     return 0;
 }
 
 word_t RVCSR::read_time(unsigned int addr, word_t value, bool &valid) {
-    if (!MCNTEN_TM(this->csr[CSRAddr::MCNTEN].value) && this->privMode != PrivMode::MACHINE) {
+    csr::MCounteren mcnten = this->csr[CSRAddr::MCNTEN].value;
+
+    // Check if the timer is enabled
+    if (!mcnten.tm() && this->privMode != PrivMode::MACHINE) {
         valid = false;
         return 0;
     }
+
     bool sstc;
 #ifdef KXEMU_ISA32
-    sstc = MENVCFG_STCE(this->csr[CSRAddr::MENVCFGH].value);
+    csr::MEnvConfigH menvcfgh = this->csr[CSRAddr::MENVCFGH].value;
+    sstc = menvcfgh.stce();
 #else
-    sstc = MENVCFG_STCE(this->csr[CSRAddr::MENVCFG].value);
+    csr::MEnvConfig menvcfg = this->csr[CSRAddr::MENVCFG].value;
+    sstc = menvcfg.stce();
 #endif
     if (!sstc && this->privMode != PrivMode::MACHINE) {
         valid = false;
         return 0;
     }
 
-    uint64_t mtime = UPTIME_TO_MTIME(this->get_uptime());
+    uint64_t mtime = uptime_to_mtime(this->get_uptime());
 #ifdef KXEMU_ISA32
     csr[CSRAddr::TIMEH].value = mtime >> 32;
 #endif

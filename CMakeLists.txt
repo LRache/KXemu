@@ -11,7 +11,7 @@ set(EXPORT_TARGET libkxemu-${ISA})
 project(kxemu-system VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_COMPILER "clang++")
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(
     -Wall -Wextra -Werror

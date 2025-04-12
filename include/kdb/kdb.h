@@ -28,6 +28,7 @@ namespace kxemu::kdb {
     extern cpu::CPU<word_t> *cpu;
     extern int returnCode; // set when a core halt
     void reset_cpu();
+    void reset_cpu(word_t entry);
     int run_cpu();
     int step_core(unsigned int coreID);
 

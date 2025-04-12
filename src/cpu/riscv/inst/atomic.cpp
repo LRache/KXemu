@@ -1,5 +1,4 @@
 #include "cpu/riscv/core.h"
-
 #include "cpu/word.h"
 #include "device/bus.h"
 #include "log.h"

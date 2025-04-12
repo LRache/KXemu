@@ -1,24 +1,23 @@
 #include "cpu/riscv/plic.h"
 #include "cpu/riscv/core.h"
-#include "cpu/riscv/namespace.h"
 #include "device/bus.h"
 #include "device/def.h"
 #include "device/mmio.h"
 
 #include <cstdint>
 
-#define PLIC_PRIORITY_BASE 0x000000
-#define PLIC_PRIORITY_SIZE 0x001000
-#define PLIC_PENDING_BASE  0x001000
-#define PLIC_PENDING_SIZE  0x000080
-#define PLIC_ENABLE_BASE   0x002000
-#define PLIC_ENABLE_SIZE   0x1f0000
-#define PLIC_CONTEXT_BASE  0x200000
-#define PLIC_CONTEXT_SIZE  0x100000
+using namespace kxemu::device;
+
+static constexpr word_t PLIC_PRIORITY_BASE = 0x000000;
+static constexpr word_t PLIC_PRIORITY_SIZE = 0x001000;
+static constexpr word_t PLIC_PENDING_BASE  = 0x001000;
+static constexpr word_t PLIC_PENDING_SIZE  = 0x000080;
+static constexpr word_t PLIC_ENABLE_BASE   = 0x002000;
+static constexpr word_t PLIC_ENABLE_SIZE   = 0x1f0000;
+static constexpr word_t PLIC_CONTEXT_BASE  = 0x200000;
+static constexpr word_t PLIC_CONTEXT_SIZE  = 0x100000;
 
 #define IN_RANGE(addr, name) (addr) >= PLIC_##name##_BASE && (addr) < PLIC_##name##_BASE + PLIC_##name##_SIZE
-
-using namespace kxemu::device;
 
 void PLIC::init(cpu::RVCore *cores, unsigned int coreCount) {
     for (unsigned int i = 0; i < 32; i++) {

@@ -1,6 +1,5 @@
 #include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
-#include "cpu/riscv/namespace.h"
+#include "cpu/riscv/csr-field.h"
 #include "cpu/word.h"
 #include "macro.h"
 
@@ -80,25 +79,38 @@ void RVCore::clear_external_interrupt_s() {
     clear_interrupt(InterruptCode::EXTERNAL_S);
 }
 
-void RVCore::interrupt_m(InterruptCode code) {
-    this->csr.write_csr(CSRAddr::MEPC, this->npc);
-    this->csr.write_csr(CSRAddr::MCAUSE, code | CAUSE_INTERRUPT_MASK);
-    this->csr.write_csr(CSRAddr::MTVAL, 0);
+#ifdef KXEMU_ISA64
+    #define CAUSE_INTERRUPT_MASK (1ULL << 63)
+#else
+    #define CAUSE_INTERRUPT_MASK (1 << 31)
+#endif
 
-    word_t mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
-    mstatus = (mstatus & ~STATUS_MPP_MASK) | (this->privMode << STATUS_MPP_OFF);
-    mstatus = (mstatus & ~STATUS_MPIE_MASK) | ((mstatus & STATUS_MIE_MASK) << (STATUS_MPIE_OFF - STATUS_MIE_OFF));
-    mstatus = (mstatus & ~STATUS_MIE_MASK);
-    this->csr.write_csr(CSRAddr::MSTATUS, mstatus);
+void RVCore::interrupt_m(InterruptCode code) {
+    this->set_csr_core(CSRAddr::MEPC, this->npc);
+    this->set_csr_core(CSRAddr::MCAUSE, code | CAUSE_INTERRUPT_MASK);
+    this->set_csr_core(CSRAddr::MTVAL, 0);
+
+    csr::MStatus mstatus = this->get_csr_core(CSRAddr::MSTATUS);
+    
+    // mstatus = (mstatus & ~STATUS_MPP_MASK) | (this->privMode << STATUS_MPP_OFF);
+    mstatus.set_mpp(this->privMode);
+    
+    // mstatus = (mstatus & ~STATUS_MPIE_MASK) | ((mstatus & STATUS_MIE_MASK) << (STATUS_MPIE_OFF - STATUS_MIE_OFF));
+    mstatus.set_mpie(mstatus.mie());
+    
+    // mstatus = (mstatus & ~STATUS_MIE_MASK);
+    mstatus.set_mie(false);
+    
+    this->set_csr_core(CSRAddr::MSTATUS, mstatus);
 
     this->privMode = PrivMode::MACHINE;
 
-    word_t mtvec = this->csr.read_csr(CSRAddr::MTVEC);
-    word_t vecMode = mtvec & TVEC_MODE_MASK;
-    if (vecMode == TVECMode::VECTORED) {
-        this->npc = (mtvec & ~TVEC_MODE_MASK) + (code << 2);
+    csr::TrapVec mtvec = this->get_csr_core(CSRAddr::MTVEC);
+    // word_t vecMode = mtvec & TVEC_MODE_MASK;
+    if (mtvec.mode() == TVECMode::VECTORED) {
+        this->npc = (mtvec.vec()) + (code << 2);
     } else {
-        this->npc = mtvec & ~TVEC_MODE_MASK;
+        this->npc = mtvec.vec();
     }
 }
 
@@ -107,20 +119,27 @@ void RVCore::interrupt_s(InterruptCode code) {
     this->csr.write_csr(CSRAddr::SCAUSE, code | CAUSE_INTERRUPT_MASK);
     this->csr.write_csr(CSRAddr::STVAL, 0);
 
-    word_t mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
-    mstatus = (mstatus & ~STATUS_SPP_MASK) | (this->privMode << STATUS_SPP_OFF);
-    mstatus = (mstatus & ~STATUS_SPIE_MASK) | ((mstatus & STATUS_SIE_MASK) << (STATUS_SPIE_OFF - STATUS_SIE_OFF));
-    mstatus = (mstatus & ~STATUS_SIE_MASK);
+    csr::MStatus mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
+    
+    // mstatus = (mstatus & ~STATUS_SPP_MASK) | (this->privMode << STATUS_SPP_OFF);
+    mstatus.set_spp(this->privMode != PrivMode::USER);
+    
+    // mstatus = (mstatus & ~STATUS_SPIE_MASK) | ((mstatus & STATUS_SIE_MASK) << (STATUS_SPIE_OFF - STATUS_SIE_OFF));
+    mstatus.set_spie(mstatus.sie());
+    
+    // mstatus = (mstatus & ~STATUS_SIE_MASK);
+    mstatus.set_sie(false);
+    
     this->write_csr(CSRAddr::MSTATUS, mstatus);
 
     this->privMode = PrivMode::SUPERVISOR;
 
-    word_t stvec = this->csr.read_csr(CSRAddr::STVEC);
-    word_t vecMode = stvec & TVEC_MODE_MASK;
-    if (vecMode == TVECMode::VECTORED) {
-        this->npc = (stvec & ~TVEC_MODE_MASK) + (code << 2);
+    csr::TrapVec stvec = this->get_csr_core(CSRAddr::STVEC);
+    // word_t vecMode = stvec & TVEC_MODE_MASK;
+    if (stvec.mode() == TVECMode::VECTORED) {
+        this->npc = stvec.vec() + (code << 2);
     } else {
-        this->npc = stvec & ~TVEC_MODE_MASK;
+        this->npc = stvec.vec();
     }
 }
 

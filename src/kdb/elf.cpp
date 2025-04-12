@@ -1,6 +1,7 @@
 #include "isa/isa.h"
 #include "kdb/kdb.h"
 #include "config/config.h"
+#include "word.h"
 
 #include <cstdint>
 #include <cstring>
@@ -39,18 +40,18 @@
     #endif
 #endif
 
-#define CHECK_READ_SUCCESS(expectedSize) \
-do { \
-    if (f.gcount() != expectedSize) { \
-        std::cout << "An error occurred when read from file." << std::endl; \
-        f.close(); \
-        return false; \
-    } \
-} while (0) 
-
 using namespace kxemu;
 
 std::map<kdb::word_t, std::string> kdb::symbolTable;
+
+static bool check_read_success(std::fstream &f, long expectedSize) {
+    if (f.gcount() != expectedSize) {
+        std::cerr << "An error occurred when read from file." << std::endl;
+        f.close();
+        return false;
+    }
+    return true;
+}
 
 static bool check_is_valid_elf(const Elf_Ehdr &ehdr) {
     // check elf magic number
@@ -88,8 +89,18 @@ static bool load_program(const Elf_Phdr &phdr, std::fstream &f) {
     if (memsze == 0) return true;
 
     f.seekg(phdr.p_offset, std::ios::beg);
-    kdb::bus->memset(start, memsze, 0); // clear memory
-    kdb::bus->load_from_stream(f, start, filesz); // copy ELF file to memory
+    
+    // clear memory
+    if (!kdb::bus->memset(start, memsze, 0)) {
+        std::cerr << "Faliled to clear memory, start=" <<  FMT_STREAM_WORD(start) << ", memsize=" << FMT_STREAM_WORD(memsze) << std::endl;
+        return false; 
+    }
+    
+    // copy ELF file to memory
+    if (!kdb::bus->load_from_stream(f, start, filesz)) {
+        std::cerr << "Failed to load ELF file to memory, start=" <<  FMT_STREAM_WORD(start) << ", filesize=" << FMT_STREAM_WORD(filesz) << std::endl;
+        return false; // clear memory
+    }
     
     return true;
 }
@@ -107,7 +118,9 @@ static bool load_symbol_table(const Elf_Shdr &symtabShdr, const Elf_Shdr &strtab
         Elf_Sym sym;
         f.seekg(offset, std::ios::beg);
         f.read((char *)&sym, sizeof(sym));
-        CHECK_READ_SUCCESS(sizeof(sym));
+        if (!check_read_success(f, sizeof(sym))) {
+            return false;
+        }
         offset = f.tellg();
 
         if (sym.st_name == 0) {
@@ -128,12 +141,16 @@ std::optional<kdb::word_t> kdb::load_elf(const std::string &filename) {
     std::fstream f;
     f.open(filename, std::ios_base::in);
     if (!f.is_open()) {
-        return 0;
+        std::cout << "Failed to open file: " << filename << std::endl;
+        return std::nullopt;
     }
 
     Elf_Ehdr ehdr;
     f.read((char *)&ehdr, sizeof(ehdr));
-    CHECK_READ_SUCCESS(sizeof(ehdr));
+    if (!check_read_success(f, sizeof(ehdr))) {
+        std::cout << "An error occurred when read elf header." << std::endl;
+        return std::nullopt;
+    }
 
     if (!check_is_valid_elf(ehdr)) {
         std::cout << "BAD elf header" << std::endl;
@@ -146,12 +163,18 @@ std::optional<kdb::word_t> kdb::load_elf(const std::string &filename) {
     for (uint16_t i = 0; i < ehdr.e_phnum; i++) {
         Elf_Phdr phdr;
         f.read((char *)&phdr, sizeof(phdr));
-        CHECK_READ_SUCCESS(sizeof(phdr));
+        if (!check_read_success(f, sizeof(phdr))) {
+            std::cout << "An error occurred when read program header." << std::endl;
+            return std::nullopt;
+        }
         phdrArray.push_back(phdr);
     }
 
     for (auto phdr: phdrArray) {
-        load_program(phdr, f);
+        if (!load_program(phdr, f)) {
+            std::cout << "An error occurred when load program header." << std::endl;
+            return std::nullopt;
+        }
     }
 
     // read section header to load symbol table
