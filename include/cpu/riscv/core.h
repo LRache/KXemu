@@ -18,7 +18,6 @@ namespace kxemu::cpu {
 class RVCore : public Core<word_t>{
 private:
     unsigned int coreID;
-    int flags;
 
     enum state_t {
         IDLE,
@@ -228,7 +227,7 @@ public:
     RVCore();
     ~RVCore();
 
-    void init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *aclint, device::PLIC *plic);
+    void init(unsigned int coreID, device::Bus *bus, device::AClint *aclint, device::PLIC *plic);
     
     void reset(word_t entry) override;
     void step() override;

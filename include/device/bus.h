@@ -3,9 +3,7 @@
 
 #include "device/mmio.h"
 #include "device/def.h"
-#include "utils/spinlock.h"
 
-#include <mutex>
 #include <vector>
 #include <iostream>
 #include <cstdint>

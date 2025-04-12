@@ -196,8 +196,8 @@ namespace kxemu::cpu {
 
     class RVCore;
 
-    inline constexpr word_t KXEMU_VENDORID = 0x584b5343; // "CSKX" in little-endian;
-    inline constexpr word_t KXEMU_ARCHID   = 0x00000000; // "RV64" in little-endian;
+    inline constexpr word_t KXEMU_VENDORID = 0x584b5343; // "CSKX" in little-endian
+    inline constexpr word_t KXEMU_ARCHID   = 0x00CAFFEE;
 }
 
 #endif

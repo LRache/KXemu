@@ -26,10 +26,9 @@ RVCore::RVCore() {
     this->deviceMtx = nullptr;
 }
 
-void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, device::AClint *alint, device::PLIC *plic) {
+void RVCore::init(unsigned int coreID, device::Bus *bus, device::AClint *alint, device::PLIC *plic) {
     this->coreID = coreID;
     this->bus = bus;
-    this->flags = flags;
     this->aclint = alint;
     this->plic = plic;
     this->state = IDLE;
