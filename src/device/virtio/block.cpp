@@ -50,6 +50,7 @@ bool VirtIOBlock::blk_read(uint32_t sector, uint32_t len, word_t bufferAddr, uin
         return false;
     }
     std::memcpy(dest, buffer, len);
+    delete []buffer;
 
     *status = 0;
 
