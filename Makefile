@@ -14,7 +14,10 @@ count:
 
 kxemu:
 	@ mkdir -p ./build
-	@ cd ./build && cmake .. -DTARGET_APP=ON -DTARGET_LIB=OFF && cmake --build .
+	@ cd ./build && cmake .. -DTARGET_APP=ON -DTARGET_LIB=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=1 && cmake --build .
+
+run:
+	@ ./build/kxemu-system-$(CONFIG_ISA)
 
 export:
 	@ mkdir -p ./build
