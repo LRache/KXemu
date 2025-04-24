@@ -73,7 +73,7 @@ private:
     // [2] W - Clear Transmit FIFO
     // [3-5] W - Ignored
     // [6-7] R - Receiver FIFO Trigger Level
-    uint8_t fcr = 0b11000000; // reset value
+    // uint8_t fcr = 0b11000000; // reset value
 
     // Line Control Register
     // [0-1] RW - Word Length
