@@ -47,6 +47,7 @@ bool VirtIOBlock::blk_read(uint32_t sector, uint32_t len, word_t bufferAddr, uin
     this->fstream.read(buffer, len);
     if (this->fstream.fail()) {
         WARN("this->fstream.fail()");
+        delete []buffer;
         return false;
     }
     std::memcpy(dest, buffer, len);
