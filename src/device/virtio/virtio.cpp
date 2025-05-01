@@ -37,10 +37,10 @@ void VirtIO::reset() {
 word_t VirtIO::read_status() {
     word_t r  = 0;
     switch (this->state) {
-        case DRIVER_OK:   r |= VIRTIO_STATUS_DRIVER_OK;
-        case FEATURES_OK: r |= VIRTIO_STATUS_FEATURES_OK;
-        case DRIVERED:    r |= VIRTIO_STATUS_DRIVER;
-        case ACKNOWLEGED: r |= VIRTIO_STATUS_ACKNOWLEDGE;
+        case DRIVER_OK:   r |= VIRTIO_STATUS_DRIVER_OK;   [[fallthrough]];
+        case FEATURES_OK: r |= VIRTIO_STATUS_FEATURES_OK; [[fallthrough]];
+        case DRIVERED:    r |= VIRTIO_STATUS_DRIVER;      [[fallthrough]];
+        case ACKNOWLEGED: r |= VIRTIO_STATUS_ACKNOWLEDGE; [[fallthrough]];
         case IDLE: break;
     }
     return r;
@@ -264,10 +264,10 @@ bool VirtIO::write(word_t offset, word_t data, word_t size) {
         void *p = c + offset;
         
         switch (size) {
-            case 1: *(uint8_t  *)p = data;
-            case 2: *(uint16_t *)p = data;
-            case 4: *(uint32_t *)p = data;
-            case 8: *(uint64_t *)p = data;
+            case 1: *(uint8_t  *)p = data; break;
+            case 2: *(uint16_t *)p = data; break;
+            case 4: *(uint32_t *)p = data; break;
+            case 8: *(uint64_t *)p = data; break;
             default: PANIC("Invalid read size=" FMT_VARU64, size);
         }
 
