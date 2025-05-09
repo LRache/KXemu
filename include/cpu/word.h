@@ -17,6 +17,8 @@ namespace kxemu::cpu {
     using  dword_t = uint64_t;
     using sdword_t =  int64_t;
 #endif
+
+    static constexpr inline unsigned int WORD_BITS = sizeof(word_t) * 8;
 }
 
 #endif

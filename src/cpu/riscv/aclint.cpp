@@ -5,15 +5,6 @@
 #include "log.h"
 #include "debug.h"
 
-#define MSWI_BASE     cpu::MSWI.BASE
-#define MSWI_SIZE     cpu::MSWI.SIZE
-#define MTIMECMP_BASE cpu::MTIMECMP.BASE
-#define MTIMECMP_SIZE cpu::MTIMECMP.SIZE
-#define MTIME_BASE    cpu::MTIME.BASE
-#define MTIME_SIZE    cpu::MTIME.SIZE
-#define SSWI_BASE     cpu::SSWI.BASE
-#define SSWI_SIZE     cpu::SSWI.SIZE
-
 #define IN_RANGE(addr, name) (addr >= name##_BASE && addr < name##_BASE + name##_SIZE)
 
 using namespace kxemu::device;
@@ -56,7 +47,7 @@ void AClint::reset() {
 }
 
 word_t AClint::read(word_t addr, word_t size, bool &valid) {
-    if (IN_RANGE(addr, MSWI)) {
+    if (cpu::MSWI.in_range(addr)) {
         // MSWI only supports 32-bit reads
         if (size != 4) {
             WARN("Unaligned access to MSWI.");
@@ -76,7 +67,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         valid = true; 
         return this->coreObjects[coreID].msip;
     
-    } else if (IN_RANGE(addr, SSWI)) {
+    } else if (cpu::SSWI.in_range(addr)) {
         // SSWI only supports 32-bit reads
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Unaligned access to SSWI.");
@@ -84,7 +75,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
             return -1;
         }
 
-        unsigned int coreID = (addr - SSWI_BASE) >> 2;
+        unsigned int coreID = (addr - cpu::SSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -96,9 +87,9 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         valid = true;
         return this->coreObjects[coreID].ssip;
     
-    } else if (IN_RANGE(addr, MTIMECMP)) {
+    } else if (cpu::MTIMECMP.in_range(addr)) {
         // MTIMECMP only supports aligned reads
-        unsigned int coreID = (addr - MTIMECMP_BASE) >> 3;
+        unsigned int coreID = (addr - cpu::MTIMECMP.BASE) >> 3;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -131,7 +122,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
             return this->coreObjects[coreID].mtimecmp >> 32;
         }
         #endif
-    } else if (IN_RANGE(addr, MTIME)) {
+    } else if (cpu::MTIME.in_range(addr)) {
         #ifdef KXEMU_ISA64
         if (size != 8 || (addr & 0x7) != 0) {
             WARN("Unaligned access to MTIME. size=%lu, addr=" FMT_WORD64, size, addr);
@@ -139,16 +130,16 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         }
 
         valid = true;
-        return cpu::uptime_to_mtime(this->get_uptime());
+        return cpu::realtime_to_mtime(this->get_uptime());
         
         #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %lu for MTIME", size);
-            return -1;
+            return -1;z
         }
         
         valid = true;
-        word_t offset = addr - MTIME_BASE;
+        word_t offset = addr - cpu::MTIME.BASE;
         if (offset == 0) {
             this->mtime = UPTIME_TO_MTIME(this->get_uptime());
             return this->mtime & 0xffffffffUL;
@@ -164,7 +155,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
 }
 
 bool AClint::write(word_t addr, word_t value, word_t size) {
-    if (IN_RANGE(addr, MSWI)) {
+    if (cpu::MSWI.in_range(addr)) {
         // MSWI only supports 32-bit writes
         if (size != 4) {
             WARN("Unaligned access to MSWI.");
@@ -177,7 +168,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
 
-        unsigned int coreID = (addr - MSWI_BASE) >> 2;
+        unsigned int coreID = (addr - cpu::MSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -193,7 +184,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             this->coreObjects[coreID].core->clear_software_interrupt_m();
         }
 
-    } else if (IN_RANGE(addr, SSWI)) {
+    } else if (cpu::SSWI.in_range(addr)) {
         // SSWI only supports 32-bit writes
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Unaligned access to SSWI.");
@@ -206,7 +197,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
 
-        unsigned int coreID = (addr - SSWI_BASE) >> 2;
+        unsigned int coreID = (addr - cpu::SSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -221,9 +212,9 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             this->coreObjects[coreID].core->clear_software_interrupt_s();
         }
     
-    } else if (IN_RANGE(addr, MTIMECMP)) {
+    } else if (cpu::MTIMECMP.in_range(addr)) {
         // MTIMECMP only supports aligned writes
-        unsigned int coreID = (addr - MTIMECMP_BASE) >> 3;
+        unsigned int coreID = (addr - cpu::MTIMECMP.BASE) >> 3;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -254,7 +245,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             this->update_core_mtimecmp(coreID);
         }
         #endif
-    } else if (IN_RANGE(addr, MTIME)) {
+    } else if (cpu::MTIME.in_range(addr)) {
         return false;
     } else {
         WARN("Invalid address " FMT_WORD64 " for CLINT", addr);
@@ -302,7 +293,7 @@ void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {
         this->taskTimer.remove_task(coreObj->stimerID);
     }
 
-    uint64_t uptimecmp = cpu::mtime_to_uptime(stimecmp);
+    uint64_t uptimecmp = cpu::mtime_to_realtime(stimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
     this->coreObjects[coreID].stimerID = this->taskTimer.add_task(delay, [coreObj]() {
@@ -326,7 +317,7 @@ void AClint::update_core_mtimecmp(unsigned int coreID) {
     coreObj.core->clear_timer_interrupt_m();
 
     uint64_t mtimecmp = coreObj.mtimecmp;
-    uint64_t uptimecmp = cpu::mtime_to_uptime(mtimecmp);
+    uint64_t uptimecmp = cpu::mtime_to_realtime(mtimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
     this->coreObjects[coreID].mtimerID = this->taskTimer.add_task(delay, [this, coreID]() {

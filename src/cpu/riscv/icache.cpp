@@ -1,3 +1,4 @@
+#include "cpu/riscv/addr.h"
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/cache-def.h"
 
@@ -6,9 +7,12 @@ using namespace kxemu::cpu;
 #ifdef CONFIG_ICache
 
 void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen, const DecodeInfo &decodeInfo) {
-    word_t set = ICACHE_SET(this->pc);
+    // word_t set = ICACHE_SET(this->pc);
+    addr_t addr = this->pc;
+    word_t set = addr.icache_set();
     this->icache[set].valid = true;
-    this->icache[set].tag = ICACHE_TAG(this->pc);
+    // this->icache[set].tag = ICACHE_TAG(this->pc);
+    this->icache[set].tag = addr.icache_tag();
     this->icache[set].do_inst = do_inst;
     this->icache[set].instLen = instLen;
     this->icache[set].decodeInfo = decodeInfo;
@@ -16,8 +20,11 @@ void RVCore::icache_push(do_inst_t do_inst, unsigned int instLen, const DecodeIn
 
 bool RVCore::icache_decode_and_exec() {
     word_t set = ICACHE_SET(pc);
+    addr_t addr = this->pc;
     const ICacheBlock &block = this->icache[set];
-    if (block.tag == ICACHE_TAG(pc) && block.valid) {
+    // const ICacheBlock &block = this->icache[addr.icache_set()];
+    // if (block.tag == ICACHE_TAG(pc) && block.valid) {
+    if (block.tag == addr.icache_tag() && block.valid) {
         this->npc = this->pc + block.instLen;
 
         (this->*block.do_inst)(block.decodeInfo);

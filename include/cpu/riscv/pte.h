@@ -34,13 +34,18 @@ public:
 };
         
 class PTE {
-public:
+private:
     word_t pte;
+public:
     PTE() : pte(0) {}
     PTE(word_t pte) : pte(pte) {}
             
     PTEFlag flag() const { return this->pte & 0xff; }
     word_t ppn() const { return this->pte >> 10; }
+
+    operator word_t() const {
+        return this->pte;
+    }
 };
 
 }

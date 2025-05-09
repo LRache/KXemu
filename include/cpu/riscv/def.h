@@ -6,6 +6,12 @@
 
 namespace kxemu::cpu {
 
+    static inline constexpr unsigned int ICACHE_SET_BITS = 11;
+    static inline constexpr unsigned int TLB_SET_BITS = 5;
+
+    static inline constexpr unsigned int PGBITS = 12;
+    static inline constexpr word_t PGSIZE = (1 << PGBITS);
+
     enum PrivMode {
         MACHINE    = 3,
         SUPERVISOR = 1,
@@ -174,17 +180,21 @@ namespace kxemu::cpu {
         return (addr & 0b110000000000) == 0b110000000000;
     }
 
-    static inline word_t uptime_to_mtime(word_t uptime) {
+    static inline word_t realtime_to_mtime(word_t uptime) {
         return uptime / 100;
     }
 
-    static inline word_t mtime_to_uptime(word_t mtime) {
+    static inline word_t mtime_to_realtime(word_t mtime) {
         return mtime * 100;
     }
 
     struct AddrSpace {
         const word_t BASE;
         const word_t SIZE;
+        
+        bool in_range(word_t addr) const {
+            return (addr >= BASE && addr < BASE + SIZE);
+        }
     };
 
     inline constexpr AddrSpace ACLINT   = {0x02000000, 0x00010000};

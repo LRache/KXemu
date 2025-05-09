@@ -1,7 +1,8 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/csr-field.h"
-#include "cpu/riscv/cache-def.h"
+// #include "cpu/riscv/cache-def.h"
+#include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "word.h"
 #include "log.h"
@@ -13,27 +14,40 @@
 
 using namespace kxemu::cpu;
 
-RVCore::TLBBlock &RVCore::tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t flag) {
-    word_t set = TLB_SET(vaddr);
-    word_t tag = TLB_TAG(vaddr);
-    TLBBlock &block = this->tlb[set];
+RVCore::TLBBlock &RVCore::tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t flag) {
+    // word_t set = TLB_SET(vaddr);
+    // word_t tag = TLB_TAG(vaddr);
+    TLBBlock &block = this->tlb[vaddr.tlb_set()];
     if (block.valid) {
         this->pm_write(block.pteAddr, block.flag, 1);
     }
-    block.paddr = paddr & ~TLB_OFF_MASK;
-    block.tag = tag;
+    // block.paddr = paddr & ~TLB_OFF_MASK;
+    block.paddr = paddr.tlb_tag_and_set();
+    block.tag = vaddr.tlb_tag();
     block.pteAddr = pteAddr;
     block.flag = flag;
     block.valid = true;
     return block;
 }
 
-RVCore::TLBBlock &RVCore::tlb_hit(word_t vaddr, bool &hit) {
-    word_t set = TLB_SET(vaddr);
-    word_t tag = TLB_TAG(vaddr);
-    TLBBlock &block = this->tlb[set];
-    hit = block.valid && block.tag == tag;
+RVCore::TLBBlock &RVCore::tlb_hit(addr_t vaddr, bool &hit) {
+    // word_t set = TLB_SET(vaddr);
+    // word_t tag = TLB_TAG(vaddr);
+    // TLBBlock &block = this->tlb[set];
+    // hit = block.valid && block.tag == tag;
+    TLBBlock &block = this->tlb[vaddr.tlb_set()];
+    hit = block.valid && block.tag == vaddr.tlb_tag();
     return block;
+}
+
+std::optional<RVCore::TLBBlock *> RVCore::tlb_hit(addr_t vaddr) {
+    TLBBlock *block = &this->tlb[vaddr.tlb_set()];
+    bool hit = block->valid && block->tag == vaddr.tlb_tag();
+    if (hit) {
+        return block;
+    } else {
+        return std::nullopt;
+    }
 }
 
 void RVCore::tlb_fence() {
@@ -48,21 +62,22 @@ word_t RVCore::vaddr_translate_bare(word_t addr, MemType type, VMResult &result)
 }
 
 template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) {
+word_t RVCore::vaddr_translate_sv(addr_t vaddr, MemType type, VMResult &result) {
     constexpr word_t PGBITS = 12;
     constexpr word_t PGSIZE = 1 << PGBITS;
 
-    word_t vpn[5]; // We assume the maximum level is 5
-    for (unsigned int i = 0; i < LEVELS; i++) {
-        vpn[i] = (vaddr >> (PGBITS + i * VPNBITS)) & ((1 << VPNBITS) - 1);
-    }
+    // word_t vpn[5]; // We assume the maximum level is 5
+    // for (unsigned int i = 0; i < LEVELS; i++) {
+    //     vpn[i] = (vaddr >> (PGBITS + i * VPNBITS)) & ((1 << VPNBITS) - 1);
+    // }
 
     // Whether the page which has the U bit set in the PTE is accessible by the current privilege mode
-    bool uPageAccessible = this->privMode == USER || this->mstatus.sum;
+    bool uPageAccessible = this->privMode == PrivMode::USER || this->mstatus.sum;
 
     word_t base = this->satpPPN * PGSIZE;
     for (int i = LEVELS - 1; i >= 0; i--) {
-        word_t pteAddr = base + vpn[i] * PTESIZE;
+        // word_t pteAddr = base + vpn[i] * PTESIZE;
+        word_t pteAddr = base + vaddr.vpn(i, VPNBITS) * PTESIZE;
 
         word_t pteData;
         if (unlikely(!this->pm_read_check(pteAddr, pteData, PTESIZE))) {
@@ -130,7 +145,7 @@ word_t RVCore::vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result) 
             // If i>0, then pa.ppn[i-1:0] = va.vpn[i-1:0]
             mask |= ((1 << (VPNBITS * i)) - 1) << PGBITS; // Mask for superpage ppn
 
-            word_t paddr = ((pte.pte << 2) & ~mask) | (vaddr & mask);
+            word_t paddr = (((word_t)pte << 2) & ~mask) | (vaddr & mask);
             result = VM_OK;
 
             this->tlb_push(vaddr, paddr, pteAddr, pte.flag());
@@ -192,18 +207,19 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 #define PTE_A_MASK (1 << 6)
 #define PTE_D_MASK (1 << 7)
 
-word_t RVCore::vaddr_translate_core(word_t vaddr, MemType type, VMResult &result) {
+word_t RVCore::vaddr_translate_core(addr_t vaddr, MemType type, VMResult &result) {
     bool tlbHit;
     TLBBlock &block = this->tlb_hit(vaddr, tlbHit);
     if (likely(tlbHit)) {
-        bool u = block.flag.u() ? this->privMode == USER || this->mstatus.sum : this->privMode == SUPERVISOR;
+        bool u = block.flag.u() ? this->privMode == PrivMode::USER || this->mstatus.sum : this->privMode == PrivMode::SUPERVISOR;
         if (likely((block.flag & type) == type && (u))) {
             block.flag.set_a();
             if (type & STORE) {
                 block.flag.set_d();
             }
             result = VM_OK;
-            return block.paddr + TLB_OFF(vaddr);
+            // return block.paddr + TLB_OFF(vaddr);
+            return block.paddr + vaddr.tlb_off();
         } else {
             result = VM_PAGE_FAULT;
             return -1;

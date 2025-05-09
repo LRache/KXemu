@@ -17,6 +17,8 @@
 
 namespace kxemu::kdb {
     using word_t = isa::word_t;
+    static constexpr unsigned int WORD_BITS = sizeof(word_t) * 8;
+    static constexpr unsigned int WORD_WIDTH = WORD_BITS / 4;
     
     void init(unsigned int coreCount);
     void deinit();
