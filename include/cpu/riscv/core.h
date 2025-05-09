@@ -3,6 +3,7 @@
 
 #include "cpu/core.h"
 #include "cpu/riscv/aclint.h"
+#include "cpu/riscv/addr.h"
 #include "cpu/riscv/def.h"
 #include "cpu/riscv/plic.h"
 #include "cpu/riscv/pte.h"
@@ -48,8 +49,6 @@ private:
     void   memory_store(word_t addr, word_t data, unsigned int len);
 
     // Virtual address translation
-    static constexpr unsigned int PGBITS = 12;
-    static constexpr word_t PGSIZE = (1 << PGBITS);
     bool pm_read (word_t paddr, word_t &data, unsigned int len);
     bool pm_write(word_t paddr, word_t  data, unsigned int len);
     bool pm_read_check (word_t paddr, word_t &data, unsigned int len); // With PMP check
@@ -64,10 +63,11 @@ private:
         VM_ACCESS_FAULT,
         VM_UNSET
     };
-    word_t vaddr_translate_core(word_t addr, MemType type, VMResult &result);
+    // word_t vaddr_translate_core(word_t addr, MemType type, VMResult &result);
+    word_t vaddr_translate_core(addr_t addr, MemType type, VMResult &result);
     
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-    word_t vaddr_translate_sv(word_t vaddr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
+    word_t vaddr_translate_sv(addr_t vaddr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
     
     word_t vaddr_translate_bare(word_t vaddr, MemType type, VMResult &result);
     #ifdef KXEMU_ISA32
@@ -89,19 +89,19 @@ private:
 
     // Decoder
     struct DecodeInfo {
-        unsigned char rd;
-        unsigned char rs1;
+        uint8_t rd;
+        uint8_t rs1;
         union {
             struct {
-                unsigned char rs2;
-                unsigned char flag;
+                uint8_t rs2;
+                uint8_t flag;
             };
-            unsigned short csr;
+            uint16_t csr;
         };
         union {
             word_t imm;
             word_t npc;
-            unsigned char rs3;
+            uint8_t rs3;
         };
 
     #ifdef CONFIG_DEBUG_DECODER
@@ -195,7 +195,6 @@ private:
 
     // Experimental ICache
     #ifdef CONFIG_ICache
-    static constexpr unsigned int ICACHE_SET_BITS = 11;
     struct ICacheBlock {
         word_t tag;
         
@@ -219,8 +218,9 @@ private:
         PTEFlag flag;
     };
     TLBBlock tlb[1 << TLB_SET_BITS];
-    TLBBlock &tlb_push(word_t vaddr, word_t paddr, word_t pteAddr, uint8_t type);
-    TLBBlock &tlb_hit(word_t vaddr, bool &hit);
+    TLBBlock &tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t type);
+    std::optional<TLBBlock *> tlb_hit(addr_t vaddr);
+    TLBBlock &tlb_hit(addr_t vaddr, bool &hit);
     void tlb_fence();
 
 public:
@@ -243,7 +243,8 @@ public:
     void   set_pc(word_t pc) override;
     word_t get_gpr(unsigned int idx) override;
     void   set_gpr(unsigned int idx, word_t value) override;
-    word_t get_register(const std::string &name, bool &success) override;
+    std::optional<word_t> get_register(const std::string &name) override;
+    bool   set_register(const std::string &name, word_t value) override;
 
     word_t get_halt_pc() override;
     word_t get_halt_code() override;

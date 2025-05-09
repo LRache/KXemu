@@ -1,6 +1,7 @@
 #ifndef __KXEMU_CPU_CORE_H__
 #define __KXEMU_CPU_CORE_H__
 
+#include <optional>
 #include <string>
 
 namespace kxemu::cpu {
@@ -23,7 +24,8 @@ public:
     virtual void   set_pc(word_t pc) = 0;
     virtual word_t get_gpr(unsigned int idx) = 0;
     virtual void   set_gpr(unsigned int idx, word_t value) = 0;
-    virtual word_t get_register(const std::string &name, bool &success) = 0;
+    virtual std::optional<word_t> get_register(const std::string &name) = 0;
+    virtual bool   set_register(const std::string &name, word_t value) = 0;
 
     virtual word_t get_halt_pc()   = 0;
     virtual word_t get_halt_code() = 0;

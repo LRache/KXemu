@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <optional>
 
 using namespace kxemu::cpu;
 
@@ -44,6 +45,7 @@ void RVCore::reset(word_t entry) {
     this->csr.reset();
 
     std::memset(this->gpr, 0, sizeof(this->gpr));
+    this->gpr[10] = this->coreID;
 
     #ifdef CONFIG_ICache
     this->icache_fence();
@@ -100,27 +102,27 @@ void RVCore::set_gpr(unsigned int index, word_t value) {
     this->gpr[index] = value;
 }
 
-word_t RVCore::get_register(const std::string &name, bool &success) {
-    success = true;
-    
-    static const char* gprNames[] = {
-        "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
-        "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
-        "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
-        "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
-    };
+static inline const char *gprAlias[] = {
+    "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+};
+
+static inline const char *gprNames[] = {
+    "x0" , "x1" , "x2" , "x3" , "x4" , "x5" , "x6" , "x7" ,
+    "x8" , "x9" , "x10", "x11", "x12", "x13", "x14", "x15",
+    "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
+    "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"
+};
+
+std::optional<word_t> RVCore::get_register(const std::string &name) {
     for (unsigned int i = 0; i < 32; i++) {
         if (name == gprNames[i]) {
             return this->gpr[i];
         }
     }
 
-    static const char* gprAlias[] = {
-        "x0" , "x1" , "x2" , "x3" , "x4" , "x5" , "x6" , "x7" ,
-        "x8" , "x9" , "x10", "x11", "x12", "x13", "x14", "x15",
-        "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
-        "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"
-    };
     for (unsigned int i = 0; i < 32; i++) {
         if (name == gprAlias[i]) {
             return this->gpr[i];
@@ -190,9 +192,108 @@ word_t RVCore::get_register(const std::string &name, bool &success) {
     if (name == "satp") {
         return this->get_csr_core(CSRAddr::SATP);
     }
+
+    return std::nullopt;
+}
+
+bool RVCore::set_register(const std::string &name, word_t value) {
+    for (unsigned int i = 1; i < 32; i++) {
+        if (name == gprNames[i]) {
+            this->gpr[i] = value;
+            return true;
+        }
+    }
+
+    for (unsigned int i = 1; i < 32; i++) {
+        if (name == gprAlias[i]) {
+            this->gpr[i] = value;
+            return true;
+        }
+    }
+
+    if (name == "pc") {
+        this->pc = value;
+        return true;
+    } else if (name == "mstatus") {
+        this->set_csr_core(CSRAddr::MSTATUS, value);
+        return true;
+    } else if (name == "misa") {
+        this->set_csr_core(CSRAddr::MISA, value);
+        return true;
+    } else if (name == "medeleg") {
+        this->set_csr_core(CSRAddr::MEDELEG, value);
+        return true;
+    } else if (name == "mideleg") {
+        this->set_csr_core(CSRAddr::MIDELEG, value);
+        return true;
+    } else if (name == "mie") {
+        this->set_csr_core(CSRAddr::MIE, value);
+        return true;
+    } else if (name == "mtvec") {
+        this->set_csr_core(CSRAddr::MTVEC, value);
+        return true;
+    } else if (name == "mcnten") {
+        this->set_csr_core(CSRAddr::MCNTEN, value);
+        return true;
+    } else if (name == "mscratch") {
+        this->set_csr_core(CSRAddr::MSCRATCH, value);
+        return true;
+    } else if (name == "mepc") {
+        this->set_csr_core(CSRAddr::MEPC, value);
+        return true;
+    } else if (name == "mcause") {
+        this->set_csr_core(CSRAddr::MCAUSE, value);
+        return true;
+    } else if (name == "mtval") {
+        this->set_csr_core(CSRAddr::MTVAL, value);
+        return true;
+    } else if (name == "mip") {
+        this->set_csr_core(CSRAddr::MIP, value);
+        return true;
+    } else if (name == "mtinst") {
+        this->set_csr_core(CSRAddr::MTINST, value);
+        return true;
+    } else if (name == "mtval2") {
+        this->set_csr_core(CSRAddr::MTVAL2, value);
+        return true;
+    } 
     
-    success = false;
-    return 0;
+    if (name == "sstatus") {
+        this->set_csr_core(CSRAddr::SSTATUS, value);
+        return true;
+    } else if (name == "sie") {
+        this->set_csr_core(CSRAddr::SIE, value);
+        return true;
+    } else if (name == "stvec") {
+        this->set_csr_core(CSRAddr::STVEC, value);
+        return true;
+    } else if (name == "scnten") {
+        this->set_csr_core(CSRAddr::SCNTEN, value);
+        return true;
+    } else if (name == "sscratch") {
+        this->set_csr_core(CSRAddr::SSCRATCH, value);
+        return true;
+    } else if (name == "sepc") {
+        this->set_csr_core(CSRAddr::SEPC, value);
+        return true;
+    } else if (name == "scause") {
+        this->set_csr_core(CSRAddr::SCAUSE, value);
+        return true;
+    } else if (name == "stval") {
+        this->set_csr_core(CSRAddr::STVAL, value);
+        return true;
+    } else if (name == "sip") {
+        this->set_csr_core(CSRAddr::SIP, value);
+        return true;
+    } else if (name == "stimecmp") {
+        this->set_csr_core(CSRAddr::STIMECMP, value);
+        return true;
+    } else if (name == "satp") {
+        this->set_csr_core(CSRAddr::SATP, value);
+        return true;
+    }
+
+    return false;
 }
 
 word_t RVCore::get_halt_pc() {

@@ -20,15 +20,14 @@ static int cmd_info_gpr() {
 }
 
 static int cmd_info_reg(const std::string &name) {
-    bool success;
-    word_t v = kdb::cpu->get_core(cmd::currentCore)->get_register(name, success);
+    auto v = kdb::cpu->get_core(cmd::currentCore)->get_register(name);
     
-    if (!success) {
-        std::cout << "Register not found: " << name << std::endl;
+    if (!v.has_value()) {
+        std::cerr << "Register not found: " << name << std::endl;
         return cmd::InvalidArgs;
     }
 
-    std::cout << name <<" = " << FMT_STREAM_WORD(v) << std::endl;
+    std::cout << name <<" = " << v.value() << std::endl;
     return cmd::Success;
 }
 
