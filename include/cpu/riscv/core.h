@@ -108,6 +108,8 @@ private:
         bool rd_set;
         bool rs1_set;
         bool rs2_set;
+        bool rs3_set;
+        bool flag_set;
         bool csr_set;
         bool imm_set;
         bool npc_set;
