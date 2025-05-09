@@ -45,6 +45,7 @@ namespace kxemu::kdb::cmd {
     int show_mem(const args_t &);
     int gdb     (const args_t &); // run gdb rsp
     int device  (const args_t &); // device command
+    int set     (const args_t &); // set command
 
     // do command return code
     enum Code {
