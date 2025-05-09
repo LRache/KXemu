@@ -1,6 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/aclint.h"
 #include "cpu/riscv/def.h"
+#include "device/def.h"
 #include "utils/utils.h"
 #include "log.h"
 #include "debug.h"
@@ -135,16 +136,16 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %lu for MTIME", size);
-            return -1;z
+            return -1;
         }
         
         valid = true;
         word_t offset = addr - cpu::MTIME.BASE;
+        word_t mtime = cpu::realtime_to_mtime(this->get_uptime());
         if (offset == 0) {
-            this->mtime = UPTIME_TO_MTIME(this->get_uptime());
-            return this->mtime & 0xffffffffUL;
+            return mtime & 0xffffffffUL;
         } else {
-            return this->mtime >> 32;
+            return mtime >> 32;
         }
         #endif
     } else {

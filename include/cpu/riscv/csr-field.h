@@ -46,8 +46,12 @@ namespace kxemu::cpu::csr {
             (1ULL << 19) | // MXR
             (1ULL << 23) | // SPELP
             (1ULL << 24) | // SDT
+        #ifdef KXEMU_ISA64
             (3ULL << 32) | // UXL
             (1ULL << 63)   // SD
+        #else
+            (1ULL << 31)   // SD
+        #endif
         );
 
         word_t sstatus() { return this->value & SSTATUS_MASK; }
@@ -121,6 +125,8 @@ namespace kxemu::cpu::csr {
         word_t ppn()  { return this->value & ((1ULL << 22) - 1); }
         word_t asid() { return (this->value >> 22) & 0x1ff; }
         word_t mode() { return (this->value >> 31) & 0x1; }
+        
+        void set_asid(word_t asid) { this->value = (this->value & ~(0x1ff << 22)) | ((asid & 0x1ff) << 22); }
         void set_mode(word_t mode) { this->value = (this->value & ~0x80000000) | ((mode & 0x1) << 31); }
         #endif
     };

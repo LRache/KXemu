@@ -27,7 +27,6 @@ public:
         bool msip;
         bool ssip;
 
-        uint64_t mtime;
         uint64_t mtimecmp;
         unsigned int mtimerID;
         unsigned int stimerID;
@@ -35,7 +34,6 @@ public:
         unsigned int pendingInterrupts;
     };
     CoreObject *coreObjects;
-    uint64_t mtime;
 
     AClint();
     ~AClint();
