@@ -18,10 +18,4 @@
 
 - D extension
 
-- F extension
-
-## 计划实现
-
-1. 原子指令A扩展。
-
-2. 浮点指令F扩展和D扩展。
+- F extensions
