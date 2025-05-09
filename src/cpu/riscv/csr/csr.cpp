@@ -22,7 +22,7 @@ RVCSR::RVCSR() {
     add_csr(CSRAddr::MCFGPTR); // mconfigptr, Not implemented
 
     // Machine Trap Setup
-    add_csr(CSRAddr::MSTATUS); // Not implemented
+    add_csr(CSRAddr::MSTATUS, 0x1800); // Not implemented
     add_csr(CSRAddr::MISA, misaFlag, &RVCSR::read_misa, &RVCSR::write_misa); // misa
     add_csr(CSRAddr::MEDELEG); // medeleg
     add_csr(CSRAddr::MIDELEG); // mideleg
