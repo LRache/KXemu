@@ -204,7 +204,7 @@ word_t RVCSR::read_time(unsigned int addr, word_t value, bool &valid) {
         return 0;
     }
 
-    uint64_t mtime = uptime_to_mtime(this->get_uptime());
+    uint64_t mtime = realtime_to_mtime(this->get_uptime());
 #ifdef KXEMU_ISA32
     csr[CSRAddr::TIMEH].value = mtime >> 32;
 #endif
