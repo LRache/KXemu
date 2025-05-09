@@ -21,7 +21,7 @@ static const cmd::cmd_map_t cmdMap = {
 static int device_ls(const cmd::args_t &args) {
     std::cout << std::setfill(' ')
     << std::setw(4) << "id"   << " | "
-    << std::setw(8) << "type" << " | "
+    << std::setw(10) << "type" << " | "
     << std::setw(WORD_WIDTH + 2) << "start" << " | "
     << std::setw(WORD_WIDTH + 2) << "end"   << " | "
     << std::setw(WORD_WIDTH + 2) << "size"  << " | "
@@ -30,7 +30,7 @@ static int device_ls(const cmd::args_t &args) {
     for (const auto &memoryDevice : kdb::bus->memoryMaps) {
         std::cout << std::setfill(' ')
         << std::setw(4) << "0" << " | "
-        << std::setw(8) << "Memory" << " | "
+        << std::setw(10) << "Memory" << " | "
         << FMT_STREAM_WORD_SPACE(memoryDevice->start)  << " | "
         << FMT_STREAM_WORD_SPACE(memoryDevice->end)    << " | "
         << FMT_STREAM_WORD_SPACE(memoryDevice->end - memoryDevice->start) << " | "
@@ -40,8 +40,8 @@ static int device_ls(const cmd::args_t &args) {
     for (const auto &ioDevice : kdb::bus->mmioMaps) {
         std::cout << std::setfill(' ')
         << std::setw(4) << ioDevice->id << " | "
-        << std::setw(8) << ioDevice->dev->get_type_name() << " | "
-        << FMT_STREAM_WORD_SPACE(ioDevice->start)  << " | "
+        << std::setw(10) << ioDevice->dev->get_type_name() << " | "
+        << FMT_STREAM_WORD_SPACE(ioDevice->start) << " | "
         << FMT_STREAM_WORD_SPACE(ioDevice->start + ioDevice->size) << " | "
         << FMT_STREAM_WORD_SPACE(ioDevice->size) << " | "
         << std::endl;
@@ -131,7 +131,7 @@ static int device_add(const cmd::args_t &args) {
     }
 
     if (args[2] == "memory") {
-        if (args.size() < 6) {
+        if (args.size() < 5) {
             std::cout << "Usage: device add memory <start> <size>" << std::endl;
             return cmd::EmptyArgs;
         }
@@ -139,7 +139,7 @@ static int device_add(const cmd::args_t &args) {
         auto start = utils::string_to_unsigned(args[3]);
         auto size = utils::string_to_unsigned(args[4]);
         if (!start.has_value() || !size.has_value()) {
-            std::cout << "Invalid args" << std::endl;
+            std::cerr << "Invalid args" << std::endl;
             return cmd::InvalidArgs;
         }
         
@@ -147,7 +147,7 @@ static int device_add(const cmd::args_t &args) {
     } else {
         auto id = utils::string_to_unsigned(args[2]);
         if (!id.has_value()) {
-            std::cout << "Invalid args: " << args[2] << std::endl;
+            std::cerr << "Invalid args: " << args[2] << std::endl;
             return cmd::InvalidArgs;
         }
         
