@@ -27,7 +27,7 @@ using namespace kxemu;
 static std::vector<std::string> sourceFiles;
 static unsigned int coreCount = 1;
 
-void parse_args(int argc, char **argv) {
+static void parse_args(int argc, char **argv) {
     static struct option options[] = {
         {"source", required_argument, 0, 's'},
         {"def"   , required_argument, 0, 'd'},
@@ -53,8 +53,21 @@ void parse_args(int argc, char **argv) {
     }
 }
 
+static void output_info() {
+    std::cout << "KXemu build at "  << __TIMESTAMP__;
+    #ifdef __clang__
+    std::cout << " (Clang " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << ")" << std::endl;
+    #elif defined(__GNUC__)
+    std::cout << " (GCC " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << ")" << std::endl;
+    #elif defined(_MSC_VER)
+    std::cout << " (MSVC " << _MSC_VER << ")" << std::endl;
+    #endif
+}
+
 int main(int argc, char **argv) {
     parse_args(argc, argv);
+
+    output_info();
     
     kdb::init(coreCount);
     for (auto sourceFileName: sourceFiles) {
