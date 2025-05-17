@@ -24,6 +24,8 @@ public:
     virtual void join() = 0;
     virtual bool is_running() = 0;
 
+    virtual void set_debug_mode(bool debug) {}
+
     virtual unsigned int core_count() = 0;
     virtual Core<word_t> *get_core(unsigned int coreID) = 0;
 
