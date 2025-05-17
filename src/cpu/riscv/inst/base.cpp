@@ -1,5 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/word.h"
+#include "log.h"
 #include "macro.h"
 
 #include <cstdint>
@@ -304,8 +305,8 @@ void RVCore::do_jal(const DecodeInfo &decodeInfo) {
 void RVCore::do_jalr(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     
-    DEST = this->pc + 4;
     this->npc = SRC1 + IMM;
+    DEST = this->pc + 4;
 }
 
 void RVCore::do_lui(const DecodeInfo &decodeInfo) {
