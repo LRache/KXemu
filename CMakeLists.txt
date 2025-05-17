@@ -35,6 +35,7 @@ if(NOT CONFIG_TARGET_SHARE)
         PRIVATE
         ${PROJECT_SOURCE_DIR}/include
         ${Readline_INCLUDE_DIRS}
+        ${LLVM_INCLUDE_DIRS}
     )
     target_link_libraries(${KXEMU_TARGET}
         PRIVATE
