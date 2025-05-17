@@ -20,6 +20,8 @@ class RVCore : public Core<word_t>{
 private:
     unsigned int coreID;
 
+    bool debugMode = false;
+
     enum state_t {
         IDLE,
         RUNNING,
@@ -78,7 +80,7 @@ private:
     word_t vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result);
     #endif
     
-    word_t satpPPN;
+    word_t pageTableBase;
     word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
     void update_satp();
 
@@ -150,8 +152,6 @@ private:
     void init_csr();
     word_t  read_csr(unsigned int addr, bool &valid);
     bool   write_csr(unsigned int addr, word_t value);
-    word_t get_csr_core(CSRAddr addr);
-    void   set_csr_core(CSRAddr addr, word_t value);
     
     void update_mstatus();
     struct {
@@ -235,6 +235,10 @@ public:
     void step() override;
     void run(const word_t *breakpoints = nullptr, unsigned int n = 0) override;
     void set_device_mtx(std::mutex *mtx);
+
+    void set_debug_mode(bool debug) {
+        this->debugMode = debug;
+    }
     
     bool is_error()   override;
     bool is_break()   override;

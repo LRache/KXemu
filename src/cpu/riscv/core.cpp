@@ -57,19 +57,6 @@ uint64_t RVCore::get_uptime() {
     return this->aclint->get_uptime();
 }
 
-void RVCore::do_invalid_inst() {
-    this->state = ERROR;
-    this->haltPC = this->pc;
-    WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
-
-    // Illegal instruction trap
-    this->trap(TrapCode::ILLEGAL_INST, this->inst);
-}
-
-void RVCore::do_invalid_inst(const DecodeInfo &) {
-    this->do_invalid_inst();
-}
-
 bool RVCore::is_error() {
     return this->state == ERROR;
 }
@@ -131,66 +118,72 @@ std::optional<word_t> RVCore::get_register(const std::string &name) {
 
     if (name == "pc") {
         return this->pc;
-    } 
+    } else if (name == "priv") {
+        return this->privMode;
+    }
     
     if (name == "mstatus") {
-        return this->get_csr_core(CSRAddr::MSTATUS);
+        return this->csr.get_csr_value(CSRAddr::MSTATUS);
     } else if (name == "misa") {
-        return this->get_csr_core(CSRAddr::MISA);
+        return this->csr.get_csr_value(CSRAddr::MISA);
     } else if (name == "medeleg") {
-        return this->get_csr_core(CSRAddr::MEDELEG);
+        return this->csr.get_csr_value(CSRAddr::MEDELEG);
     } else if (name == "mideleg") {
-        return this->get_csr_core(CSRAddr::MIDELEG);
+        return this->csr.get_csr_value(CSRAddr::MIDELEG);
     } else if (name == "mie") {
-        return this->get_csr_core(CSRAddr::MIE);
+        return this->csr.get_csr_value(CSRAddr::MIE);
     } else if (name == "mtvec") {
-        return this->get_csr_core(CSRAddr::MTVEC);
+        return this->csr.get_csr_value(CSRAddr::MTVEC);
     } else if (name == "mcnten") {
-        return this->get_csr_core(CSRAddr::MCNTEN);
+        return this->csr.get_csr_value(CSRAddr::MCNTEN);
     }
     
     if (name == "mscratch") {
-        return this->get_csr_core(CSRAddr::MSCRATCH);
+        return this->csr.get_csr_value(CSRAddr::MSCRATCH);
     } else if (name == "mepc") {
-        return this->get_csr_core(CSRAddr::MEPC);
+        return this->csr.get_csr_value(CSRAddr::MEPC);
     } else if (name == "mcause") {
-        return this->get_csr_core(CSRAddr::MCAUSE);
+        return this->csr.get_csr_value(CSRAddr::MCAUSE);
     } else if (name == "mtval") {
-        return this->get_csr_core(CSRAddr::MTVAL);
+        return this->csr.get_csr_value(CSRAddr::MTVAL);
     } else if (name == "mip") {
-        return this->get_csr_core(CSRAddr::MIP);
+        return this->csr.get_csr_value(CSRAddr::MIP);
     } else if (name == "mtinst") {
-        return this->get_csr_core(CSRAddr::MTINST);
+        return this->csr.get_csr_value(CSRAddr::MTINST);
     } else if (name == "mtval2") {
-        return this->get_csr_core(CSRAddr::MTVAL2);
+        return this->csr.get_csr_value(CSRAddr::MTVAL2);
+    }
+
+    if (name == "pmpcfg0") {
+        return this->csr.get_csr_value(CSRAddr::PMPCFG0);
     }
 
     if (name == "sstatus") {
-        return this->get_csr_core(CSRAddr::SSTATUS);
+        return this->csr.get_csr_value(CSRAddr::SSTATUS);
     } else if (name == "sie") {
-        return this->get_csr_core(CSRAddr::SIE);
+        return this->csr.get_csr_value(CSRAddr::SIE);
     } else if (name == "stvec") {
-        return this->get_csr_core(CSRAddr::STVEC);
+        return this->csr.get_csr_value(CSRAddr::STVEC);
     } else if (name == "scnten") {
-        return this->get_csr_core(CSRAddr::SCNTEN);
+        return this->csr.get_csr_value(CSRAddr::SCNTEN);
     }
     
     if (name == "sscratch") {
-        return this->get_csr_core(CSRAddr::SSCRATCH);
+        return this->csr.get_csr_value(CSRAddr::SSCRATCH);
     } else if (name == "sepc") {
-        return this->get_csr_core(CSRAddr::SEPC);
+        return this->csr.get_csr_value(CSRAddr::SEPC);
     } else if (name == "scause") {
-        return this->get_csr_core(CSRAddr::SCAUSE);
+        return this->csr.get_csr_value(CSRAddr::SCAUSE);
     } else if (name == "stval") {
-        return this->get_csr_core(CSRAddr::STVAL);
+        return this->csr.get_csr_value(CSRAddr::STVAL);
     } else if (name == "sip") {
-        return this->get_csr_core(CSRAddr::SIP);
+        return this->csr.get_csr_value(CSRAddr::SIP);
     } else if (name == "stimecmp") {
-        return this->get_csr_core(CSRAddr::STIMECMP);
+        return this->csr.get_csr_value(CSRAddr::STIMECMP);
     }
     
     if (name == "satp") {
-        return this->get_csr_core(CSRAddr::SATP);
+        return this->csr.get_csr_value(CSRAddr::SATP);
     }
 
     return std::nullopt;
@@ -215,81 +208,81 @@ bool RVCore::set_register(const std::string &name, word_t value) {
         this->pc = value;
         return true;
     } else if (name == "mstatus") {
-        this->set_csr_core(CSRAddr::MSTATUS, value);
+        this->csr.set_csr_value(CSRAddr::MSTATUS, value);
         return true;
     } else if (name == "misa") {
-        this->set_csr_core(CSRAddr::MISA, value);
+        this->csr.set_csr_value(CSRAddr::MISA, value);
         return true;
     } else if (name == "medeleg") {
-        this->set_csr_core(CSRAddr::MEDELEG, value);
+        this->csr.set_csr_value(CSRAddr::MEDELEG, value);
         return true;
     } else if (name == "mideleg") {
-        this->set_csr_core(CSRAddr::MIDELEG, value);
+        this->csr.set_csr_value(CSRAddr::MIDELEG, value);
         return true;
     } else if (name == "mie") {
-        this->set_csr_core(CSRAddr::MIE, value);
+        this->csr.set_csr_value(CSRAddr::MIE, value);
         return true;
     } else if (name == "mtvec") {
-        this->set_csr_core(CSRAddr::MTVEC, value);
+        this->csr.set_csr_value(CSRAddr::MTVEC, value);
         return true;
     } else if (name == "mcnten") {
-        this->set_csr_core(CSRAddr::MCNTEN, value);
+        this->csr.set_csr_value(CSRAddr::MCNTEN, value);
         return true;
     } else if (name == "mscratch") {
-        this->set_csr_core(CSRAddr::MSCRATCH, value);
+        this->csr.set_csr_value(CSRAddr::MSCRATCH, value);
         return true;
     } else if (name == "mepc") {
-        this->set_csr_core(CSRAddr::MEPC, value);
+        this->csr.set_csr_value(CSRAddr::MEPC, value);
         return true;
     } else if (name == "mcause") {
-        this->set_csr_core(CSRAddr::MCAUSE, value);
+        this->csr.set_csr_value(CSRAddr::MCAUSE, value);
         return true;
     } else if (name == "mtval") {
-        this->set_csr_core(CSRAddr::MTVAL, value);
+        this->csr.set_csr_value(CSRAddr::MTVAL, value);
         return true;
     } else if (name == "mip") {
-        this->set_csr_core(CSRAddr::MIP, value);
+        this->csr.set_csr_value(CSRAddr::MIP, value);
         return true;
     } else if (name == "mtinst") {
-        this->set_csr_core(CSRAddr::MTINST, value);
+        this->csr.set_csr_value(CSRAddr::MTINST, value);
         return true;
     } else if (name == "mtval2") {
-        this->set_csr_core(CSRAddr::MTVAL2, value);
+        this->csr.set_csr_value(CSRAddr::MTVAL2, value);
         return true;
     } 
     
     if (name == "sstatus") {
-        this->set_csr_core(CSRAddr::SSTATUS, value);
+        this->csr.set_csr_value(CSRAddr::SSTATUS, value);
         return true;
     } else if (name == "sie") {
-        this->set_csr_core(CSRAddr::SIE, value);
+        this->csr.set_csr_value(CSRAddr::SIE, value);
         return true;
     } else if (name == "stvec") {
-        this->set_csr_core(CSRAddr::STVEC, value);
+        this->csr.set_csr_value(CSRAddr::STVEC, value);
         return true;
     } else if (name == "scnten") {
-        this->set_csr_core(CSRAddr::SCNTEN, value);
+        this->csr.set_csr_value(CSRAddr::SCNTEN, value);
         return true;
     } else if (name == "sscratch") {
-        this->set_csr_core(CSRAddr::SSCRATCH, value);
+        this->csr.set_csr_value(CSRAddr::SSCRATCH, value);
         return true;
     } else if (name == "sepc") {
-        this->set_csr_core(CSRAddr::SEPC, value);
+        this->csr.set_csr_value(CSRAddr::SEPC, value);
         return true;
     } else if (name == "scause") {
-        this->set_csr_core(CSRAddr::SCAUSE, value);
+        this->csr.set_csr_value(CSRAddr::SCAUSE, value);
         return true;
     } else if (name == "stval") {
-        this->set_csr_core(CSRAddr::STVAL, value);
+        this->csr.set_csr_value(CSRAddr::STVAL, value);
         return true;
     } else if (name == "sip") {
-        this->set_csr_core(CSRAddr::SIP, value);
+        this->csr.set_csr_value(CSRAddr::SIP, value);
         return true;
     } else if (name == "stimecmp") {
-        this->set_csr_core(CSRAddr::STIMECMP, value);
+        this->csr.set_csr_value(CSRAddr::STIMECMP, value);
         return true;
     } else if (name == "satp") {
-        this->set_csr_core(CSRAddr::SATP, value);
+        this->csr.set_csr_value(CSRAddr::SATP, value);
         return true;
     }
 

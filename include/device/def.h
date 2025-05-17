@@ -7,6 +7,15 @@ namespace kxemu::device {
     
     using word_t = uint64_t;
 
+    struct AddrSpace {
+        const word_t BASE;
+        const word_t SIZE;
+        
+        bool in_range(word_t addr) const {
+            return (addr >= BASE && addr < BASE + SIZE);
+        }
+    };
+
     enum AMO {
         AMO_SWAP,
         AMO_ADD,

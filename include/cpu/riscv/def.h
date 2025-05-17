@@ -2,10 +2,10 @@
 #define __KXEMU_CPU_RISCV_NAMESPACE_H__
 
 #include "cpu/word.h"
+#include "device/def.h"
 #include "config/config.h"
 
 namespace kxemu::cpu {
-
     static inline constexpr unsigned int ICACHE_SET_BITS = 11;
     static inline constexpr unsigned int TLB_SET_BITS = 5;
 
@@ -129,53 +129,6 @@ namespace kxemu::cpu {
         HARDWARE_ERROR        = 19,
     };
 
-    enum MISAFlag {
-        A = (1 <<  0), // Atomic Extension
-        B = (1 <<  1), // B Extesnion
-        C = (1 <<  2), // Compressed Extension
-        D = (1 <<  3), // Double-precision Extension
-        E = (1 <<  4), // RV32E/RV64E Base ISA
-        F = (1 <<  5), // Single-precision Extension
-        H = (1 <<  7), // Hypervisor Extension
-        I = (1 <<  8), // RV32I/RV64I/RV128I Base ISA
-        M = (1 << 12), // Integer Mutiply/Divide Extension
-        Q = (1 << 16), // Quad-precision floating-point Extension
-        S = (1 << 18), // Supervisor mode Implemented
-        U = (1 << 20), // User mode Implemented
-        V = (1 << 21), // Vector Extension
-    };
-    inline constexpr word_t ISA_IMPLEMENT = (A | C | D | E | F | H | I | M | S | U);
-
-    enum SATPMode {
-        BARE = 0,
-        SV32 = 1,
-        SV39 = 8,
-        SV48 = 9,
-        SV57 = 10,
-        SV64 = 11,
-    };
-
-    enum TVECMode {
-        DIRECT   = 0,
-        VECTORED = 1,
-    };
-
-    enum PMPConfigAFlag {
-        OFF   = 0, // Null region (Disabled)
-        TOR   = 1, // Top of Range
-        NA4   = 2, // Naturally aligned 4-byte
-        NAPOT = 3, // Naturally aligned power-of-two
-    };
-
-    enum FRM {
-        RNE = 0, // Round to Nearest, ties to Even
-        RTZ = 1, // Round towards Zero
-        RDN = 2, // Round Down
-        RUP = 3, // Round Up
-        RMM = 4, // Round to Min Magnitude
-        DYN = 7, // Dynamic Rounding Mode
-    };
-
     static inline bool csr_read_only(unsigned int addr) {
         return (addr & 0b110000000000) == 0b110000000000;
     }
@@ -188,21 +141,8 @@ namespace kxemu::cpu {
         return mtime * 100;
     }
 
-    struct AddrSpace {
-        const word_t BASE;
-        const word_t SIZE;
-        
-        bool in_range(word_t addr) const {
-            return (addr >= BASE && addr < BASE + SIZE);
-        }
-    };
-
-    inline constexpr AddrSpace ACLINT   = {0x02000000, 0x00010000};
-    inline constexpr AddrSpace MSWI     = {0x0000, 0x4000};
-    inline constexpr AddrSpace MTIMECMP = {0x4000, 0x4000};
-    inline constexpr AddrSpace MTIME    = {0xbff8, 0x0008};
-    inline constexpr AddrSpace SSWI     = {0xc000, 0x4000};
-    inline constexpr AddrSpace PLIC     = {0x0c000000, 0x4000000};
+    inline constexpr device::AddrSpace ACLINT   = {0x02000000, 0x00010000};
+    inline constexpr device::AddrSpace PLIC     = {0x0c000000, 0x4000000};
 
     class RVCore;
 

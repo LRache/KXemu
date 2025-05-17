@@ -1,9 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/word.h"
 #include "macro.h"
-#include "word.h"
-
-#include <cstdint>
 
 #include "./local-decoder.h"
 

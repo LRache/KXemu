@@ -23,20 +23,8 @@ bool RVCore::write_csr(unsigned int addr, word_t value) {
     return this->csr.write_csr(addr, value);
 }
 
-word_t RVCore::get_csr_core(CSRAddr addr) {
-    bool valid;
-    word_t t = this->csr.read_csr(addr, valid);
-    SELF_PROTECT(valid, "Get csr failed.");
-    return t;
-}
-
-void RVCore::set_csr_core(CSRAddr addr, word_t value) {
-    bool valid = this->csr.write_csr(addr, value);
-    SELF_PROTECT(valid, "Set csr failed.");
-}
-
 void RVCore::update_mstatus() {
-    const csr::MStatus mstatus = this->get_csr_core(CSRAddr::MSTATUS);
+    const csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
     this->mstatus.mie = mstatus.mie();
     this->mstatus.sie = mstatus.sie();
     this->mstatus.sum = mstatus.sum();

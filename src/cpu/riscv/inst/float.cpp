@@ -14,29 +14,29 @@ using namespace kxemu::cpu;
 
 static void set_fpu_rounding_mode(unsigned int rm) {
     switch (rm) {
-        case FRM::RNE:
+        case csr::FCSR::RNE:
             fesetround(FE_TONEAREST);
             break;
-        case FRM::RTZ:
+        case csr::FCSR::RTZ:
             fesetround(FE_TOWARDZERO);
             break;
-        case FRM::RDN:
+        case csr::FCSR::RDN:
             fesetround(FE_DOWNWARD);
             break;
-        case FRM::RUP:
+        case csr::FCSR::RUP:
             fesetround(FE_UPWARD);
             break;
-        case FRM::RMM:
+        case csr::FCSR::RMM:
             fesetround(FE_TONEAREST);
             break;
-        case FRM::DYN:
+        case csr::FCSR::DYN:
             break;
     }
 }
 
 #define SET_FPU \
     unsigned int rm = this->frm; \
-    if (rm == FRM::DYN) { \
+    if (rm == csr::FCSR::DYN) { \
         rm = decodeInfo.flag; \
         if (unlikely(rm == 5 || rm == 6)) { \
             this->do_invalid_inst(); \
@@ -49,8 +49,7 @@ static void set_fpu_rounding_mode(unsigned int rm) {
 #define RESTORE_FPU fesetround(old);
 
 void RVCore::update_fcsr() {
-    csr::FCSR fcsr = this->get_csr_core(CSRAddr::FCSR);
-    // this->frm = FCSR_RM(this->csr.read_csr(CSRAddr::FCSR));
+    csr::FCSR fcsr = this->csr.get_csr_value(CSRAddr::FCSR);
     this->frm = fcsr.frm();
 }
 

@@ -9,21 +9,19 @@
 
 using namespace kxemu::cpu;
 
-static constexpr word_t misaFlag = MISAFlag::A | MISAFlag::C | MISAFlag::D | MISAFlag::E | MISAFlag::F | MISAFlag::I | MISAFlag::M | MISAFlag::S | MISAFlag::U;
-
 RVCSR::RVCSR() {
     pmpCfgCount = 0;
 
     // Machine Information Registers
-    add_csr(CSRAddr::MVENDORID, KXEMU_VENDORID); // mvendorid
-    add_csr(CSRAddr::MARCHID  , KXEMU_ARCHID  ); // marchid
+    add_csr(CSRAddr::MVENDORID, nullptr, nullptr, KXEMU_VENDORID); // mvendorid
+    add_csr(CSRAddr::MARCHID  , nullptr, nullptr, KXEMU_ARCHID  ); // marchid
     add_csr(CSRAddr::MIMPID ); // mimpid, Not implemented
     add_csr(CSRAddr::MHARTID); // mhartid
     add_csr(CSRAddr::MCFGPTR); // mconfigptr, Not implemented
 
     // Machine Trap Setup
-    add_csr(CSRAddr::MSTATUS, 0x1800); // Not implemented
-    add_csr(CSRAddr::MISA, misaFlag, &RVCSR::read_misa, &RVCSR::write_misa); // misa
+    add_csr(CSRAddr::MSTATUS, nullptr, nullptr, 0x1800); // Not implemented
+    add_csr(CSRAddr::MISA, nullptr, nullptr, csr::MISA()); // misa
     add_csr(CSRAddr::MEDELEG); // medeleg
     add_csr(CSRAddr::MIDELEG); // mideleg
     add_csr(CSRAddr::MIE    ); // mie
@@ -39,7 +37,7 @@ RVCSR::RVCSR() {
     add_csr(CSRAddr::MEPC    ); // mepc
     add_csr(CSRAddr::MCAUSE  ); // mcause
     add_csr(CSRAddr::MTVAL   ); // mtval
-    add_csr(CSRAddr::MIP     ); // mip
+    add_csr(CSRAddr::MIP     , nullptr, &RVCSR::write_mip); // mip
     add_csr(CSRAddr::MTINST  ); // mtinst, Not implemented
     add_csr(CSRAddr::MTVAL2  ); // mtval2, Not implemented
 
@@ -53,44 +51,45 @@ RVCSR::RVCSR() {
 
     // Physical Memory Protection
     for (int i = 0; i < 16; i += 2) {
-        add_csr(CSRAddr::PMPCFG0 + i, 0, nullptr, &RVCSR::write_pmpcfg);
+        add_csr((CSRAddr)(CSRAddr::PMPCFG0 + i), nullptr, &RVCSR::write_pmpcfg);
     }
 #ifdef KXEMU_ISA32
     for (int i = 1; i < 16; i += 2) {
-        add_csr(CSRAddr::PMPCFG0 + i, 0, nullptr, &RVCSR::write_pmpcfg);
+        add_csr((CSRAddr)(CSRAddr::PMPCFG0 + i), nullptr, &RVCSR::write_pmpcfg);
     }
 #endif
     for (int i = 0; i < 64; i++) {
-        add_csr(CSRAddr::PMPADDR0 + i, 0, nullptr, &RVCSR::write_pmpaddr);
+        add_csr((CSRAddr)(CSRAddr::PMPADDR0 + i), nullptr, &RVCSR::write_pmpaddr);
     }
 
     // Supervisor Trap Setup
-    add_csr(CSRAddr::SSTATUS, 0, &RVCSR::read_sstatus, &RVCSR::write_sstatus); // sstatus
-    add_csr(CSRAddr::SIE    , 0, &RVCSR::read_sie, &RVCSR::write_sie); // sie
+    add_csr(CSRAddr::SSTATUS, &RVCSR::read_sstatus, &RVCSR::write_sstatus); // sstatus
+    add_csr(CSRAddr::SIE    , nullptr, &RVCSR::write_sie); // sie
     add_csr(CSRAddr::STVEC  ); // stvec
+    add_csr(CSRAddr::SCNTEN ); // scounteren
 
     // Supervisor Trap Handling
     add_csr(CSRAddr::SSCRATCH); // sscratch
     add_csr(CSRAddr::SEPC    ); // sepc
     add_csr(CSRAddr::SCAUSE  ); // scause
     add_csr(CSRAddr::STVAL   ); // stval
-    add_csr(CSRAddr::SIP     , 0, &RVCSR::read_sip, &RVCSR::write_sip); // sip
-    add_csr(CSRAddr::STIMECMP, 0, nullptr, &RVCSR::write_stimecmp); // stimecmp
+    add_csr(CSRAddr::SIP     , nullptr, &RVCSR::write_sip); // sip
+    add_csr(CSRAddr::STIMECMP); // stimecmp
 #ifdef KXEMU_ISA32
     add_csr(CSRAddr::STIMECMPH, 0, nullptr, nullptr); // stimecmph
 #endif
     
     // Supervisor Protection and Translation
-    add_csr(CSRAddr::SATP, 0, nullptr, &RVCSR::write_satp); // satp
+    add_csr(CSRAddr::SATP, nullptr, &RVCSR::write_satp); // satp
 
     // Unprivileged Floating-Point CSRs
-    add_csr(CSRAddr::FFLAGS); // fflags, Not implemented
-    add_csr(CSRAddr::FRM   ); // frm, Not implemented
-    add_csr(CSRAddr::FCSR  ); // fcsr, Not implemented
+    add_csr(CSRAddr::FFLAGS, &RVCSR::read_fflags, &RVCSR::write_fflags); // fflags
+    add_csr(CSRAddr::FRM   , &RVCSR::read_frm   , &RVCSR::write_frm   ); // frm
+    add_csr(CSRAddr::FCSR  ); // fcsr
 
     // Uprivileged Counter/Timers
     add_csr(CSRAddr::CYCLE); // cycle, Not implemented
-    add_csr(CSRAddr::TIME , 0, &RVCSR::read_time, nullptr); // time
+    add_csr(CSRAddr::TIME , &RVCSR::read_time); // time
 #ifdef KXEMU_ISA32
     add_csr(CSRAddr::CYCLEH); // cycleh, Not implemented
     add_csr(CSRAddr::TIMEH ); // timeh
@@ -117,7 +116,7 @@ void RVCSR::reset() {
     pmpCfgCount = 0;
 }
 
-void RVCSR::add_csr(unsigned int addr, word_t resetValue, csr_rw_func_t readFunc, csr_rw_func_t writeFunc) {
+void RVCSR::add_csr(CSRAddr addr, csr_read_func_t readFunc, csr_write_func_t writeFunc, word_t resetValue) {
     SELF_PROTECT(this->csr.find(addr) == this->csr.end(), "CSR 0x%03x already exists", addr);
     this->csr[addr] = {readFunc, writeFunc, 0, resetValue, nullptr};
 }
@@ -127,13 +126,14 @@ void RVCSR::reload_pmpcfg() {
     unsigned int index = 0;
     #ifdef KXEMU_ISA64
     for (unsigned int i = 0; i < 16; i += 2) {
+        csr::PMPCfg pmpcfg = this->get_csr_value((CSRAddr)(CSRAddr::PMPCFG0 + i));
         for (unsigned int j = 0; j < 8; j++) {
     #else
     for (unsigned int i = 0; i < 16; i++) {
+        csr::PMPCfg pmpcfg = this->get_csr_value((CSRAddr)(CSRAddr::PMPCFG0 + i));
         for (unsigned int j = 0; j < 4; j++) {
     #endif
-            csr::PMPCfgItem cfg = this->csr[CSRAddr::PMPCFG0 + i].value >> (j * 8);
-            // word_t a = ((cfg & PMPCFG_A_MASK) >> PMPCFG_A_OFF);
+            csr::PMPCfgItem cfg = pmpcfg.item(j);
             
             auto &pmpConfig = pmpCfgArray[pmpCfgCount];
             pmpConfig.r = cfg.r();
@@ -141,8 +141,8 @@ void RVCSR::reload_pmpcfg() {
             pmpConfig.x = cfg.x();
 
             switch (cfg.a()) {
-                case PMPConfigAFlag::OFF: break;
-                case PMPConfigAFlag::TOR: {
+                case csr::PMPCfgItem::OFF: break;
+                case csr::PMPCfgItem::TOR: {
                     if (index == 0) {
                         pmpConfig.start = 0;
                         pmpConfig.end = csr[CSRAddr::PMPADDR0].value << 2;
@@ -158,60 +158,21 @@ void RVCSR::reload_pmpcfg() {
                     }
                 } break;
                 
-                case PMPConfigAFlag::NA4: {
+                case csr::PMPCfgItem::NA4: {
                     pmpConfig.start = csr[CSRAddr::PMPADDR0 + index].value << 2;
                     pmpConfig.end = pmpConfig.start + 4;
                     this->pmpCfgCount++;
                 } break;
                 
-                case PMPConfigAFlag::NAPOT: {
-                    pmpConfig.start = csr[CSRAddr::PMPADDR0 + index].value << 2;
-                    word_t addr = csr[CSRAddr::PMPADDR0 + index].value;
-                    word_t length = 4;
-                    for (int k = 0; k < 32; k++) {
-                        if (addr & 1){
-                            length <<= 1;
-                            addr >>= 1;
-                        }
-                        else break;
-                    }
+                case csr::PMPCfgItem::NAPOT: {
+                    word_t pmpaddr = this->get_csr_value((CSRAddr)(CSRAddr::PMPADDR0 + index));
+                    unsigned int lowestZeroPos = __builtin_ctzll(~pmpaddr);
+                    word_t length = 8ULL << lowestZeroPos;
+                    pmpConfig.start = (pmpaddr & ~((1ULL << lowestZeroPos) - 1));
                     pmpConfig.end = pmpConfig.start + length;
                     this->pmpCfgCount++;
                 } break;
             }
-            
-            // if (a == PMPConfigAFlag::TOR) {
-            //     if (index == 0) {
-            //         pmpConfig.start = 0;
-            //         pmpConfig.end = csr[CSRAddr::PMPADDR0].value << 2;
-            //         this->pmpCfgCount++;
-            //     } else {
-            //         word_t start = csr[CSRAddr::PMPADDR0 + index - 1].value << 2;
-            //         word_t end = csr[CSRAddr::PMPADDR0 + index].value << 2;
-            //         if (start <= end) {
-            //             pmpConfig.start = start;
-            //             pmpConfig.end = end;
-            //             this->pmpCfgCount++;
-            //         }
-            //     }
-            // } else if (a == PMPCONFIG_A_NA4) {
-            //     pmpConfig.start = csr[CSRAddr::PMPADDR0 + index].value << 2;
-            //     pmpConfig.end = pmpConfig.start + 4;
-            //     this->pmpCfgCount++;
-            // } else if (a == PMPCONFIG_A_NAPOT) {
-            //     pmpConfig.start = csr[CSRAddr::PMPADDR0 + index].value << 2;
-            //     word_t addr = csr[CSRAddr::PMPADDR0 + index].value;
-            //     word_t length = 4;
-            //     for (int k = 0; k < 32; k++) {
-            //         if (addr & 1){
-            //             length <<= 1;
-            //             addr >>= 1;
-            //         }
-            //         else break;
-            //     }
-            //     pmpConfig.end = pmpConfig.start + length;
-            //     this->pmpCfgCount++;
-            // }
             index ++;
         }
     }
@@ -277,13 +238,19 @@ word_t RVCSR::read_csr(unsigned int addr, bool &valid) {
         valid = false;
         return 0;
     }
-    valid = true;
-    word_t value;
+    
+    word_t value = -1;
     if (likely(iter->second.readFunc == nullptr)) {
         value = iter->second.value;
+        valid = true;
     } else {
-        value = (this->*(iter->second.readFunc))(addr, iter->second.value, valid);
+        auto v = (this->*(iter->second.readFunc))(addr);
+        valid = v.has_value();
+        if (valid) {
+            value = v.value();
+        }
     }
+    
     return value;
 }
 
@@ -302,12 +269,14 @@ bool RVCSR::write_csr(unsigned int addr, word_t value) {
         return false;
     }
 
-    bool valid = true;
+    bool valid;
     if (unlikely(iter->second.writeFunc != nullptr)) {
-        value = (this->*(iter->second.writeFunc))(addr, value, valid);
+        valid = (this->*(iter->second.writeFunc))(addr, value);    
+    } else {      
+        iter->second.value = value;
+        valid = true;
     }
     if (valid) {
-        iter->second.value = value;
         if (iter->second.writeCallback != nullptr) {
             iter->second.writeCallback();
         }

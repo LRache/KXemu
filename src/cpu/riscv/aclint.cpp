@@ -6,14 +6,17 @@
 #include "log.h"
 #include "debug.h"
 
-#define IN_RANGE(addr, name) (addr >= name##_BASE && addr < name##_BASE + name##_SIZE)
-
 using namespace kxemu::device;
 using kxemu::cpu::RVCore;
 
 #define INTER_MSWI (1 << 0)
 #define INTER_SSWI (1 << 1)
 #define INTER_MTI  (1 << 2)
+
+static inline constexpr AddrSpace MSWI     = {0x0000, 0x4000};
+static inline constexpr AddrSpace MTIMECMP = {0x4000, 0x4000};
+static inline constexpr AddrSpace MTIME    = {0xbff8, 0x0008};
+static inline constexpr AddrSpace SSWI     = {0xc000, 0x4000};
 
 AClint::AClint() {
     this->coreCount = 0;
@@ -48,7 +51,7 @@ void AClint::reset() {
 }
 
 word_t AClint::read(word_t addr, word_t size, bool &valid) {
-    if (cpu::MSWI.in_range(addr)) {
+    if (MSWI.in_range(addr)) {
         // MSWI only supports 32-bit reads
         if (size != 4) {
             WARN("Unaligned access to MSWI.");
@@ -56,7 +59,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
             return -1;
         }
 
-        unsigned int coreID = (addr - cpu::MSWI.BASE) >> 2;
+        unsigned int coreID = (addr - MSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -68,7 +71,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         valid = true; 
         return this->coreObjects[coreID].msip;
     
-    } else if (cpu::SSWI.in_range(addr)) {
+    } else if (SSWI.in_range(addr)) {
         // SSWI only supports 32-bit reads
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Unaligned access to SSWI.");
@@ -76,7 +79,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
             return -1;
         }
 
-        unsigned int coreID = (addr - cpu::SSWI.BASE) >> 2;
+        unsigned int coreID = (addr - SSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -88,9 +91,9 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         valid = true;
         return this->coreObjects[coreID].ssip;
     
-    } else if (cpu::MTIMECMP.in_range(addr)) {
+    } else if (MTIMECMP.in_range(addr)) {
         // MTIMECMP only supports aligned reads
-        unsigned int coreID = (addr - cpu::MTIMECMP.BASE) >> 3;
+        unsigned int coreID = (addr - MTIMECMP.BASE) >> 3;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -123,7 +126,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
             return this->coreObjects[coreID].mtimecmp >> 32;
         }
         #endif
-    } else if (cpu::MTIME.in_range(addr)) {
+    } else if (MTIME.in_range(addr)) {
         #ifdef KXEMU_ISA64
         if (size != 8 || (addr & 0x7) != 0) {
             WARN("Unaligned access to MTIME. size=%lu, addr=" FMT_WORD64, size, addr);
@@ -156,7 +159,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
 }
 
 bool AClint::write(word_t addr, word_t value, word_t size) {
-    if (cpu::MSWI.in_range(addr)) {
+    if (MSWI.in_range(addr)) {
         // MSWI only supports 32-bit writes
         if (size != 4) {
             WARN("Unaligned access to MSWI.");
@@ -169,7 +172,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
 
-        unsigned int coreID = (addr - cpu::MSWI.BASE) >> 2;
+        unsigned int coreID = (addr - MSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -185,7 +188,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             this->coreObjects[coreID].core->clear_software_interrupt_m();
         }
 
-    } else if (cpu::SSWI.in_range(addr)) {
+    } else if (SSWI.in_range(addr)) {
         // SSWI only supports 32-bit writes
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Unaligned access to SSWI.");
@@ -198,7 +201,7 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
 
-        unsigned int coreID = (addr - cpu::SSWI.BASE) >> 2;
+        unsigned int coreID = (addr - SSWI.BASE) >> 2;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -213,9 +216,9 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             this->coreObjects[coreID].core->clear_software_interrupt_s();
         }
     
-    } else if (cpu::MTIMECMP.in_range(addr)) {
+    } else if (MTIMECMP.in_range(addr)) {
         // MTIMECMP only supports aligned writes
-        unsigned int coreID = (addr - cpu::MTIMECMP.BASE) >> 3;
+        unsigned int coreID = (addr - MTIMECMP.BASE) >> 3;
         
         // CoreID is out of range
         if (coreID >= this->coreCount) {
@@ -246,13 +249,14 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             this->update_core_mtimecmp(coreID);
         }
         #endif
-    } else if (cpu::MTIME.in_range(addr)) {
+    } else if (MTIME.in_range(addr)) {
         return false;
     } else {
         WARN("Invalid address " FMT_WORD64 " for CLINT", addr);
         return false;
     }
-    return false;
+    
+    return true;
 }
 
 void AClint::start_timer() {

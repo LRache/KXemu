@@ -1,5 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/csr-field.h"
+#include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "macro.h"
 
@@ -18,17 +19,20 @@ void RVCore::update_stimecmp() {
 void RVCore::set_interrupt(InterruptCode code) {
     std::lock_guard<std::mutex> lock(this->csrMtx);
     
-    word_t mip = this->csr.read_csr(CSRAddr::MIP);
-    mip |= 1 << code;
-    this->csr.write_csr(CSRAddr::MIP, mip);
+    csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
+    // mip |= 1 << code;
+    mip.set_pending(code);
+    this->csr.set_csr_value(CSRAddr::MIP, mip);
 }
 
 void RVCore::clear_interrupt(InterruptCode code) {
     std::lock_guard<std::mutex> lock(this->csrMtx);
     
-    word_t mip = this->csr.read_csr(CSRAddr::MIP);
-    mip &= ~(1 << code);
-    this->csr.write_csr(CSRAddr::MIP, mip);
+    // word_t mip = this->csr.get_csr_value(CSRAddr::MIP);
+    // mip &= ~(1 << code);
+    csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
+    mip.clear_pending(code);
+    this->csr.set_csr_value(CSRAddr::MIP, mip);
 }
 
 void RVCore::set_timer_interrupt_m() {
@@ -79,35 +83,21 @@ void RVCore::clear_external_interrupt_s() {
     clear_interrupt(InterruptCode::EXTERNAL_S);
 }
 
-#ifdef KXEMU_ISA64
-    #define CAUSE_INTERRUPT_MASK (1ULL << 63)
-#else
-    #define CAUSE_INTERRUPT_MASK (1 << 31)
-#endif
-
 void RVCore::interrupt_m(InterruptCode code) {
-    this->set_csr_core(CSRAddr::MEPC, this->npc);
-    this->set_csr_core(CSRAddr::MCAUSE, code | CAUSE_INTERRUPT_MASK);
-    this->set_csr_core(CSRAddr::MTVAL, 0);
+    this->csr.set_csr_value(CSRAddr::MEPC, this->npc);
+    this->csr.set_csr_value(CSRAddr::MTVAL, 0);
+    this->csr.set_csr_value(CSRAddr::MCAUSE, csr::MCause(code));
 
-    csr::MStatus mstatus = this->get_csr_core(CSRAddr::MSTATUS);
-    
-    // mstatus = (mstatus & ~STATUS_MPP_MASK) | (this->privMode << STATUS_MPP_OFF);
+    csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
     mstatus.set_mpp(this->privMode);
-    
-    // mstatus = (mstatus & ~STATUS_MPIE_MASK) | ((mstatus & STATUS_MIE_MASK) << (STATUS_MPIE_OFF - STATUS_MIE_OFF));
     mstatus.set_mpie(mstatus.mie());
-    
-    // mstatus = (mstatus & ~STATUS_MIE_MASK);
     mstatus.set_mie(false);
-    
-    this->set_csr_core(CSRAddr::MSTATUS, mstatus);
+    this->csr.set_csr_value(CSRAddr::MSTATUS, mstatus);
 
-    this->privMode = PrivMode::MACHINE;
+    this->set_priv_mode(PrivMode::MACHINE);
 
-    csr::TrapVec mtvec = this->get_csr_core(CSRAddr::MTVEC);
-    // word_t vecMode = mtvec & TVEC_MODE_MASK;
-    if (mtvec.mode() == TVECMode::VECTORED) {
+    csr::TrapVec mtvec = this->csr.get_csr_value(CSRAddr::MTVEC);
+    if (mtvec.mode() == csr::TrapVec::VECTORED) {
         this->npc = (mtvec.vec()) + (code << 2);
     } else {
         this->npc = mtvec.vec();
@@ -116,27 +106,19 @@ void RVCore::interrupt_m(InterruptCode code) {
 
 void RVCore::interrupt_s(InterruptCode code) {
     this->csr.write_csr(CSRAddr::SEPC, this->npc);
-    this->csr.write_csr(CSRAddr::SCAUSE, code | CAUSE_INTERRUPT_MASK);
+    this->csr.write_csr(CSRAddr::SCAUSE, csr::MCause(code));
     this->csr.write_csr(CSRAddr::STVAL, 0);
 
     csr::MStatus mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
-    
-    // mstatus = (mstatus & ~STATUS_SPP_MASK) | (this->privMode << STATUS_SPP_OFF);
     mstatus.set_spp(this->privMode != PrivMode::USER);
-    
-    // mstatus = (mstatus & ~STATUS_SPIE_MASK) | ((mstatus & STATUS_SIE_MASK) << (STATUS_SPIE_OFF - STATUS_SIE_OFF));
     mstatus.set_spie(mstatus.sie());
-    
-    // mstatus = (mstatus & ~STATUS_SIE_MASK);
     mstatus.set_sie(false);
-    
     this->write_csr(CSRAddr::MSTATUS, mstatus);
 
-    this->privMode = PrivMode::SUPERVISOR;
+    this->set_priv_mode(PrivMode::SUPERVISOR);
 
-    csr::TrapVec stvec = this->get_csr_core(CSRAddr::STVEC);
-    // word_t vecMode = stvec & TVEC_MODE_MASK;
-    if (stvec.mode() == TVECMode::VECTORED) {
+    csr::TrapVec stvec = this->csr.get_csr_value(CSRAddr::STVEC);
+    if (stvec.mode() == csr::TrapVec::VECTORED) {
         this->npc = stvec.vec() + (code << 2);
     } else {
         this->npc = stvec.vec();

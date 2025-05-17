@@ -2,6 +2,7 @@
 #define __KXEMU_CPU_RISCV_CSR_FIELD_H__
 
 
+#include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include <cstdint>
 
@@ -11,9 +12,106 @@ namespace kxemu::cpu::csr {
     protected:
         word_t value;
     public:
-        CSRField() = delete;
+        CSRField() : value(0) {}
         CSRField(word_t value) : value(value) {}
         operator word_t() { return this->value; }
+    };
+
+    class PMPCfgItem {
+    private:
+        uint8_t value;
+    public:
+        PMPCfgItem() = delete;
+        PMPCfgItem(uint8_t value) : value(value) {}
+
+        enum A {
+            OFF   = 0, // Null region (Disabled)
+            TOR   = 1, // Top of Range
+            NA4   = 2, // Naturally aligned 4-byte
+            NAPOT = 3, // Naturally aligned power-of-two
+        };
+
+        bool r() const { return this->value & (1 << 0); }
+        bool w() const { return this->value & (1 << 1); }
+        bool x() const { return this->value & (1 << 2); }
+        unsigned int a() const { return (this->value >> 3) & 0x3; }
+
+        operator uint8_t() const { return this->value; }
+    };
+
+    class PMPCfg : public CSRField {
+    public:
+        using CSRField::CSRField;
+
+        PMPCfgItem item(unsigned int index) const {
+            return PMPCfgItem((this->value >> (index * 8)) & 0xff);
+        }
+    };
+
+    class PMPAddr : public CSRField {
+    public:
+        PMPAddr(word_t value) {
+        #ifdef KXEMU_ISA64
+            this->value = value & ((1ULL << 54) - 1);
+        #else
+            this->value = value;
+        #endif
+        }
+        
+        word_t address() const { return this->value << 2; }
+    };
+
+    class MISA : public CSRField {
+    public:
+        enum MISAFlag {
+            A = (1 <<  0), // Atomic Extension
+            B = (1 <<  1), // B Extesnion
+            C = (1 <<  2), // Compressed Extension
+            D = (1 <<  3), // Double-precision Extension
+            E = (1 <<  4), // RV32E/RV64E Base ISA
+            F = (1 <<  5), // Single-precision Extension
+            H = (1 <<  7), // Hypervisor Extension
+            I = (1 <<  8), // RV32I/RV64I/RV128I Base ISA
+            M = (1 << 12), // Integer Mutiply/Divide Extension
+            Q = (1 << 16), // Quad-precision floating-point Extension
+            S = (1 << 18), // Supervisor mode Implemented
+            U = (1 << 20), // User mode Implemented
+            V = (1 << 21), // Vector Extension
+        };
+
+        enum MXLEN {
+            MXLEN32  = 1,
+            MXLEN64  = 2,
+            MXLEN128 = 3,
+        };
+
+        void set_mxlen(MXLEN mxlen) {
+            #ifdef KXEMU_ISA64
+            this->value = (this->value & ~(3ULL << 62)) | ((word_t)mxlen << 62);
+            #else
+            this->value = (this->value & ~(3ULL << 30)) | ((word_t)mxlen << 30);
+            #endif
+        }
+
+        void set_flag(MISAFlag flag) {
+            this->value |= flag;
+        }
+
+        MISA() {
+            set_flag(MISAFlag::A);
+            set_flag(MISAFlag::C);
+            set_flag(MISAFlag::D);
+            set_flag(MISAFlag::F);
+            set_flag(MISAFlag::I);
+            set_flag(MISAFlag::M);
+            set_flag(MISAFlag::S);
+            set_flag(MISAFlag::U);
+            #ifdef KXEMU_ISA64
+            set_mxlen(MXLEN::MXLEN64);
+            #else
+            set_mxlen(MXLEN::MXLEN32);
+            #endif
+        }
     };
 
     class MStatus : public CSRField {
@@ -88,31 +186,142 @@ namespace kxemu::cpu::csr {
     };
     #endif
 
-    class PMPCfgItem {
+    class MIP : public CSRField {
     private:
-        uint8_t value;
+        static constexpr word_t RW_MASK = (
+            (1 << InterruptCode::TIMER_S   ) | 
+            (1 << InterruptCode::SOFTWARE_S)
+        );
+        static constexpr word_t INTER_MASK_S = (
+            (1 << InterruptCode::SOFTWARE_S) |
+            (1 << InterruptCode::TIMER_S  )  |
+            (1 << InterruptCode::EXTERNAL_S)
+        );
     public:
-        PMPCfgItem() = delete;
-        PMPCfgItem(uint8_t value) : value(value) {}
+        using CSRField::CSRField;
 
-        bool r() const { return this->value & (1 << 0); }
-        bool w() const { return this->value & (1 << 1); }
-        bool x() const { return this->value & (1 << 2); }
-        unsigned int a() const { return (this->value >> 3) & 0x3; }
+        void set  (InterruptCode code) { this->value |=  (1 << code); }
+        void clear(InterruptCode code) { this->value &= ~(1 << code); }
+
+        void set_mip(word_t value) { 
+            // Bits in MIP register
+            // NAME   | MIP
+            // MEIP   | ReadOnly
+            // MTIP   | ReadOnly
+            // MSIP   | ReadOnly
+            // STIP   | ReadWrite
+            // SSIP   | ReadWrite
+            // SEIP   | ReadOnly
+            // LCOFIP | ReadOnly
+            this->value = (this->value & ~RW_MASK) | (value & RW_MASK);
+        }
+
+        word_t sip() const { return this->value & INTER_MASK_S; }
+
+        void set_sip(word_t value) {
+            constexpr word_t mask = (1 << InterruptCode::SOFTWARE_S);
+            this->value = (this->value & ~mask) | (value & mask);
+        }
+        void   set_pending(InterruptCode code) { this->value |=  (1 << code); }
+        void clear_pending(InterruptCode code) { this->value &= ~(1 << code); }
+    };
+
+    class MIE : public CSRField {
+    private:
+        static constexpr word_t INTER_MASK = (
+            (1 << InterruptCode::SOFTWARE_S) |
+            (1 << InterruptCode::SOFTWARE_M) |
+            (1 << InterruptCode::TIMER_S  )  |
+            (1 << InterruptCode::TIMER_M  )  |
+            (1 << InterruptCode::EXTERNAL_S) |
+            (1 << InterruptCode::EXTERNAL_M) |
+            (1 << InterruptCode::COUNTER   )
+        );
+
+        static constexpr word_t INTER_MASK_S = (
+            (1 << InterruptCode::SOFTWARE_S) |
+            (1 << InterruptCode::TIMER_S  )  |
+            (1 << InterruptCode::EXTERNAL_S)
+        );
+    public:
+        MIE(word_t value) { this->value = value & INTER_MASK; }
+
+        word_t sie() const { return this->value & INTER_MASK_S; }
+
+        void set_sie(word_t value) { this->value = (this->value & ~INTER_MASK_S) | (value & INTER_MASK_S); }
     };
 
     class TrapVec : public CSRField {
     public:
         using CSRField::CSRField;
 
-        word_t vec() { return this->value & ~0x3; }
-        word_t mode() { return this->value & 0x1; }
+        enum Mode {
+            DIRECT   = 0,
+            VECTORED = 1,
+        };
+
+        word_t vec()  { return this->value & ~0x3; }
+        word_t mode() { return this->value &  0x1; }
     };
-    
+
+    class MCause : public CSRField {
+    public:
+        using CSRField::CSRField;
+
+        MCause(InterruptCode code) {
+            this->set_interrupt(code);
+        }
+
+        void set_interrupt(InterruptCode code) {
+        #ifdef KXEMU_ISA64
+            this->value = (1ULL << 63) | (word_t)code;
+        #else
+            this->value = (1 << 31) | (word_t)code;
+        #endif
+        }
+
+        void set_exception(TrapCode code) {
+            this->value = (word_t)code;
+        }
+    };
 
     class Satp : public CSRField {
     public:
-        using CSRField::CSRField;
+        enum Mode {
+            BARE = 0,
+            SV32 = 1,
+            SV39 = 8,
+            SV48 = 9,
+            SV57 = 10,
+            SV64 = 11,
+        };
+    private:
+        #ifdef KXEMU_ISA64
+        static constexpr Mode validMode[] = {
+            Mode::BARE,
+            Mode::SV39,
+            Mode::SV48,
+            Mode::SV57
+        };
+        #endif
+    public:
+        Satp(word_t value) {
+            this->value = value;
+            #ifdef KXEMU_ISA64
+            // Check if the mode is valid
+            bool flag = true;
+            for (unsigned int i = 0; i < sizeof(validMode) / sizeof(Mode); i++) {
+                if (this->mode() == validMode[i]) {
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag) {
+                // Set mode to Bare
+                this->set_mode(Mode::BARE);
+            }
+            #endif
+        }
 
         #ifdef KXEMU_ISA64
         word_t ppn()  { return this->value & ((1ULL << 44) - 1); }
@@ -134,6 +343,15 @@ namespace kxemu::cpu::csr {
     class FCSR : public CSRField {
     public:
         using CSRField::CSRField;
+
+        enum FRM {
+            RNE = 0, // Round to Nearest, ties to Even
+            RTZ = 1, // Round towards Zero
+            RDN = 2, // Round Down
+            RUP = 3, // Round Up
+            RMM = 4, // Round to Min Magnitude
+            DYN = 7, // Dynamic Rounding Mode
+        };
 
         word_t fflags() { return this->value & 0x1f; }
         word_t frm()   { return (this->value >> 5) & 0x7; }
