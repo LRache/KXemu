@@ -154,7 +154,7 @@ bool Uart16650::write(word_t offset, word_t data, word_t size) {
         return true;
     } else {
         WARN("uart write offset " FMT_VARU64 " not supported.", offset);
-        return false;
+        return true;
     }
 }
 
