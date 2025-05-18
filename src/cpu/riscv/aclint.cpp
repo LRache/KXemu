@@ -9,10 +9,6 @@
 using namespace kxemu::device;
 using kxemu::cpu::RVCore;
 
-#define INTER_MSWI (1 << 0)
-#define INTER_SSWI (1 << 1)
-#define INTER_MTI  (1 << 2)
-
 static inline constexpr AddrSpace MSWI     = {0x0000, 0x4000};
 static inline constexpr AddrSpace MTIMECMP = {0x4000, 0x4000};
 static inline constexpr AddrSpace MTIME    = {0xbff8, 0x0008};
@@ -143,7 +139,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         }
         
         valid = true;
-        word_t offset = addr - cpu::MTIME.BASE;
+        word_t offset = addr - MTIME.BASE;
         word_t mtime = cpu::realtime_to_mtime(this->get_uptime());
         if (offset == 0) {
             return mtime & 0xffffffffUL;
