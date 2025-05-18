@@ -391,17 +391,17 @@ void RVCore::update_satp() {
     this->pageTableBase = satp.ppn() * PGSIZE;
     
     #ifdef KXEMU_ISA32
-    if (satp.mode() == SATPMode::SV32) {
+    if (satp.mode() == csr::Satp::SV32) {
         this->vaddr_translate_func = &RVCore::vaddr_translate_sv32;
     } else {
         this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
     }
     #else
     switch (satp.mode()) {
-        case csr::Satp::Mode::BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
-        case csr::Satp::Mode::SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
-        case csr::Satp::Mode::SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
-        case csr::Satp::Mode::SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
+        case csr::Satp::BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
+        case csr::Satp::SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
+        case csr::Satp::SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
+        case csr::Satp::SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
         default: PANIC("Invalid SATP mode"); break;
     }
     #endif
@@ -417,6 +417,6 @@ bool RVCore::pmp_check_r(word_t paddr, unsigned int len) {
     return this->csr.pmp_check_r(paddr, len);
 }
 
-bool RVCore::pmp_check_w(word_t paddr, unsigned int len) {
+bool RVCore::pmp_check_w(word_t paddr, unsigned int len) {  
     return this->csr.pmp_check_w(paddr, len);
 }

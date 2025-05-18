@@ -138,17 +138,17 @@ bool RVCSR::write_frm(unsigned int addr, word_t value) {
     return true;
 }
 
-std::optional<word_t> RVCSR::read_time(unsigned int addr) {
-    csr::MCounteren mcnten = this->csr[CSRAddr::MCNTEN].value;
+bool RVCSR::time_readable() {
+    csr::MCounteren mcnten = this->get_csr_value(CSRAddr::MCNTEN);
 
     // Check if the timer is enabled
     if (!mcnten.tm() && this->privMode != PrivMode::MACHINE) {
-        return std::nullopt;
+        return false;
     }
 
-    csr::MCounteren scnten = this->csr[CSRAddr::SCNTEN].value;
+    csr::MCounteren scnten = this->get_csr_value(CSRAddr::SCNTEN);
     if (!scnten.tm() && this->privMode == PrivMode::USER) {
-        return std::nullopt;
+        return false;
     }
 
     bool sstc;
@@ -161,12 +161,26 @@ std::optional<word_t> RVCSR::read_time(unsigned int addr) {
 #endif
     
     if (!sstc && this->privMode != PrivMode::MACHINE) {
+        return false;
+    }
+
+    return true;
+}
+
+std::optional<word_t> RVCSR::read_time(unsigned int addr) {
+    if (!this->time_readable()) {
         return std::nullopt;
     }
 
     uint64_t mtime = realtime_to_mtime(this->get_uptime());
-#ifdef KXEMU_ISA32
-    csr[CSRAddr::TIMEH].value = mtime >> 32;
-#endif
     return mtime;
+}
+
+std::optional<word_t> RVCSR::read_timeh(unsigned int addr) {
+    if (!this->time_readable()) {
+        return std::nullopt;
+    }
+
+    uint64_t mtime = realtime_to_mtime(this->get_uptime());
+    return mtime >> 32;
 }
