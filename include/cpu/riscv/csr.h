@@ -32,8 +32,8 @@ private:
     callback_t update_stimecmp;
 
     struct PMPCfg {
-        word_t start;
-        word_t end;
+        uint64_t start;
+        uint64_t end;
         bool r;
         bool w;
         bool x;
@@ -78,7 +78,9 @@ private:
     bool write_frm(unsigned int addr, word_t value);
 
     // time
-    std::optional<word_t> read_time(unsigned int addr);
+    bool time_readable();
+    std::optional<word_t> read_time (unsigned int addr);
+    std::optional<word_t> read_timeh(unsigned int addr);
 
 public:
     RVCSR();

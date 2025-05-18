@@ -6,6 +6,7 @@
 #include "debug.h"
 #include "macro.h"
 #include "config/config.h"
+#include <cstdint>
 
 using namespace kxemu::cpu;
 
@@ -76,7 +77,7 @@ RVCSR::RVCSR() {
     add_csr(CSRAddr::SIP     , nullptr, &RVCSR::write_sip); // sip
     add_csr(CSRAddr::STIMECMP); // stimecmp
 #ifdef KXEMU_ISA32
-    add_csr(CSRAddr::STIMECMPH, 0, nullptr, nullptr); // stimecmph
+    add_csr(CSRAddr::STIMECMPH); // stimecmph
 #endif
     
     // Supervisor Protection and Translation
@@ -92,7 +93,7 @@ RVCSR::RVCSR() {
     add_csr(CSRAddr::TIME , &RVCSR::read_time); // time
 #ifdef KXEMU_ISA32
     add_csr(CSRAddr::CYCLEH); // cycleh, Not implemented
-    add_csr(CSRAddr::TIMEH ); // timeh
+    add_csr(CSRAddr::TIMEH , &RVCSR::read_timeh); // timeh
 #endif
 }
 
@@ -165,9 +166,9 @@ void RVCSR::reload_pmpcfg() {
                 } break;
                 
                 case csr::PMPCfgItem::NAPOT: {
-                    word_t pmpaddr = this->get_csr_value((CSRAddr)(CSRAddr::PMPADDR0 + index));
+                    uint64_t pmpaddr = this->get_csr_value((CSRAddr)(CSRAddr::PMPADDR0 + index));
                     unsigned int lowestZeroPos = __builtin_ctzll(~pmpaddr);
-                    word_t length = 8ULL << lowestZeroPos;
+                    uint64_t length = 8ULL << lowestZeroPos;
                     pmpConfig.start = (pmpaddr & ~((1ULL << lowestZeroPos) - 1));
                     pmpConfig.end = pmpConfig.start + length;
                     this->pmpCfgCount++;
@@ -189,28 +190,30 @@ RVCSR::PMPCfg *RVCSR::pmp_check(word_t addr, int len) {
 }
 
 bool RVCSR::pmp_check_r(word_t addr, int len) {
-    auto pmpConfig = pmp_check(addr, len);
-    if (pmpConfig == nullptr) {
-        return false;
-    }
-    return pmpConfig->r;
+    // auto pmpConfig = pmp_check(addr, len);
+    // if (pmpConfig == nullptr) {
+    //     return false;
+    // }
+    // return pmpConfig->r;
+    return true;
 }
 
 bool RVCSR::pmp_check_w(word_t addr, int len) {
-    auto pmpConfig = pmp_check(addr, len);
-    if (pmpConfig == nullptr) {
-        return false;
-    }
-    return pmpConfig->w;
+    // auto pmpConfig = pmp_check(addr, len);
+    // if (pmpConfig == nullptr) {
+    //     return false;
+    // }
+    // return pmpConfig->w;
+    return true;
 }
 
 bool RVCSR::pmp_check_x(word_t addr, int len) {
-    auto pmpConfig = pmp_check(addr, len);
-    if (pmpConfig == nullptr) {
-        return false;
-    }
-    // DEBUG("PMP check x, addr=" FMT_WORD ", len=%d, start=" FMT_WORD ", end=" FMT_WORD, addr, len, pmpConfig->start, pmpConfig->end);
-    return pmpConfig->x;
+    // auto pmpConfig = pmp_check(addr, len);
+    // if (pmpConfig == nullptr) {
+    //     return false;
+    // }
+    // return pmpConfig->x;
+    return true;
 }
 
 word_t *RVCSR::get_csr_ptr(unsigned int addr) {
