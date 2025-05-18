@@ -13,3 +13,6 @@
 [submodule "utils/softfloat"]
 	path = utils/softfloat
 	url = https://github.com/ucb-bar/berkeley-softfloat-3
+[submodule "tests/riscv/os/linux6.5.5/opensbi"]
+	path = tests/riscv/os/linux6.5.5/opensbi
+	url = https://github.com/riscv-software-src/opensbi.git
