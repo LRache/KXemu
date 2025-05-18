@@ -27,7 +27,7 @@ find_package(LLVM CONFIG REQUIRED)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
-set(KXEMU_TARGET kxemu-system-${CONFIG_BASE_ISA})
+set(KXEMU_TARGET kxemu-system-${CONFIG_ISA})
 
 if(NOT CONFIG_TARGET_SHARE)
     add_executable(${KXEMU_TARGET} ${EMU_SRCS} ${KDB_SRCS})
