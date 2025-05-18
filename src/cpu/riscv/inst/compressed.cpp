@@ -62,8 +62,8 @@ void RVCore::do_c_jr(const DecodeInfo &decodeInfo) {
 void RVCore::do_c_jalr(const DecodeInfo &decodeInfo) {
     TAG_RS1; TAG_NPC;
     
-    this->gpr[1] = NPC;
     this->npc = SRC1;
+    this->gpr[1] = NPC;
 }
 
 void RVCore::do_c_beqz(const DecodeInfo &decodeInfo) {
