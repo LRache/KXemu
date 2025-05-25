@@ -3,6 +3,7 @@
 #include "log.h"
 
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 
 extern "C"  {
@@ -10,6 +11,8 @@ extern "C"  {
 }
 
 using namespace kxemu;
+
+static unsigned int currentCore = 0;
 
 static gdb_action_t check_action() {
     gdb_action_t act = ACT_RESUME;
@@ -23,14 +26,16 @@ static gdb_action_t check_action() {
 }
 
 static gdb_action_t cont(void *) {
+    INFO("Continuing execution on core %u", currentCore);
     kdb::run_cpu();
+    INFO("Continuing execution on core %u", currentCore);
     return check_action();
 }
 
-static unsigned int currentCore = 0;
-
 static gdb_action_t stepi(void *) {
+    INFO("Stepping core %u", currentCore);
     kdb::step_core(currentCore);
+    INFO("Core %u stepped", currentCore);
     return check_action();
 }
 
@@ -114,8 +119,13 @@ static gdbstub_t gdbstub;
 static bool gdb_init(const std::string &addr) {
     char s[32];
     std::strcpy(s, addr.c_str());
-    char targetDesc[32];
-    std::strcpy(targetDesc, kxemu::isa::get_gdb_target_desc());
+    char targetDesc[96];
+    snprintf(
+        targetDesc, sizeof(targetDesc), 
+        "<target version=\"1.0\"><architecture>%s</architecture></target>", 
+        kxemu::isa::get_gdb_target_desc()
+    );
+    
     #ifdef KXEMU_ISA64
     constexpr int xlen = 8;
     #else
