@@ -1,4 +1,4 @@
-KERNEL_IMAGE = ../../../os/linux-6.5.5/arch/riscv/boot/Image
+KERNEL_IMAGE = ../../../os/linux-5.15.132/arch/riscv/boot/Image
 OPENSBI_BIN = ./opensbi/build/platform/generic/firmware/fw_jump.bin
 
 QEMU = qemu-system-riscv64

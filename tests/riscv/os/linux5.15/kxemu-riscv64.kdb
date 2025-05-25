@@ -1,4 +1,5 @@
 log off DEBUG
+log on INFO
 device add memory 0x0 0x100000
 device add memory 0x80000000 0x8000000
 device add memory 0x20004000 0x4000
