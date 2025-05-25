@@ -15,29 +15,23 @@
 #include <vector>
 
 #ifdef KXEMU_ISA64
-    #define Elf_Ehdr Elf64_Ehdr
-    #define Elf_Phdr Elf64_Phdr
-    #define Elf_Shdr Elf64_Shdr
-    #define Elf_Sym  Elf64_Sym
-    #define Elf_Word Elf64_Word
-    #define Elf_Addr Elf64_Addr
-    #define Elf_Off  Elf64_Off
-    #define EXPECTED_CLASS ELFCLASS64
+    using Elf_Ehdr = Elf64_Ehdr;
+    using Elf_Phdr = Elf64_Phdr;
+    using Elf_Shdr = Elf64_Shdr;
+    using Elf_Sym  = Elf64_Sym;
+    using Elf_Word = Elf64_Word;
+    using Elf_Addr = Elf64_Addr;
+    using Elf_Off  = Elf64_Off;
+    static const int EXPECTED_CLASS = ELFCLASS64;
 #else
-    #define Elf_Ehdr Elf32_Ehdr
-    #define Elf_Phdr Elf32_Phdr
-    #define Elf_Shdr Elf32_Shdr
-    #define Elf_Sym  Elf32_Sym
-    #define Elf_Word Elf32_Word
-    #define Elf_Addr Elf32_Addr
-    #define Elf_Off  Elf32_Off
-    #define EXPECTED_CLASS ELFCLASS32
-#endif
-
-#ifdef ISA
-    #if ISA == riscv32
-        #define EXPECTED_ISA EM_RISCV
-    #endif
+    using Elf_Ehdr = Elf32_Ehdr;
+    using Elf_Phdr = Elf32_Phdr;
+    using Elf_Shdr = Elf32_Shdr;
+    using Elf_Sym  = Elf32_Sym;
+    using Elf_Word = Elf32_Word;
+    using Elf_Addr = Elf32_Addr;
+    using Elf_Off  = Elf32_Off;
+    static const int EXPECTED_CLASS = ELFCLASS32;
 #endif
 
 using namespace kxemu;
