@@ -61,6 +61,7 @@ namespace kxemu::kdb {
     // ELF format
     std::optional<word_t> load_elf(const std::string &filename);
     std::optional<std::string> addr_match_symbol(word_t addr, word_t &offset);
+    bool load_symbol(const std::string &filename);
     extern std::map<word_t, std::string> symbolTable;
     extern word_t programEntry;
 

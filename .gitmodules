@@ -16,3 +16,6 @@
 [submodule "tests/riscv/os/linux6.5.5/opensbi"]
 	path = tests/riscv/os/linux6.5.5/opensbi
 	url = https://github.com/riscv-software-src/opensbi.git
+[submodule "tests/riscv/os/linux5.15/opensbi"]
+	path = tests/riscv/os/linux5.15/opensbi
+	url = https://github.com/riscv-software-src/opensbi.git

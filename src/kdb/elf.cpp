@@ -3,6 +3,8 @@
 #include "config/config.h"
 #include "word.h"
 
+#include <cerrno>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <elf.h>
@@ -198,6 +200,55 @@ std::optional<kdb::word_t> kdb::load_elf(const std::string &filename) {
     f.close();
     
     return ehdr.e_entry;
+}
+
+bool kdb::load_symbol(const std::string &filename) {
+    std::fstream f;
+    f.open(filename, std::ios_base::in);
+    if (!f.is_open()) {
+        std::cerr << "Failed to open file \"" << filename << "\": " << std::strerror(errno) << std::endl;
+        return false;
+    }
+
+    Elf_Ehdr ehdr;
+    f.read((char *)&ehdr, sizeof(ehdr));
+    if (!check_read_success(f, sizeof(ehdr))) {
+        std::cerr << "Failed to read file \"" << filename << "\": " << std::strerror(errno) << std::endl;
+        return false;
+    }
+
+    if (!check_is_valid_elf(ehdr)) {
+        std::cerr << "BAD elf header" << std::endl;
+        return false;
+    }
+
+    Elf_Shdr symtabShdr = {}, strtabShdr = {};
+    bool symtabFound = false;
+    bool strtabFound = false;
+    uint16_t shstrndx = ehdr.e_shstrndx;
+    f.seekg(ehdr.e_shoff, std::ios::beg);
+    for (uint16_t i = 0; i < ehdr.e_shnum; i++) {
+        Elf_Shdr shdr;
+        f.read((char *)&shdr, sizeof(shdr));
+        if (shdr.sh_type == SHT_SYMTAB) {  // find .symtab
+            symtabShdr = shdr;
+            symtabFound = true;
+        } else if (shdr.sh_type == SHT_STRTAB && i != shstrndx) { // find .strtab
+            strtabShdr = shdr;
+            strtabFound = true;
+        }
+    }
+
+    if (symtabFound && strtabFound) {
+        size_t before = kdb::symbolTable.size();
+        load_symbol_table(symtabShdr, strtabShdr, f);
+        size_t after = kdb::symbolTable.size();
+        std::cout << "Loaded " << (after - before) << " symbols from \"" << filename << "\"" << std::endl;
+    } else {
+        std::cerr << "No symbol table was founded in \"" << filename << "\"" << std::endl;
+    }
+
+    return true;
 }
 
 std::optional<std::string> kdb::addr_match_symbol(word_t addr, word_t &offset) {
