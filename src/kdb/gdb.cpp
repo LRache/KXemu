@@ -39,28 +39,28 @@ static gdb_action_t stepi(void *) {
     return check_action();
 }
 
-static int read_reg(void *args, int regno, size_t *value) {
+static int read_reg(void *args, int regno, void *value) {
     if ((unsigned int)regno > kxemu::isa::get_gpr_count()) {
         return EFAULT;
     }
 
     if ((unsigned int)regno == kxemu::isa::get_gpr_count()) {
-        *value = kdb::cpu->get_core(currentCore)->get_pc();
+        *(size_t *)value = kdb::cpu->get_core(currentCore)->get_pc();
     } else {
-        *value = kdb::cpu->get_core(currentCore)->get_gpr(regno);
+        *(size_t *)value = kdb::cpu->get_core(currentCore)->get_gpr(regno);
     }
     
     return 0;
 }
 
-static int write_reg(void *args, int regno, size_t value) {
+static int write_reg(void *args, int regno, void *value) {
     if ((unsigned int)regno > kxemu::isa::get_gpr_count()) {
         return EFAULT;
     }
     if ((unsigned int)regno == kxemu::isa::get_gpr_count()) {
-        kdb::cpu->get_core(currentCore)->set_pc(value);
+        kdb::cpu->get_core(currentCore)->set_pc(*(size_t *)value);
     } else {
-        kdb::cpu->get_core(currentCore)->set_gpr(regno, value);
+        kdb::cpu->get_core(currentCore)->set_gpr(regno, *(size_t *)value);
     }
     return 0;
 }
@@ -114,6 +114,18 @@ static int get_cpu(void *) {
     return currentCore;
 }
 
+static size_t get_reg_bytes(int regno) {
+    if ((unsigned int)regno > kxemu::isa::get_gpr_count()) {
+        return -1; // Invalid register number
+    }
+    
+    #ifdef KXEMU_ISA64
+    return 8; // 64-bit registers
+    #else
+    return 4; // 32-bit registers
+    #endif
+}
+
 static gdbstub_t gdbstub;
 
 static bool gdb_init(const std::string &addr) {
@@ -125,16 +137,11 @@ static bool gdb_init(const std::string &addr) {
         "<target version=\"1.0\"><architecture>%s</architecture></target>", 
         kxemu::isa::get_gdb_target_desc()
     );
-    
-    #ifdef KXEMU_ISA64
-    constexpr int xlen = 8;
-    #else
-    constexpr int xlen = 4;
-    #endif
 
     static target_ops ops = {
         cont,
         stepi,
+        get_reg_bytes,
         read_reg,
         write_reg,
         read_mem,
@@ -153,7 +160,6 @@ static bool gdb_init(const std::string &addr) {
             targetDesc, 
             (int)kdb::cpu->core_count(),
             (int)kxemu::isa::get_gpr_count() + 1, 
-            xlen
         }, 
         s
     );
