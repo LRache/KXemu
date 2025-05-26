@@ -8,5 +8,6 @@ device add 1 virtio-blk 0x10001000
 load bin ./kxemu-riscv64.dtb 0x20004000
 load bin {openSBI} 0x80000000
 load bin {kernel} 0x80200000
+load symbol {symbolELF}
 reset
 set reg a1 0x20004000
