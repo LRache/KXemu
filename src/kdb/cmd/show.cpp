@@ -142,18 +142,21 @@ static void show_inst(unsigned int count, unsigned int, word_t addr) {
     bool valid;
     word_t paddr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
     if (!valid) {
-        paddr = addr;
+        std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
         return;
     }
-    addr = paddr;
+    word_t vaddr = addr;
     
-    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(addr);
-    word_t memSize = kdb::bus->get_ptr_length(addr);
+    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(paddr);
+    word_t memSize = kdb::bus->get_ptr_length(paddr);
 
     for (unsigned int i = 0; i < count; i++) {
+        if (vaddr != paddr) {
+            std::cout << "(paddr=" << FMT_STREAM_WORD(paddr) << ") ";
+        }
         std::cout << FMT_STREAM_WORD(addr) << ": ";
         if (memSize == 0) {
-            std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+            std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(vaddr) << "." << std::endl;
             break;
         }
 
@@ -161,12 +164,12 @@ static void show_inst(unsigned int count, unsigned int, word_t addr) {
         auto disasmStr = isa::disassemble(mem, memSize, addr, instLen);
 
         if (instLen == 0) {
-            std::cout << "Unsupport to disassemble at " << FMT_STREAM_WORD(addr) << std::endl;
+            std::cout << "Unsupport to disassemble at " << FMT_STREAM_WORD(vaddr) << std::endl;
             break;
         }
 
         word_t symbolOffset = 0;
-        auto symbolName = kdb::addr_match_symbol(addr, symbolOffset);
+        auto symbolName = kdb::addr_match_symbol(vaddr, symbolOffset);
         if (symbolName != std::nullopt) {
             std::cout << "<" << FMT_FG_YELLOW << symbolName.value() << FMT_FG_RESET << "+" << symbolOffset << "> ";
         }

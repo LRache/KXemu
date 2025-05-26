@@ -12,14 +12,14 @@
 using namespace kxemu;
 using namespace kxemu::kdb;
 
-std::string cmd::elfFileName;
-
 static int cmd_load_elf(const cmd::args_t &);
 static int cmd_load_bin(const cmd::args_t &);
+static int cmd_load_symbol(const cmd::args_t &);
 
 static const cmd::cmd_map_t cmdMap = {
     {"elf", cmd_load_elf},
     {"bin", cmd_load_bin},
+    {"symbol", cmd_load_symbol}
 };
 
 static int cmd_load_elf(const cmd::args_t &args) {
@@ -30,7 +30,7 @@ static int cmd_load_elf(const cmd::args_t &args) {
     
     auto entry = kdb::load_elf(args[2]);
     if (entry == std::nullopt) {
-        std::cerr << "Failed to load ELF file " << cmd::elfFileName << std::endl;
+        std::cerr << "Failed to load ELF file " << args[2] << std::endl;
         return cmd::CmdError;
     }
     
@@ -69,10 +69,21 @@ static int cmd_load_bin(const cmd::args_t &args) {
     }
 }
 
+static int cmd_load_symbol(const cmd::args_t &args) {
+    if (args.size() <= 2) {
+        std::cout << "Usage: load symbol <filename>" << std::endl;
+        return cmd::EmptyArgs;
+    }
+
+    const std::string &filename = args[2];
+    if (kdb::load_symbol(filename)) {
+        return cmd::Success; 
+    } else {
+        return cmd::CmdError;
+    }
+}
+
 int cmd::load(const cmd::args_t & args) {
     int r = cmd::find_and_run(args, cmdMap, 1);
-    if (r == cmd::EmptyArgs) {
-        std::cout << "Usage: load elf" << std::endl;
-    }
     return r;
 }

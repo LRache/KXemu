@@ -38,10 +38,9 @@ static void output_disassemble(word_t pc) {
     if (paddr != pc) {
         std::cout << "(vaddr=" << FMT_STREAM_WORD(pc) << ")";
     }
-    pc = paddr;
 
-    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(pc);
-    uint64_t memSize = kdb::bus->get_ptr_length(pc);
+    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(paddr);
+    uint64_t memSize = kdb::bus->get_ptr_length(paddr);
     if (mem == nullptr) {
         std::cout << "Unsupport to disassemble at pc=" << FMT_STREAM_WORD(pc) << std::endl;
         return;
