@@ -58,8 +58,8 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
         return;
     }
 
-    this->reservedMemory.insert(std::make_pair(addr, value));
     DEST = value;
+    this->reservedMemory[addr] = value;
 }
 
 template<int LEN>
@@ -85,8 +85,10 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
 
     word_t expected = iter->second;
     word_t desired  = SRC2;
+    // INFO("Store conditional failed at address=" FMT_WORD ", pc=" FMT_WORD ", expected=" FMT_WORD ", v=" FMT_WORD, addr, this->pc, iter->second, *(word_t *)ptr);
     bool success = __atomic_compare_exchange_n((word_t *)ptr, &expected, desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     DEST = success ? 0 : 1;
+    this->reservedMemory.erase(iter);
 }
 
 template<kxemu::device::AMO amo, typename sw_t>
