@@ -8,12 +8,17 @@
 #include "macro.h"
 #include "debug.h"
 
+#include <optional>
+#include <expected>
+
 #define PGALIGN(addr) ((addr) & ~(PGSIZE - 1))
 #define ADDR_PAGE_UNALIGNED(addr, len) unlikely(PGALIGN(addr) != (PGALIGN(addr + len - 1)))
 
 using namespace kxemu::cpu;
 
-RVCore::TLBBlock &RVCore::tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t flag) {
+#ifdef CONFIG_TLB
+
+void RVCore::tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t flag) {
     TLBBlock &block = this->tlb[vaddr.tlb_set()];
     if (block.valid) {
         this->pm_write(block.pteAddr, block.flag, 1);
@@ -23,13 +28,6 @@ RVCore::TLBBlock &RVCore::tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, u
     block.pteAddr = pteAddr;
     block.flag = flag;
     block.valid = true;
-    return block;
-}
-
-RVCore::TLBBlock &RVCore::tlb_hit(addr_t vaddr, bool &hit) {
-    TLBBlock &block = this->tlb[vaddr.tlb_set()];
-    hit = block.valid && block.tag == vaddr.tlb_tag();
-    return block;
 }
 
 std::optional<RVCore::TLBBlock *> RVCore::tlb_hit(addr_t vaddr) {
@@ -47,6 +45,18 @@ void RVCore::tlb_fence() {
         this->tlb[i].valid = false;
     }
 }
+
+#else
+
+void RVCore::tlb_push(addr_t, addr_t, word_t, uint8_t) {}
+
+std::optional<RVCore::TLBBlock *> RVCore::tlb_hit(addr_t vaddr) {
+    return std::nullopt;
+}
+
+void RVCore::tlb_fence() {}
+
+#endif
 
 word_t RVCore::vaddr_translate_bare(word_t addr, MemType type, VMResult &result) {
     result = VM_OK;
@@ -188,17 +198,18 @@ word_t RVCore::vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result
 #endif
 
 word_t RVCore::vaddr_translate_core(addr_t vaddr, MemType type, VMResult &result) {
-    bool tlbHit;
-    TLBBlock &block = this->tlb_hit(vaddr, tlbHit);
-    if (likely(tlbHit)) {
-        bool u = block.flag.u() ? this->privMode == PrivMode::USER || this->mstatus.sum : this->privMode == PrivMode::SUPERVISOR;
-        if (likely((block.flag & type) == type && (u))) {
-            block.flag.set_a();
+    #ifdef CONFIG_TLB
+    auto b = this->tlb_hit(vaddr);
+    if (b.has_value()) {
+        TLBBlock *block = b.value();
+        bool u = block->flag.u() ? this->privMode == PrivMode::USER || this->mstatus.sum : this->privMode == PrivMode::SUPERVISOR;
+        if (likely((block->flag & type) == type && (u))) {
+            block->flag.set_a();
             if (type & STORE) {
-                block.flag.set_d();
+                block->flag.set_d();
             }
             result = VM_OK;
-            return block.paddr + vaddr.tlb_off();
+            return block->paddr + vaddr.tlb_off();
         } else {
             result = VM_PAGE_FAULT;
             return -1;
@@ -206,6 +217,9 @@ word_t RVCore::vaddr_translate_core(addr_t vaddr, MemType type, VMResult &result
     } else {
         return (this->*vaddr_translate_func)(vaddr, type, result);
     }
+    #else
+    return (this->*vaddr_translate_func)(vaddr, type, result);
+    #endif
 }
 
 word_t RVCore::vaddr_translate(word_t vaddr, bool &valid) {
@@ -385,28 +399,33 @@ void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
     }
 }
 
-void RVCore::update_satp() {
+void RVCore::update_vm_translate() {
     csr::Satp satp = this->csr.get_csr_value(CSRAddr::SATP);
     
     this->pageTableBase = satp.ppn() * PGSIZE;
-    
-    #ifdef KXEMU_ISA32
-    if (satp.mode() == csr::Satp::SV32) {
-        this->vaddr_translate_func = &RVCore::vaddr_translate_sv32;
-    } else {
-        this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
-    }
-    #else
-    switch (satp.mode()) {
-        case csr::Satp::BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
-        case csr::Satp::SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
-        case csr::Satp::SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
-        case csr::Satp::SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
-        default: PANIC("Invalid SATP mode"); break;
-    }
-    #endif
 
+    if (this->privMode == PrivMode::MACHINE) {
+        this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
+    } else {
+        #ifdef KXEMU_ISA32
+        if (satp.mode() == csr::Satp::SV32) {
+            this->vaddr_translate_func = &RVCore::vaddr_translate_sv32;
+        } else {
+            this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
+        }
+        #else
+        switch (satp.mode()) {
+            case csr::Satp::BARE: this->vaddr_translate_func = &RVCore::vaddr_translate_bare; break;
+            case csr::Satp::SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
+            case csr::Satp::SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
+            case csr::Satp::SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
+            default: PANIC("Invalid SATP mode"); break;
+        }
+        #endif
+    }
+    
     this->icache_fence();
+    this->tlb_fence();
 }
 
 bool RVCore::pmp_check_x(word_t paddr, unsigned int len) {

@@ -37,6 +37,9 @@ menu "Core Options"
 config ICache
     bool "Enable ICache"
 
+config TLB
+    bool "Enable TLB"
+
 config DCache
     bool "Enable DCache"
 
