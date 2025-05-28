@@ -4,6 +4,7 @@ SYMBOL_ELF = ../../../os/linux-5.15.132/vmlinux
 
 QEMU = qemu-system-riscv64
 QEMU_FLAGS += -M virt -m 256M -nographic -kernel $(KERNEL_IMAGE)
+QEMU_FLAGS += -bios $(OPENSBI_BIN)
 
 CROSS_COMPILE = riscv64-linux-gnu-
 XLEN = 64
