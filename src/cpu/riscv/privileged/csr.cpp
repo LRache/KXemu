@@ -1,7 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/csr-field.h"
 #include "cpu/word.h"
-#include "debug.h"
 
 #include <functional>
 
@@ -9,10 +8,10 @@ using namespace kxemu::cpu;
 
 void RVCore::init_csr() {
     this->csr.init(this->coreID, std::bind(&RVCore::get_uptime, this));
-    this->csr.set_write_callbacks(CSRAddr::STIMECMP, std::bind(&RVCore::update_stimecmp, this));
-    this->csr.set_write_callbacks(CSRAddr::SATP    , std::bind(&RVCore::update_satp    , this));
-    this->csr.set_write_callbacks(CSRAddr::MSTATUS , std::bind(&RVCore::update_mstatus , this));
-    this->csr.set_write_callbacks(CSRAddr::SSTATUS , std::bind(&RVCore::update_mstatus , this));
+    this->csr.set_write_callbacks(CSRAddr::STIMECMP, std::bind(&RVCore::update_stimecmp    , this));
+    this->csr.set_write_callbacks(CSRAddr::SATP    , std::bind(&RVCore::update_vm_translate, this));
+    this->csr.set_write_callbacks(CSRAddr::MSTATUS , std::bind(&RVCore::update_mstatus     , this));
+    this->csr.set_write_callbacks(CSRAddr::SSTATUS , std::bind(&RVCore::update_mstatus     , this));
 }
 
 word_t RVCore::read_csr(unsigned int addr, bool &valid) {

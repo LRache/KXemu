@@ -6,15 +6,8 @@
 using namespace kxemu::cpu;
 
 void RVCore::set_priv_mode(int mode) {
-    // Change the virtual address translation function when entering or exiting machine mode
-    if (this->privMode != PrivMode::MACHINE && mode == PrivMode::MACHINE) {
-        if (this->vaddr_translate_func != &RVCore::vaddr_translate_bare) {
-            this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
-            this->icache_fence();
-        }
-    }
-
     this->privMode = mode;
+    this->update_vm_translate();
 }
 
 void RVCore::do_ecall(const DecodeInfo &) {
@@ -99,6 +92,7 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
+    INFO("WFI at pc=" FMT_WORD, this->pc);
     while (!this->scan_interrupt()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         this->update_device();

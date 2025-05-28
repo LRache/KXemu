@@ -82,7 +82,7 @@ private:
     
     word_t pageTableBase;
     word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
-    void update_satp();
+    void update_vm_translate();
 
     // Physical memory protection
     bool pmp_check_x(word_t paddr, unsigned int len);
@@ -176,8 +176,8 @@ private:
     // Atomic extension
     std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
     word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid);
-    template<int len> void do_load_reserved(const DecodeInfo &decodeInfo);
-    template<int len> void do_store_conditional(const DecodeInfo &decodeInfo);
+    template<typename unit> void do_load_reserved(const DecodeInfo &decodeInfo);
+    template<typename unit> void do_store_conditional(const DecodeInfo &decodeInfo);
     template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &decodeInfo);
 
     word_t gpr[33];
@@ -220,9 +220,9 @@ private:
         PTEFlag flag;
     };
     TLBBlock tlb[1 << TLB_SET_BITS];
-    TLBBlock &tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t type);
+    void tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t type);
     std::optional<TLBBlock *> tlb_hit(addr_t vaddr);
-    TLBBlock &tlb_hit(addr_t vaddr, bool &hit);
+    // TLBBlock &tlb_hit(addr_t vaddr, bool &hit);
     void tlb_fence();
 
 public:
