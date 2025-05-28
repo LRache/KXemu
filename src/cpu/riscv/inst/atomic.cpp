@@ -43,16 +43,16 @@ word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &val
     return paddr;
 }
 
-template<int len>
+template<typename unit_t>
 void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1;
 
     bool valid;
     word_t addr = SRC1;
-    addr = this->amo_vaddr_translate_and_set_trap(addr, len, valid);
+    addr = this->amo_vaddr_translate_and_set_trap(addr, sizeof(unit_t), valid);
     if (!valid) return;
 
-    word_t value = this->bus->read(addr, len, valid);
+    unit_t value = this->bus->read(addr, sizeof(unit_t), valid);
     if (!valid) {
         this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
         return;
@@ -60,15 +60,16 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
 
     DEST = value;
     this->reservedMemory[addr] = value;
+    // INFO("Load reserved at address=" FMT_WORD ", pc=" FMT_WORD ", value=" FMT_WORD, addr, this->pc, (word_t)value);
 }
 
-template<int LEN>
+template<typename unit_t>
 void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_RS2;
 
     bool valid;
     word_t addr = SRC1;
-    addr = this->amo_vaddr_translate_and_set_trap(addr, LEN, valid);
+    addr = this->amo_vaddr_translate_and_set_trap(addr, sizeof(unit_t), valid);
     if (!valid) return;
 
     auto iter = this->reservedMemory.find(addr);
@@ -77,18 +78,23 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
         return;
     }
 
-    void *ptr = this->bus->get_ptr(addr);
+    unit_t *ptr = (unit_t *)this->bus->get_ptr(addr);
     if (ptr == nullptr) {
         this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
         return;
     }
 
-    word_t expected = iter->second;
-    word_t desired  = SRC2;
-    // INFO("Store conditional failed at address=" FMT_WORD ", pc=" FMT_WORD ", expected=" FMT_WORD ", v=" FMT_WORD, addr, this->pc, iter->second, *(word_t *)ptr);
-    bool success = __atomic_compare_exchange_n((word_t *)ptr, &expected, desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
+    unit_t expected = iter->second;
+    unit_t desired  = SRC2;
+    bool success = __atomic_compare_exchange_n(ptr, &expected, desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     DEST = success ? 0 : 1;
     this->reservedMemory.erase(iter);
+
+    // if (!success) {
+    //     // Store conditional failed
+    //     INFO("Store conditional failed at address=" FMT_WORD ", pc=" FMT_WORD ", expected=" FMT_WORD ", v=" FMT_WORD, addr, this->pc, iter->second, *(word_t *)ptr);
+    //     return;
+    // }
 }
 
 template<kxemu::device::AMO amo, typename sw_t>
@@ -114,11 +120,11 @@ void RVCore::do_amo_inst(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_lr_w(const DecodeInfo &decodeInfo) {
-   this->do_load_reserved<4>(decodeInfo);
+   this->do_load_reserved<uint32_t>(decodeInfo);
 }
 
 void RVCore::do_sc_w(const DecodeInfo &decodeInfo) {
-    this->do_store_conditional<4>(decodeInfo);
+    this->do_store_conditional<uint32_t>(decodeInfo);
 }
 
 void RVCore::do_amoswap_w(const DecodeInfo &decodeInfo) {
@@ -160,11 +166,11 @@ void RVCore::do_amomaxu_w(const DecodeInfo &decodeInfo) {
 #ifdef KXEMU_ISA64
 
 void RVCore::do_lr_d(const DecodeInfo &decodeInfo) {
-    this->do_load_reserved<8>(decodeInfo);
+    this->do_load_reserved<uint64_t>(decodeInfo);
 }
 
 void RVCore::do_sc_d(const DecodeInfo &decodeInfo) {
-    this->do_store_conditional<8>(decodeInfo);
+    this->do_store_conditional<uint64_t>(decodeInfo);
 }
 
 void RVCore::do_amoswap_d(const DecodeInfo &decodeInfo) {
