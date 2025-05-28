@@ -7,6 +7,7 @@ else
 	PLATFORM ?= kxemu
 endif
 
+ISA ?= riscv64
 ARCH = $(PLATFORM)-$(ISA)
 ARCH_NAME = $(ARCH)-$(NAME)
 
