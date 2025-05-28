@@ -268,5 +268,10 @@ std::optional<std::string> kdb::addr_match_symbol(word_t addr, word_t &offset) {
     }
 
     offset = addr - iter->first;
-    return iter->second;
+    
+    if (offset >= 0x8000) {
+        return std::nullopt;
+    } else {
+        return iter->second;
+    }
 }
