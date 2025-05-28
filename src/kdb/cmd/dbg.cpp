@@ -35,8 +35,9 @@ static void output_disassemble(word_t pc) {
         std::cout << "Cannot access memory at pc= " << FMT_STREAM_WORD(pc) << "." << std::endl;
         return;
     }
+    
     if (paddr != pc) {
-        std::cout << "(vaddr=" << FMT_STREAM_WORD(pc) << ")";
+        std::cout << "(paddr=" << FMT_STREAM_WORD(paddr) << ")";
     }
 
     uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(paddr);

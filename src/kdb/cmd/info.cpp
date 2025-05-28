@@ -26,8 +26,8 @@ static int cmd_info_reg(const std::string &name) {
         std::cerr << "Register not found: " << name << std::endl;
         return cmd::InvalidArgs;
     }
-
-    std::cout << name <<" = " << v.value() << std::endl;
+    word_t value = v.value();
+    std::cout << name <<" = " << FMT_STREAM_WORD(value) << "(" << value << ")" << std::endl;
     return cmd::Success;
 }
 
