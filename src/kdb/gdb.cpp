@@ -26,16 +26,12 @@ static gdb_action_t check_action() {
 }
 
 static gdb_action_t cont(void *) {
-    INFO("Continuing execution on core %u", currentCore);
     kdb::run_cpu();
-    INFO("Continuing execution on core %u", currentCore);
     return check_action();
 }
 
 static gdb_action_t stepi(void *) {
-    INFO("Stepping core %u", currentCore);
     kdb::step_core(currentCore);
-    INFO("Core %u stepped", currentCore);
     return check_action();
 }
 
