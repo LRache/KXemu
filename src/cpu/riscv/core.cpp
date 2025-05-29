@@ -2,8 +2,6 @@
 #include "cpu/riscv/aclint.h"
 #include "cpu/word.h"
 #include "device/bus.h"
-#include "log.h"
-#include "word.h"
 
 #include <cstdint>
 #include <cstring>
