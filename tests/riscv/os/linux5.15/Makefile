@@ -24,11 +24,20 @@ KXEMU_FLAGS += --def dtb=$(DTB)
 
 all: run
 
-qemu:
+$(KERNEL_IMAGE):
+	$(info + COPYING CONFIG)
+	@ cp ./defconfig ../../../os/linux-5.15.132
+	@ make -C ../../../os/linux-5.15.132 ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE) olddefconfig
+	$(info + BUILDING KERNEL)
+	@ make -C ../../../os/linux-5.15.132 ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE) -j$(shell nproc) all
+
+kernel: $(KERNEL_IMAGE)
+
+qemu: $(KERNEL_IMAGE) $(OPENSBI_BIN) $(DTB)
 	$(info + RUNNING QEMU)
 	@ $(QEMU) $(QEMU_FLAGS)
 
-qemu-dbg: 
+qemu-dbg: $(KERNEL_IMAGE) $(OPENSBI_BIN) $(DTB)
 	@ $(QEMU) $(QEMU_FLAGS) -s -S
 
 $(OPENSBI_BIN):
@@ -38,13 +47,13 @@ $(DTB):
 	$(info + GENERATING DTB)
 	@ dtc -I dts -O dtb -o $(DTB) $(DTS)
 
-run: $(OPENSBI_BIN) $(DTB)
+run: $(KERNEL_IMAGE) $(OPENSBI_BIN) $(DTB)
 	$(info + RUNNING KXEMU)
 	@ $(KXEMU) $(KXEMU_FLAGS)
 
 kxemu: run
 
-kxemu-dbg:
+kxemu-dbg: $(KERNEL_IMAGE) $(OPENSBI_BIN) $(DTB)
 	$(info + RUNNING GDB)
 	@ $(GDB) -x ./kxemu.gdb
 
