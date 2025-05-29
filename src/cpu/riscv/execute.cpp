@@ -39,52 +39,45 @@ void RVCore::set_device_mtx(std::mutex *mtx) {
     this->deviceMtx = mtx;
 }
 
+void RVCore::run_step(unsigned int &counter) {
+    constexpr unsigned int interruptFreq = 0x1000;
+    
+    this->execute();
+
+    // Interrupt
+    if (unlikely(counter & interruptFreq)) {
+        this->update_device();
+        this->scan_interrupt();
+        counter = 0;
+    }
+            
+    this->pc = this->npc;
+    counter++;
+}
+
 void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     std::unordered_set<word_t> breakpoints;
     for (unsigned int i = 0; i < n; i++) {
         breakpoints.insert(breakpoints_[i]);
     }
 
-    constexpr unsigned int interruptFreq = 0x1000;
     unsigned int i = 0;
     this->state = RUNNING;
     if (n == 0) {
         while (this->state == RUNNING) {            
-            
-            this->execute();
-
-            // Interrupt
-            if (unlikely(i & interruptFreq)) {
-                this->update_device();
-                this->scan_interrupt();
-                i = 0;
-            }
-            
-            this->pc = this->npc;
-            
-            i++;
+            this->run_step(i);
         }
     } else {
+        this->run_step(i);
         while (this->state == RUNNING) {
-            this->execute();
-
-            // Interrupt
-            if (unlikely(i & interruptFreq)) {
-                this->update_device();
-                this->scan_interrupt();
-                i = 0;
-            }
-            
-            this->pc = this->npc;
-
-            i++;
-
             if (breakpoints.find(this->pc) != breakpoints.end()) {
                 this->haltCode = 0;
                 this->haltPC = this->pc;
                 this->state = BREAKPOINT;
                 break;
             }
+
+            this->run_step(i);
         }
     }
 }

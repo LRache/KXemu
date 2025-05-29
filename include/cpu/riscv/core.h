@@ -130,6 +130,7 @@ private:
     word_t pc;
     word_t npc;
     void execute();
+    void run_step(unsigned int &counter);
 
     // Trap
     void trap(TrapCode code, word_t value = 0);
