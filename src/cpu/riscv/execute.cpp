@@ -68,7 +68,9 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
             this->run_step(i);
         }
     } else {
-        this->run_step(i);
+        if (this->state == RUNNING) {
+            this->run_step(i);
+        }
         while (this->state == RUNNING) {
             if (breakpoints.find(this->pc) != breakpoints.end()) {
                 this->haltCode = 0;
