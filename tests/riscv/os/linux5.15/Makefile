@@ -11,10 +11,16 @@ GDB = gdb-multiarch
 CROSS_COMPILE = riscv64-linux-gnu-
 XLEN = 64
 
+DTS = kxemu-virt-riscv64.dts
+DTB = kxemu-virt-riscv64.dtb
+
 KXEMU = ../../../../build/kxemu-system-riscv64
 KXEMU_FLAGS += --source $(abspath ./kxemu-riscv64.kdb)
 KXEMU_FLAGS += --core 1
-KXEMU_FLAGS += --def kernel=$(KERNEL_IMAGE) --def openSBI=$(OPENSBI_BIN) --def symbolELF=$(SYMBOL_ELF)
+KXEMU_FLAGS += --def kernel=$(KERNEL_IMAGE) 
+KXEMU_FLAGS += --def openSBI=$(OPENSBI_BIN) 
+KXEMU_FLAGS += --def symbolELF=$(SYMBOL_ELF)
+KXEMU_FLAGS += --def dtb=$(DTB)
 
 all: run
 
@@ -28,11 +34,20 @@ qemu-dbg:
 $(OPENSBI_BIN):
 	$(MAKE) -C opensbi PLATFORM=generic CROSS_COMPILE=$(CROSS_COMPILE) PLATFORM_RISCV_XLEN=$(XLEN)
 
-run: $(OPENSBI_BIN)
+$(DTB): 
+	$(info + GENERATING DTB)
+	@ dtc -I dts -O dtb -o $(DTB) $(DTS)
+
+run: $(OPENSBI_BIN) $(DTB)
 	$(info + RUNNING KXEMU)
 	@ $(KXEMU) $(KXEMU_FLAGS)
 
 kxemu: run
 
 kxemu-dbg:
-	$(GDB) -x ./kxemu.gdb
+	$(info + RUNNING GDB)
+	@ $(GDB) -x ./kxemu.gdb
+
+qemu-dtb:
+	@ $(QEMU) -machine virt,dumpdtb=qemu-virt-riscv64.dtb -kernel $(KERNEL_IMAGE) -bios $(OPENSBI_BIN)
+	@ dtc -I dtb -O dts -o qemu-virt-riscv64.dts qemu-virt-riscv64.dtb
