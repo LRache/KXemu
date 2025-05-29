@@ -6,6 +6,8 @@ QEMU = qemu-system-riscv64
 QEMU_FLAGS += -M virt -m 256M -nographic -kernel $(KERNEL_IMAGE)
 QEMU_FLAGS += -bios $(OPENSBI_BIN)
 
+GDB = gdb-multiarch
+
 CROSS_COMPILE = riscv64-linux-gnu-
 XLEN = 64
 
@@ -29,3 +31,8 @@ $(OPENSBI_BIN):
 run: $(OPENSBI_BIN)
 	$(info + RUNNING KXEMU)
 	@ $(KXEMU) $(KXEMU_FLAGS)
+
+kxemu: run
+
+kxemu-dbg:
+	$(GDB) -x ./kxemu.gdb
