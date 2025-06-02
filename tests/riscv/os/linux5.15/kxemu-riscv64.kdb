@@ -7,6 +7,7 @@ device add 1 virtio-blk 0x10001000
 load bin {dtb} 0x82200000
 load bin {openSBI} 0x80000000
 load bin {kernel} 0x80200000
+load bin {initramfs} 0x84200000
 load symbol {symbolELF}
 reset
 set reg a1 0x82200000

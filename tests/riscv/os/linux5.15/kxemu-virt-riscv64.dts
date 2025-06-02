@@ -54,6 +54,11 @@
 		};
 	};
 
+	chosen {
+		linux,initrd-end = <0x8430fbdf>;
+		linux,initrd-start = <0x84200000>;
+	};
+
 	soc {
 		#address-cells = <0x02>;
 		#size-cells = <0x02>;
@@ -66,13 +71,6 @@
 			clock-frequency = "\08@";
 			reg = <0x00 0x10000000 0x00 0x100>;
 			compatible = "ns16550a";
-		};
-
-		virtio_mmio@10001000 {
-			interrupts = <0x01>;
-			interrupt-parent = <0x03>;
-			reg = <0x00 0x10001000 0x00 0x1000>;
-			compatible = "virtio,mmio";
 		};
 
 		plic@c000000 {

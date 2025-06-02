@@ -1,0 +1,4 @@
+#!/bin/sh
+
+/bin/ls -al
+/bin/echo "Hello, world!"
