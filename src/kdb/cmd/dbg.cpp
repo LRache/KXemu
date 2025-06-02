@@ -52,7 +52,7 @@ static void output_disassemble(word_t pc) {
         
         uint64_t instLength;
         std::string inst = isa::disassemble(mem, memSize, pc, instLength);
-        std::cout << FMT_STREAM_WORD(pc) << ": ";
+        std::cout << FMT_FG_BLUE << FMT_STREAM_WORD(pc) << FMT_FG_RESET << ": ";
         if (symbolName != std::nullopt) {
             std::cout << "<" << FMT_FG_YELLOW << symbolName.value() << FMT_FG_RESET << "+" << symbolOffset << "> ";
         }
@@ -106,7 +106,7 @@ int cmd::run(const args_t &) {
     for (unsigned int i = 0; i < kdb::cpu->core_count(); i++) {
         auto core = kdb::cpu->get_core(i);
         if (core->is_break()) {
-            std::cout << "Core " << i << ": Breakpoint at " << FMT_STREAM_WORD(core->get_pc()) << " triggered."<< std::endl;
+            std::cout << "Core " << i << ": Breakpoint at " << FMT_FG_BLUE << FMT_STREAM_WORD(core->get_pc()) << FMT_FG_RESET << " triggered."<< std::endl;
         }
     }
     
@@ -148,7 +148,7 @@ int cmd::breakpoint(const cmd::args_t &args) {
     }
     
     kdb::add_breakpoint(addr);
-    std::cout << "Set breakpoint at " << FMT_STREAM_WORD(addr) << std::endl;
+    std::cout << "Set breakpoint at " << FMT_FG_BLUE << FMT_STREAM_WORD(addr) << FMT_FG_RESET << "." << std::endl;
     
     return cmd::Success;
 }

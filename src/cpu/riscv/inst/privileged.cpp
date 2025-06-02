@@ -68,15 +68,17 @@ void RVCore::do_sret(const DecodeInfo &) {
 
 void RVCore::do_invalid_inst() {
     if (this->debugMode) {
-        WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
         this->state = ERROR;
         this->haltPC = this->pc;
     }
+
+    WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
 
     this->trap(TrapCode::ILLEGAL_INST, this->inst);
 }
 
 void RVCore::do_invalid_inst(const DecodeInfo &) {
+    WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
     this->do_invalid_inst();
 }
 
@@ -92,7 +94,7 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
-    INFO("WFI at pc=" FMT_WORD, this->pc);
+    // INFO("WFI at pc=" FMT_WORD, this->pc);
     while (!this->scan_interrupt()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         this->update_device();

@@ -4,6 +4,7 @@
 #include "device/mmio.h"
 #include "device/def.h"
 
+#include <optional>
 #include <vector>
 #include <iostream>
 #include <cstdint>
@@ -39,7 +40,7 @@ public:
     bool   write(word_t addr, word_t data, word_t length);
     void update();
 
-    word_t do_atomic(word_t addr, word_t data, word_t length, AMO amo, bool &valid);
+    std::optional<word_t> do_atomic(word_t addr, word_t data, word_t length, AMO amo);
 
     bool load_from_stream(std::istream &stream, word_t addr);
     bool load_from_stream(std::istream &stream, word_t addr, word_t length);

@@ -8,6 +8,7 @@
 #include <new>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 
 #define BUFFER_SIZE ((word_t)1024)
 
@@ -147,33 +148,33 @@ void Bus::update() {
         default: PANIC("Invalid length=" FMT_VARU64, length); return -1; \
     }
 
-word_t Bus::do_atomic(word_t addr, word_t data, word_t length, AMO amo, bool &valid) {
+std::optional<word_t> Bus::do_atomic(word_t addr, word_t data, word_t length, AMO amo) {
     auto mem = match_memory(addr, length);
     if (mem != nullptr) {
         word_t offset = addr - mem->start;
         void *p = mem->data + offset;
         switch (amo) {
-            case AMO_SWAP: AMO_FUNC (swap, __atomic_exchange_n);
-            case AMO_ADD:  AMO_FUNC (add,  __atomic_fetch_add );
-            case AMO_AND:  AMO_FUNC (and,  __atomic_fetch_and );
-            case AMO_OR:   AMO_FUNC (or,   __atomic_fetch_or  );
-            case AMO_XOR:  AMO_FUNC (xor,  __atomic_fetch_xor );
-            case AMO_MIN:  AMO_FUNCS(min,  __atomic_fetch_min );
-            case AMO_MAX:  AMO_FUNCS(max,  __atomic_fetch_max );
-            case AMO_MINU: AMO_FUNC (min,  __atomic_fetch_min );
-            case AMO_MAXU: AMO_FUNC (max,  __atomic_fetch_max );
-            default: PANIC("Invalid AMO=%d", amo); return -1;
+            case AMO::SWAP: AMO_FUNC (swap, __atomic_exchange_n);
+            case AMO::ADD:  AMO_FUNC (add,  __atomic_fetch_add );
+            case AMO::AND:  AMO_FUNC (and,  __atomic_fetch_and );
+            case AMO::OR:   AMO_FUNC (or,   __atomic_fetch_or  );
+            case AMO::XOR:  AMO_FUNC (xor,  __atomic_fetch_xor );
+            case AMO::MIN:  AMO_FUNCS(min,  __atomic_fetch_min );
+            case AMO::MAX:  AMO_FUNCS(max,  __atomic_fetch_max );
+            case AMO::MINU: AMO_FUNC (min,  __atomic_fetch_min );
+            case AMO::MAXU: AMO_FUNC (max,  __atomic_fetch_max );
+            default: PANIC("Invalid AMO=%d", (int)amo); return -1;
         }
-        valid = true;
         return data;
     }
+    return std::nullopt;
 
-    auto map = this->match_mmio(addr, length);
-    if (map == nullptr) {
-        valid = false;
-        return -1;
-    }
-    return map->dev->do_atomic(addr - map->start, data, length, amo, valid);
+    // auto map = this->match_mmio(addr, length);
+    // if (map == nullptr) {
+    //     return std::nullopt;
+    // }
+    // bool valid = true;
+    // return map->dev->do_atomic(addr - map->start, data, length, amo, valid);
 }
 
 bool Bus::load_from_stream(std::istream &stream, word_t addr) {

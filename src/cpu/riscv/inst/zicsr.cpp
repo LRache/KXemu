@@ -1,6 +1,6 @@
 #include "cpu/riscv/core.h"
+#include "cpu/riscv/def.h"
 #include "cpu/word.h"
-
 #include "./local-decoder.h"
 
 #define REQUIRE_WRITABLE do {if (csr_read_only(CSR)) {do_invalid_inst(); return;}} while(0);
@@ -20,6 +20,10 @@ void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {
 
     s = this->write_csr(CSR, SRC1);
     CHECK_SUCCESS;
+
+    // if (CSR == CSRAddr::SCAUSE) {
+    //     INFO("write SCAUSE: " FMT_WORD ", pc=" FMT_WORD ", priv=%d", SRC1, this->pc, this->privMode);
+    // }
 
     DEST = value;
 }

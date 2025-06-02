@@ -23,24 +23,30 @@ void RVCore::trap(TrapCode cause, word_t value) {
     }
 #endif
 
-    CSRAddr epcAddr, causeAddr, tvalAddr, vecAddr;
+    CSRAddr epcAddr, causeAddr, tvalAddr, vecAddr, tinstAddr;
     csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
     if (deleg) {
         epcAddr   = CSRAddr::SEPC;
         causeAddr = CSRAddr::SCAUSE;
         tvalAddr  = CSRAddr::STVAL;
         vecAddr   = CSRAddr::STVEC;
+        tinstAddr = CSRAddr::STINST;
 
         mstatus.set_spp(this->privMode != PrivMode::USER);
         mstatus.set_spie(mstatus.sie());  
         mstatus.set_sie(false);
 
         this->set_priv_mode(PrivMode::SUPERVISOR);
+
+        // if (cause == TrapCode::LOAD_PAGE_FAULT) {
+        //     INFO("LOAD_PAGE_FAULT: pc=" FMT_WORD ", priv=%d, value=" FMT_WORD ", inst=%08x", this->pc, this->privMode, value, this->inst);
+        // }
     } else {
         epcAddr   = CSRAddr::MEPC;
         causeAddr = CSRAddr::MCAUSE;
         tvalAddr  = CSRAddr::MTVAL;
         vecAddr   = CSRAddr::MTVEC;
+        tinstAddr = CSRAddr::MTINST;
 
         mstatus.set_mpp(this->privMode);
         mstatus.set_mpie(mstatus.mie());
@@ -52,9 +58,8 @@ void RVCore::trap(TrapCode cause, word_t value) {
     this->csr.set_csr_value(epcAddr, this->pc);
     this->csr.set_csr_value(causeAddr, cause);
     this->csr.set_csr_value(tvalAddr, value);
+    this->csr.set_csr_value(tinstAddr, this->inst);
     this->csr.set_csr_value(CSRAddr::MSTATUS, mstatus);
-
-    DEBUG("Trap: " FMT_WORD ", EPC: " FMT_WORD ", TVAL: " FMT_WORD, cause, this->pc, value);
 
     csr::TrapVec vec = this->csr.get_csr_value(vecAddr);
     if (vec.mode() == csr::TrapVec::VECTORED) {
@@ -62,4 +67,6 @@ void RVCore::trap(TrapCode cause, word_t value) {
     } else {
         this->npc = vec.vec();
     }
+
+    DEBUG("gpr[15]=" FMT_WORD, this->gpr[15]);
 }

@@ -66,6 +66,7 @@ RVCSR::RVCSR() {
     // Supervisor Trap Setup
     add_csr(CSRAddr::SSTATUS, &RVCSR::read_sstatus, &RVCSR::write_sstatus); // sstatus
     add_csr(CSRAddr::SIE    , nullptr, &RVCSR::write_sie); // sie
+    add_csr(CSRAddr::STINST ); // stvec, Not implemented
     add_csr(CSRAddr::STVEC  ); // stvec
     add_csr(CSRAddr::SCNTEN ); // scounteren
 
@@ -236,6 +237,13 @@ const word_t *RVCSR::get_csr_ptr_readonly(unsigned int addr) const {
 }
 
 word_t RVCSR::read_csr(unsigned int addr, bool &valid) {
+    // if (csr::csr_privilege_level(addr) > this->privMode) {
+    //     // If the CSR is not accessible in the current privilege mode, we should not read it
+    //     WARN("Read from CSR 0x%03x in privilege mode %d", addr, this->privMode);
+    //     valid = false;
+    //     return 0;
+    // }
+    
     auto iter = this->csr.find(addr);
     if (iter == this->csr.end()) {
         valid = false;
@@ -265,6 +273,12 @@ word_t RVCSR::read_csr(unsigned int addr) {
 bool RVCSR::write_csr(unsigned int addr, word_t value) {
     // Whether the destination csr is read-only should be checked in the Core
     SELF_PROTECT(csr_read_only(addr), "Write to read-only CSR 0x%03x", addr);
+
+    // if (csr::csr_privilege_level(addr) > this->privMode) {
+    //     // If the CSR is not accessible in the current privilege mode, we should not write to it
+    //     WARN("Write to CSR 0x%03x in privilege mode %d", addr, this->privMode);
+    //     return false;
+    // }
 
     auto iter = this->csr.find(addr);
     if (iter == this->csr.end()) {

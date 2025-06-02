@@ -85,7 +85,7 @@ private:
 public:
     RVCSR();
 
-    int privMode;
+    unsigned int privMode;
 
     void init(unsigned int hartId, std::function<uint64_t()> get_uptime);
     void set_write_callbacks(unsigned int addr, callback_t callback);

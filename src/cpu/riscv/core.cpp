@@ -2,6 +2,8 @@
 #include "cpu/riscv/aclint.h"
 #include "cpu/word.h"
 #include "device/bus.h"
+#include "log.h"
+#include "word.h"
 
 #include <cstdint>
 #include <cstring>
@@ -84,6 +86,7 @@ word_t RVCore::get_gpr(unsigned int index) {
 }
 
 void RVCore::set_gpr(unsigned int index, word_t value) {
+    DEBUG("SET gpr[%u] = " FMT_WORD ", pc = " FMT_WORD, index, value, pc);
     this->gpr[index] = value;
 }
 

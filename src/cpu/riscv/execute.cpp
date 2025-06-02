@@ -3,18 +3,16 @@
 #include "macro.h"
 #include "log.h"
 
-#include <cstdint>
 #include <cstring>
 
 using namespace kxemu::cpu;
 
 RVCore::do_inst_t RVCore::decode_and_exec(DecodeInfo &decodeInfo) {
-    uint32_t inst = this->inst;
     #include "./autogen/base-decoder.inc"
 }
 
 RVCore::do_inst_t RVCore::decode_and_exec_c(DecodeInfo &decodeInfo) {
-    uint32_t inst = this->inst & 0xffff;
+    this->inst = this->inst & 0xffff;
     #include "./autogen/compressed-decoder.inc"
 }
 

@@ -4,7 +4,6 @@
 #include "macro.h"
 
 #include <bitset>
-#include <cctype>
 #include <cstdint>
 #include <iomanip>
 #include <ios>
@@ -51,23 +50,33 @@ typedef void (*func_t)(uint8_t *, unsigned int);
 
 static void show_mem_value_helper(unsigned int count, unsigned int size, word_t addr, func_t f) {
     bool valid;
+    word_t vaddr = addr;
     word_t paddr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
-    if (valid) {
-        addr = paddr;
+    if (!valid) {
+        paddr = addr;
     }
 
-    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(addr);
-    word_t memSize = kdb::bus->get_ptr_length(addr);
+    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(paddr);
+    if (mem == nullptr) {
+        std::cout << "Cannot access memory at address " << FMT_FG_BLUE << FMT_STREAM_WORD(vaddr) << FMT_FG_RESET << "." << std::endl;
+        return;
+    }
+    
+    word_t memSize = kdb::bus->get_ptr_length(paddr);
     for (unsigned int i = 0; i < count; i++) {
-        std::cout << FMT_STREAM_WORD(addr) << ": ";
+        if (vaddr != paddr) {
+            std::cout << "(paddr=" << FMT_STREAM_WORD(paddr) << ") ";
+        }
+        std::cout << FMT_FG_BLUE << FMT_STREAM_WORD(vaddr) << FMT_FG_RESET << ": ";
         if (memSize < size) {
-            std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+            std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(vaddr) << "." << std::endl;
             break;
         }
         f(mem, size);
         memSize -= size;
         mem += size;
-        addr += size;
+        vaddr += size;
+        paddr += size;
     }
 }
 
@@ -140,21 +149,25 @@ static void show_float(uint8_t *mem, unsigned int size) {
 
 static void show_inst(unsigned int count, unsigned int, word_t addr) {
     bool valid;
+    word_t vaddr = addr;
     word_t paddr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
     if (!valid) {
-        std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
-        return;
+        paddr = addr;
     }
-    word_t vaddr = addr;
     
     uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(paddr);
+    if (mem == nullptr) {
+        std::cout << "Cannot access memory at address " << FMT_FG_BLUE << FMT_STREAM_WORD(vaddr) << FMT_FG_RESET << "." << std::endl;
+        return;
+    }
+    
     word_t memSize = kdb::bus->get_ptr_length(paddr);
 
     for (unsigned int i = 0; i < count; i++) {
         if (vaddr != paddr) {
             std::cout << "(paddr=" << FMT_STREAM_WORD(paddr) << ") ";
         }
-        std::cout << FMT_STREAM_WORD(addr) << ": ";
+        std::cout << FMT_FG_BLUE << FMT_STREAM_WORD(vaddr) << FMT_FG_RESET << ": ";
         if (memSize == 0) {
             std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(vaddr) << "." << std::endl;
             break;
@@ -181,7 +194,41 @@ static void show_inst(unsigned int count, unsigned int, word_t addr) {
         std::cout << disasmStr << std::endl;
         memSize -= instLen;
         mem += instLen;
-        addr += instLen;
+        vaddr += instLen;
+        paddr += instLen;
+    }
+}
+
+static void show_string(unsigned int count, word_t addr) {
+    bool valid;
+    word_t vaddr = addr;
+    word_t paddr = kdb::cpu->get_core(0)->vaddr_translate(addr, valid);
+    if (!valid) {
+        std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+        return;
+    }
+    addr = paddr;
+
+    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(addr);
+    word_t memSize = kdb::bus->get_ptr_length(addr);
+
+    for (unsigned int i = 0; i < count; i++) {
+        if (memSize == 0) {
+            std::cout << "Cannot access memory at address " << FMT_STREAM_WORD(addr) << "." << std::endl;
+            break;
+        }
+
+        if (vaddr != paddr) {
+            std::cout << "(paddr=" << FMT_STREAM_WORD(paddr) << ") ";
+        }
+        std::cout  << FMT_STREAM_WORD(vaddr) << ": ";
+        while (memSize > 0 && *mem != '\0') {
+            std::cout << *mem++;
+            memSize--;
+            vaddr++;
+            paddr++;
+        }
+        std::cout << std::endl;
     }
 }
 
@@ -247,6 +294,7 @@ int cmd::show_mem(const args_t &args) {
         case CHAR: show_mem_value_helper(count, 1, addr, show_char); break;
         case FLOAT: show_mem_value_helper(count, size, addr, show_float); break;
         case INST: show_inst(count, size, addr); break;
+        case STR: show_string(count, addr); break;
     }
 
     return cmd::Success; 

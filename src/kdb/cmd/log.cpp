@@ -35,6 +35,7 @@ static int cmd_log_on(const std::string &logLevel) {
         if (pair.name == logLevel) {
             logFlag |= pair.level;
             std::cout << "Turn on the log level " << logLevel << "." << std::endl;
+            DEBUG("Turn on the log level %s.", logLevel.c_str());
             return 0;
         }
     }

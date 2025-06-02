@@ -16,16 +16,16 @@ namespace kxemu::device {
         }
     };
 
-    enum AMO {
-        AMO_SWAP,
-        AMO_ADD,
-        AMO_AND,
-        AMO_OR,
-        AMO_XOR,
-        AMO_MIN,
-        AMO_MAX,
-        AMO_MINU,
-        AMO_MAXU
+    enum class AMO {
+        SWAP,
+        ADD,
+        AND,
+        OR,
+        XOR,
+        MIN,
+        MAX,
+        MINU,
+        MAXU
     };
 }
 

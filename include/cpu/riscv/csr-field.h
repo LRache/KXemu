@@ -359,6 +359,11 @@ namespace kxemu::cpu::csr {
         void set_fflags(word_t fflags) { this->value = (this->value & ~0x1f) | (fflags & 0x1f);}
         void set_frm   (word_t frm   ) { this->value = (this->value & ~(0x7 << 5)) | ((frm & 0x7) << 5); }
     };
+
+    static inline unsigned int csr_privilege_level(unsigned int csrAddr) {
+        return (csrAddr >> 8) & 0x3;
+    }
+
 }
 
 #endif

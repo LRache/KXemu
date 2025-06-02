@@ -11,7 +11,9 @@
 #include "cpu/riscv/csr.h"
 #include "device/bus.h"
 
+#include <expected>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 
 namespace kxemu::cpu {
@@ -46,41 +48,53 @@ private:
     device::PLIC *plic;
     std::mutex *deviceMtx;
     void update_device();
-    bool   memory_fetch();
-    word_t memory_load (word_t addr, unsigned int len);
-    void   memory_store(word_t addr, word_t data, unsigned int len);
+    bool memory_fetch();
+    std::optional<word_t> memory_load(word_t addr, unsigned int len);
+    void memory_store(word_t addr, word_t data, unsigned int len);
 
     // Virtual address translation
-    bool pm_read (word_t paddr, word_t &data, unsigned int len);
-    bool pm_write(word_t paddr, word_t  data, unsigned int len);
-    bool pm_read_check (word_t paddr, word_t &data, unsigned int len); // With PMP check
-    bool pm_write_check(word_t paddr, word_t  data, unsigned int len);
+    std::optional<word_t> pm_read(word_t paddr, unsigned int len);
+    bool pm_write(word_t paddr, word_t data, unsigned int len);
+    std::optional<word_t> pm_read_check (word_t paddr, unsigned int len); // With PMP check
+    bool pm_write_check(word_t paddr, word_t data, unsigned int len);
     bool vm_fetch();
-    bool vm_read (word_t vaddr, word_t &data, unsigned int len);
+    std::optional<word_t> vm_read(word_t vaddr, unsigned int len);
     bool vm_write(word_t vaddr, word_t  data, unsigned int len);
 
-    enum VMResult {
+    // enum VMFault {
+    //     VM_PAGE_FAULT,
+    //     VM_ACCESS_FAULT,
+    // };
+    enum class VMResult {
         VM_OK,
         VM_PAGE_FAULT,
         VM_ACCESS_FAULT,
-        VM_UNSET
+        VM_UNSET, // Not set yet
     };
+    // using VMResult = std::expected<word_t, VMFault>;
     // word_t vaddr_translate_core(word_t addr, MemType type, VMResult &result);
+    // VMResult vaddr_translate_core(addr_t addr, MemType type);
     word_t vaddr_translate_core(addr_t addr, MemType type, VMResult &result);
     
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-    word_t vaddr_translate_sv(addr_t vaddr, MemType type, VMResult &result); // The template function for sv32, sv39, sv48, sv57
+    // VMResult vaddr_translate_sv(addr_t vaddr, MemType type); // The template function for sv32, sv39, sv48, sv57
+    word_t vaddr_translate_sv(addr_t vaddr, MemType type, VMResult &result);
     
-    word_t vaddr_translate_bare(word_t vaddr, MemType type, VMResult &result);
+    // VMResult vaddr_translate_bare(word_t vaddr, MemType type);
+    word_t vaddr_translate_bare(word_t addr, MemType type, VMResult &result);
     #ifdef KXEMU_ISA32
     word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result);
     #else
-    word_t vaddr_translate_sv39(word_t vaddr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv48(word_t vaddr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv57(word_t vaddr, MemType type, VMResult &result);
+    // VMResult vaddr_translate_sv39(word_t vaddr, MemType type);
+    // VMResult vaddr_translate_sv48(word_t vaddr, MemType type);
+    // VMResult vaddr_translate_sv57(word_t vaddr, MemType type);
+    word_t vaddr_translate_sv39(word_t addr, MemType type, VMResult &result);
+    word_t vaddr_translate_sv48(word_t addr, MemType type, VMResult &result);
+    word_t vaddr_translate_sv57(word_t addr, MemType type, VMResult &result);
     #endif
     
     word_t pageTableBase;
+    // VMResult (RVCore::*vaddr_translate_func)(word_t addr, MemType type);
     word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
     void update_vm_translate();
 
@@ -149,7 +163,7 @@ private:
 
     // Zicsr and Privilleged
     RVCSR csr;
-    int &privMode = csr.privMode; // Priviledge mode
+    unsigned int &privMode = csr.privMode; // Priviledge mode
     void init_csr();
     word_t  read_csr(unsigned int addr, bool &valid);
     bool   write_csr(unsigned int addr, word_t value);

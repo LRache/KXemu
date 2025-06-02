@@ -3,6 +3,7 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "debug.h"
+#include "log.h"
 
 #include <optional>
 
@@ -139,30 +140,30 @@ bool RVCSR::write_frm(unsigned int addr, word_t value) {
 }
 
 bool RVCSR::time_readable() {
-    csr::MCounteren mcnten = this->get_csr_value(CSRAddr::MCNTEN);
+//     csr::MCounteren mcnten = this->get_csr_value(CSRAddr::MCNTEN);
 
-    // Check if the timer is enabled
-    if (!mcnten.tm() && this->privMode != PrivMode::MACHINE) {
-        return false;
-    }
+//     // Check if the timer is enabled
+//     if (!mcnten.tm() && this->privMode != PrivMode::MACHINE) {
+//         return false;
+//     }
 
-    csr::MCounteren scnten = this->get_csr_value(CSRAddr::SCNTEN);
-    if (!scnten.tm() && this->privMode == PrivMode::USER) {
-        return false;
-    }
+//     csr::MCounteren scnten = this->get_csr_value(CSRAddr::SCNTEN);
+//     if (!scnten.tm() && this->privMode == PrivMode::USER) {
+//         return false;
+//     }
 
-    bool sstc;
-#ifdef KXEMU_ISA32
-    csr::MEnvConfigH menvcfgh = this->csr[CSRAddr::MENVCFGH].value;
-    sstc = menvcfgh.stce();
-#else
-    csr::MEnvConfig menvcfg = this->csr[CSRAddr::MENVCFG].value;
-    sstc = menvcfg.stce();
-#endif
+//     bool sstc;
+// #ifdef KXEMU_ISA32
+//     csr::MEnvConfigH menvcfgh = this->csr[CSRAddr::MENVCFGH].value;
+//     sstc = menvcfgh.stce();
+// #else
+//     csr::MEnvConfig menvcfg = this->csr[CSRAddr::MENVCFG].value;
+//     sstc = menvcfg.stce();
+// #endif
     
-    if (!sstc && this->privMode != PrivMode::MACHINE) {
-        return false;
-    }
+//     if (!sstc && this->privMode != PrivMode::MACHINE) {
+//         return false;
+//     }
 
     return true;
 }

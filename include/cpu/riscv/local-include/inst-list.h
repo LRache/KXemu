@@ -222,6 +222,11 @@ _INST(c_sdsp)
 _INST(c_ld)
 _INST(c_sd)
 
+_INST(c_fldsp)
+_INST(c_fsdsp)
+_INST(c_fld)
+_INST(c_fsd)
+
 _INST(c_addiw)
 _INST(c_addw)
 _INST(c_subw)
