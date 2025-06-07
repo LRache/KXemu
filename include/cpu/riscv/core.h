@@ -61,41 +61,28 @@ private:
     std::optional<word_t> vm_read(word_t vaddr, unsigned int len);
     bool vm_write(word_t vaddr, word_t  data, unsigned int len);
 
-    // enum VMFault {
-    //     VM_PAGE_FAULT,
-    //     VM_ACCESS_FAULT,
-    // };
-    enum class VMResult {
-        VM_OK,
-        VM_PAGE_FAULT,
-        VM_ACCESS_FAULT,
-        VM_UNSET, // Not set yet
+    enum class VMFault {
+        PAGE_FAULT,
+        ACCESS_FAULT,
     };
-    // using VMResult = std::expected<word_t, VMFault>;
-    // word_t vaddr_translate_core(word_t addr, MemType type, VMResult &result);
-    // VMResult vaddr_translate_core(addr_t addr, MemType type);
-    word_t vaddr_translate_core(addr_t addr, MemType type, VMResult &result);
+    using VMResult = std::expected<word_t, VMFault>;
+    VMResult vaddr_translate_core(addr_t addr, MemType type);
     
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-    // VMResult vaddr_translate_sv(addr_t vaddr, MemType type); // The template function for sv32, sv39, sv48, sv57
-    word_t vaddr_translate_sv(addr_t vaddr, MemType type, VMResult &result);
+    VMResult vaddr_translate_sv(addr_t vaddr, MemType type); // The template function for sv32, sv39, sv48, sv57
     
-    // VMResult vaddr_translate_bare(word_t vaddr, MemType type);
-    word_t vaddr_translate_bare(word_t addr, MemType type, VMResult &result);
+    VMResult vaddr_translate_bare(word_t vaddr, MemType type);
     #ifdef KXEMU_ISA32
-    word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result);
+    VMResult vaddr_translate_sv32(word_t addr, MemType type);
     #else
-    // VMResult vaddr_translate_sv39(word_t vaddr, MemType type);
-    // VMResult vaddr_translate_sv48(word_t vaddr, MemType type);
-    // VMResult vaddr_translate_sv57(word_t vaddr, MemType type);
-    word_t vaddr_translate_sv39(word_t addr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv48(word_t addr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv57(word_t addr, MemType type, VMResult &result);
+    VMResult vaddr_translate_sv39(word_t vaddr, MemType type);
+    VMResult vaddr_translate_sv48(word_t vaddr, MemType type);
+    VMResult vaddr_translate_sv57(word_t vaddr, MemType type);
     #endif
     
     word_t pageTableBase;
-    // VMResult (RVCore::*vaddr_translate_func)(word_t addr, MemType type);
-    word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
+    VMResult (RVCore::*vaddr_translate_func)(word_t addr, MemType type);
+    // word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
     void update_vm_translate();
 
     // Physical memory protection
@@ -190,10 +177,10 @@ private:
 
     // Atomic extension
     std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
-    word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid);
-    template<typename unit> void do_load_reserved(const DecodeInfo &decodeInfo);
-    template<typename unit> void do_store_conditional(const DecodeInfo &decodeInfo);
-    template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &decodeInfo);
+    std::optional<word_t> amo_vaddr_translate_and_set_trap(word_t vaddr, int len);
+    template<typename sunit_t> void do_load_reserved(const DecodeInfo &decodeInfo);
+    template<typename sunit_t> void do_store_conditional(const DecodeInfo &decodeInfo);
+    template<device::AMO amo, typename sw_t> void do_amo_inst(const DecodeInfo &decodeInfo);
 
     word_t gpr[33];
     
@@ -237,7 +224,6 @@ private:
     TLBBlock tlb[1 << TLB_SET_BITS];
     void tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t type);
     std::optional<TLBBlock *> tlb_hit(addr_t vaddr);
-    // TLBBlock &tlb_hit(addr_t vaddr, bool &hit);
     void tlb_fence();
 
 public:
