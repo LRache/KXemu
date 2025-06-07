@@ -290,4 +290,42 @@ void RVCore::do_c_fsd(const DecodeInfo &decodeInfo) {
     this->memory_store(SRC1 + IMM, i, 8);
 }
 
+#else
+
+void RVCore::do_c_flw(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+
+    this->memory_load(SRC1 + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
+        std::memcpy(&FDESTD, &data, 4);
+        FPR_FILL_DEST_HIGH;
+        return data;
+    });
+}
+
+void RVCore::do_c_fsw(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+
+    uint32_t i;
+    std::memcpy(&i, &FSRC2S, 4);
+    this->memory_store(SRC1 + IMM, i, 4);
+}
+
+void RVCore::do_c_flwsp(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_IMM;
+
+    this->memory_load(SP + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
+        std::memcpy(&FDESTS, &data, 4);
+        FPR_FILL_DEST_HIGH;
+        return data;
+    });
+}
+
+void RVCore::do_c_fswsp(const DecodeInfo &decodeInfo) {
+    TAG_RS2; TAG_IMM;
+
+    uint32_t i;
+    std::memcpy(&i, &FSRC2S, 4);
+    this->memory_store(SP + IMM, i, 4);
+}
+
 #endif

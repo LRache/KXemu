@@ -230,6 +230,12 @@ _INST(c_fsd)
 _INST(c_addiw)
 _INST(c_addw)
 _INST(c_subw)
+#else
+_INST(c_flwsp)
+_INST(c_fswsp)
+
+_INST(c_flw)
+_INST(c_fsw)
 #endif
 
 // Privileged mode
