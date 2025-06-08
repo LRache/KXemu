@@ -32,8 +32,8 @@ run: kxemu
 
 $(KERNEL_IMAGE):
 	$(info + COPYING CONFIG)
-	# @ cp ./kxemu_riscv64_defconfig ../../../os/linux-5.15.132/arch/riscv/configs/
-	# @ make -C ../../../os/linux-5.15.132 ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE) kxemu_riscv64_defconfig
+	@ cp ./kxemu_riscv64_defconfig ../../../os/linux-5.15.132/arch/riscv/configs/
+	@ make -C ../../../os/linux-5.15.132 ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE) kxemu_riscv64_defconfig
 	$(info + BUILDING KERNEL)
 	@ make -C ../../../os/linux-5.15.132 ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE) -j$(shell nproc) all
 
