@@ -65,7 +65,7 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     }
 
     bool valid;
-    sunit_t value = (sword_t)(sunit_t)this->bus->read(addr, sizeof(sunit_t), valid);
+    word_t value = (sword_t)(sunit_t)this->bus->read(addr, sizeof(sunit_t), valid);
     if (!valid) {
         this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
         return;
@@ -75,14 +75,14 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     this->reservedMemory[addr] = value;
 }
 
-template<typename unit_t>
+template<typename sunit_t>
 void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_RS2;
 
     bool valid;
     word_t addr;
     if (
-        !(this->amo_vaddr_translate_and_set_trap(SRC1, sizeof(unit_t))
+        !(this->amo_vaddr_translate_and_set_trap(SRC1, sizeof(sunit_t))
         .and_then([&](word_t paddr) -> std::optional<word_t> {
             addr = paddr;
             return paddr;
@@ -100,14 +100,23 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
         return;
     }
 
-    unit_t *ptr = (unit_t *)this->bus->get_ptr(addr);
+    // sunit_t expected = iter->second;
+    // this->bus->compare_and_swap(addr, &expected, SRC2, sizeof(sunit_t)).and_then([&](bool success) -> std::optional<bool> {
+    //     DEST = success ? 0 : 1;
+    //     return success;
+    // }).or_else([&]() -> std::optional<bool> {
+    //     this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
+    //     return std::nullopt;
+    // });
+
+    sunit_t *ptr = (sunit_t *)this->bus->get_ptr(addr);
     if (ptr == nullptr) {
         this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
         return;
     }
 
-    unit_t expected = iter->second;
-    unit_t desired  = SRC2;
+    sunit_t expected = iter->second;
+    sunit_t desired  = SRC2;
     bool success = __atomic_compare_exchange_n(ptr, &expected, desired, false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     DEST = success ? 0 : 1;
     this->reservedMemory.erase(iter);
