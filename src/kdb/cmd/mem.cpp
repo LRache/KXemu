@@ -5,7 +5,6 @@
 #include "word.h"
 
 #include <fstream>
-#include <iomanip>
 #include <ostream>
 #include <string>
 #include <vector>
@@ -17,13 +16,11 @@ using kxemu::kdb::word_t;
 
 static int cmd_mem_create(const cmd::args_t &);
 static int cmd_mem_img   (const cmd::args_t &);
-static int cmd_mem_map   (const cmd::args_t &);
 static int cmd_mem_save  (const cmd::args_t &);
 
 static const cmd::cmd_map_t cmdMap = {
     {"create"   , cmd_mem_create},
     {"img"      , cmd_mem_img   },
-    {"map"      , cmd_mem_map   },
     {"save"     , cmd_mem_save  },
 };
 
@@ -80,35 +77,6 @@ static int cmd_mem_img(const cmd::args_t &args) {
 
     kdb::bus->load_from_stream(f, 0x80000000);
 
-    return cmd::Success;
-}
-
-static int cmd_mem_map(const cmd::args_t &) {
-    if (kdb::bus->memoryMaps.empty()) {
-        std::cout << "There is no any memory map." << std::endl;
-        return cmd::Success;
-    }
-
-    std::cout << "Memory mapping info" << std::endl;
-    std::cout << std::setfill(' ')
-    << std::setw(10)  << "name" << " | "
-    << std::setw(WORD_WIDTH + 2) << "start" << " | "
-    << std::setw(WORD_WIDTH + 2) << "size" << " | "
-    << "type"
-    << std::setw(8) << std::endl;
-
-    for (auto &m : kdb::bus->memoryMaps) {
-        std::cout << std::setfill(' ')
-        << FMT_STREAM_WORD(m->start)  << " | "
-        << FMT_STREAM_WORD(m->start - m->end) << " | "
-        << std::setw(6) << "Memory" << std::endl;
-    }
-    for (auto &m : kdb::bus->mmioMaps) {
-        std::cout << std::setfill(' ')
-        << FMT_STREAM_WORD(m->start)  << " | "
-        << FMT_STREAM_WORD(m->size) << " | "
-        << std::setw(6) << m->dev->get_type_name() << std::endl;
-    }
     return cmd::Success;
 }
 
