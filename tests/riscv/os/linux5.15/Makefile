@@ -9,7 +9,6 @@ QEMU_FLAGS += -M virt -cpu rv64 -nographic
 QEMU_FLAGS += -kernel $(KERNEL_IMAGE)
 QEMU_FLAGS += -bios $(OPENSBI_BIN)
 QEMU_FLAGS += -initrd $(INITRAMFS)
-QEMU_FLAGS += -dtb $(DTB)
 
 GDB = gdb-multiarch
 
@@ -28,7 +27,8 @@ KXEMU_FLAGS += --def symbolELF=$(SYMBOL_ELF)
 KXEMU_FLAGS += --def dtb=$(DTB)
 KXEMU_FLAGS += --def initramfs=$(INITRAMFS)
 
-all: run
+all: kxemu
+run: kxemu
 
 $(KERNEL_IMAGE):
 	$(info + COPYING CONFIG)
@@ -61,11 +61,9 @@ $(DTB): $(DTS)
 	$(info + GENERATING DTB)
 	@ dtc -I dts -O dtb -o $(DTB) $(DTS)
 
-run: $(KERNEL_IMAGE) $(OPENSBI_BIN) $(DTB)
+kxemu: $(KERNEL_IMAGE) $(OPENSBI_BIN) $(DTB) $(INITRAMFS)
 	$(info + RUNNING KXEMU)
 	@ $(KXEMU) $(KXEMU_FLAGS)
-
-kxemu: run
 
 kxemu-gdb: $(KERNEL_IMAGE) $(OPENSBI_BIN) $(DTB)
 	$(info + RUNNING GDB)

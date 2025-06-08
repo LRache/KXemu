@@ -55,7 +55,7 @@
 	};
 
 	chosen {
-		linux,initrd-end = <0x8430fbdf>;
+		linux,initrd-end = <0x84400000>;
 		linux,initrd-start = <0x84200000>;
 	};
 
@@ -88,6 +88,13 @@
 			interrupts-extended = <0x02 0x03 0x02 0x07>;
 			reg = <0x00 0x2000000 0x00 0x10000>;
 			compatible = "sifive,clint0\0riscv,clint0";
+		};
+
+		virtio_mmio@10001000 {
+			interrupts = <0x01>;
+			interrupt-parent = <0x03>;
+			reg = <0x00 0x10001000 0x00 0x1000>;
+			compatible = "virtio,mmio";
 		};
 	};
 };

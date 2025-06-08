@@ -1,4 +1,34 @@
 #!/bin/sh
 
+/bin/mount -t proc proc /proc
+/bin/mount -t sysfs sys /sys
+/bin/mount -t devtmpfs dev /dev
+/bin/mount -t tmpfs tmp /tmp
+
+/bin/echo "Hello, world! from Busybox"
+
+/bin/echo "$ /bin/ls -al"
 /bin/ls -al
-/bin/echo "Hello, world!"
+
+/bin/echo "$ /bin/ls -al | /bin/grep 'init'"
+/bin/ls -al | /bin/grep "init"
+
+/bin/echo "$ /bin/ls -al /dev"
+/bin/ls /dev
+
+/bin/echo "$ /bin/ps"
+/bin/ps
+
+/bin/echo "$ /bin/uname -a"
+/bin/uname -a
+
+/bin/echo "$ /bin/sleep 1"
+/bin/sleep 1
+
+/bin/echo "$ /bin/cat /proc/cpuinfo"
+/bin/cat /proc/cpuinfo
+
+/bin/sh
+
+/bin/echo "goodbye, world! from Busybox"
+exit 10
