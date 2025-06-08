@@ -31,9 +31,9 @@ static int device_ls(const cmd::args_t &args) {
         std::cout << std::setfill(' ')
         << std::setw(4) << "0" << " | "
         << std::setw(10) << "Memory" << " | "
-        << FMT_STREAM_WORD_SPACE(memoryDevice->start)  << " | "
-        << FMT_STREAM_WORD_SPACE(memoryDevice->end)    << " | "
-        << FMT_STREAM_WORD_SPACE(memoryDevice->end - memoryDevice->start) << " | "
+        << FMT_STREAM_WORD_SPACE(memoryDevice->get_start())  << " | "
+        << FMT_STREAM_WORD_SPACE(memoryDevice->get_end())    << " | "
+        << FMT_STREAM_WORD_SPACE(memoryDevice->get_end() - memoryDevice->get_start()) << " | "
         << std::endl;
     }
 
