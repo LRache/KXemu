@@ -15,10 +15,26 @@ class Bus {
 public:
     ~Bus();
 
-    struct MemoryBlock {
+    class MemoryBlock {
+    private:
         word_t start;
         word_t end;
         uint8_t *data;
+    public:
+        MemoryBlock(word_t start, word_t size);
+        ~MemoryBlock();
+
+        word_t get_start() const { return start; }
+        word_t get_end()   const { return end; }
+
+        bool in_range(word_t addr, word_t length = 0) const;
+        void *get_ptr(word_t addr) const;
+        word_t get_ptr_length(word_t addr) const;
+        
+        word_t read(word_t addr, unsigned int length = 0) const;
+        bool write(word_t addr, word_t data, unsigned int length = 0);
+        word_t do_atomic(word_t addr, word_t data, unsigned int length, AMO amo);
+        bool compare_and_swap(word_t addr, void *expected, word_t desired, unsigned int length);
     };
     std::vector<MemoryBlock *> memoryMaps;
 
@@ -40,7 +56,8 @@ public:
     bool   write(word_t addr, word_t data, word_t length);
     void update();
 
-    std::optional<word_t> do_atomic(word_t addr, word_t data, word_t length, AMO amo);
+    std::optional<word_t> do_atomic(word_t addr, word_t data, unsigned int length, AMO amo);
+    std::optional<bool> compare_and_swap(word_t addr, void *expected, word_t desired, unsigned int length);
 
     bool load_from_stream(std::istream &stream, word_t addr);
     bool load_from_stream(std::istream &stream, word_t addr, word_t length);
