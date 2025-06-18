@@ -11,6 +11,7 @@
 #include "cpu/riscv/csr.h"
 #include "device/bus.h"
 
+#include <cstdint>
 #include <expected>
 #include <mutex>
 #include <optional>
@@ -35,6 +36,19 @@ private:
     word_t haltCode;
     word_t haltPC;
 
+    class TrapException : public std::exception {
+    private:
+        TrapCode code_;
+        word_t value_;
+    public:
+        TrapException(TrapCode code, word_t value = 0) : code_(code), value_(value) {}
+        TrapCode code() const { return code_; }
+        word_t value() const { return value_; }
+        const char *what() const noexcept override {
+            return "Trap Exception";
+        }
+    };
+
     // Memory access
     enum MemType {
         DontCare = 0,
@@ -48,6 +62,25 @@ private:
     device::PLIC *plic;
     std::mutex *deviceMtx;
     void update_device();
+
+    std::optional<word_t> pm_read_check_optional(word_t paddr, unsigned int len);
+
+#ifdef CONFIG_USE_EXCEPTION
+    void memory_fetch();
+    word_t memory_load(word_t addr, unsigned int len);
+    void memory_store(word_t addr, word_t data, unsigned int len);
+
+    void pm_fetch(word_t paddr);
+    word_t pm_read(word_t paddr, unsigned int len);
+    void pm_write(word_t paddr, word_t data, unsigned int len);
+    word_t pm_read_check(word_t paddr, unsigned int len); // With PMP check
+    void pm_write_check(word_t paddr, word_t data, unsigned int len);
+
+    // Virtual address translation
+    void vm_fetch();
+    word_t vm_read(word_t vaddr, unsigned int len);
+    void vm_write(word_t vaddr, word_t  data, unsigned int len);
+#else
     bool memory_fetch();
     std::optional<word_t> memory_load(word_t addr, unsigned int len);
     void memory_store(word_t addr, word_t data, unsigned int len);
@@ -60,16 +93,17 @@ private:
     bool vm_fetch();
     std::optional<word_t> vm_read(word_t vaddr, unsigned int len);
     bool vm_write(word_t vaddr, word_t  data, unsigned int len);
+#endif
 
     enum class VMFault {
         PAGE_FAULT,
         ACCESS_FAULT,
     };
     using VMResult = std::expected<word_t, VMFault>;
-    VMResult vaddr_translate_core(addr_t addr, MemType type);
+    VMResult vaddr_translate_core(addr_t addr, MemType type) noexcept;
     
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-    VMResult vaddr_translate_sv(addr_t vaddr, MemType type); // The template function for sv32, sv39, sv48, sv57
+    VMResult vaddr_translate_sv(addr_t vaddr, MemType type) noexcept; // The template function for sv32, sv39, sv48, sv57
     
     VMResult vaddr_translate_bare(word_t vaddr, MemType type);
     #ifdef KXEMU_ISA32

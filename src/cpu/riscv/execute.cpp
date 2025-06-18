@@ -102,7 +102,40 @@ void RVCore::execute() {
         this->pc = this->npc;
         return;
     }
-
+    
+    #ifdef CONFIG_USE_EXCEPTION
+    try {
+        #ifdef CONFIG_ICache
+        if (likely(this->icache_decode_and_exec())) {
+            return;
+        }
+        #endif
+        
+        this->memory_fetch();
+        
+        unsigned int instLen;
+        do_inst_t do_inst;
+        DecodeInfo decodeInfo;
+        if (unlikely((this->inst & 0x3) == 0x3)) {
+            this->npc = this->pc + 4;
+            instLen = 4;
+            do_inst = this->decode_and_exec(decodeInfo);
+        } else {
+            this->npc = this->pc + 2;
+            instLen = 2;
+            do_inst = this->decode_and_exec_c(decodeInfo);
+        }
+        
+        if (unlikely(do_inst == nullptr)) {
+            this->do_invalid_inst();
+        } else {
+            this->icache_push(do_inst, instLen, decodeInfo);
+        }
+    } catch (const TrapException &e) {
+        // Handle trap exception
+        this->trap(e.code(), e.value());
+    }
+    #else
     #ifdef CONFIG_ICache
     if (this->icache_decode_and_exec()) {
         return;
@@ -141,4 +174,5 @@ void RVCore::execute() {
     } else {
         this->icache_push(do_inst, instLen, decodeInfo);
     }
+    #endif
 }

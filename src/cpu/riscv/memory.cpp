@@ -3,11 +3,11 @@
 #include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
-#include "word.h"
 #include "log.h"
-#include "macro.h"
 #include "debug.h"
+#include "macro.h"
 
+#include <cstdint>
 #include <optional>
 #include <expected>
 
@@ -64,7 +64,7 @@ RVCore::VMResult RVCore::vaddr_translate_bare(word_t addr, MemType type) {
 }
 
 template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-RVCore::VMResult RVCore::vaddr_translate_sv(addr_t vaddr, MemType type) {
+RVCore::VMResult RVCore::vaddr_translate_sv(addr_t vaddr, MemType type) noexcept {
     // Whether the page which has the U bit set in the PTE is accessible by the current privilege mode
     bool uPageAccessible = this->privMode == PrivMode::USER || this->mstatus.sum;
 
@@ -73,7 +73,7 @@ RVCore::VMResult RVCore::vaddr_translate_sv(addr_t vaddr, MemType type) {
         word_t pteAddr = base + vaddr.vpn(i, VPNBITS) * PTESIZE;
         PTE pte;
         
-        if (!this->pm_read_check(pteAddr, PTESIZE).and_then([&](word_t data) {
+        if (!this->pm_read_check_optional(pteAddr, PTESIZE).and_then([&](word_t data) {
             pte = data;
             return std::optional<word_t>(data);
         })) {
@@ -187,7 +187,7 @@ RVCore::VMResult RVCore::vaddr_translate_sv57(word_t vaddr, MemType type) {
 
 #endif
 
-RVCore::VMResult RVCore::vaddr_translate_core(addr_t vaddr, MemType type) {
+RVCore::VMResult RVCore::vaddr_translate_core(addr_t vaddr, MemType type) noexcept {
     #ifdef CONFIG_TLB
     auto b = this->tlb_hit(vaddr);
     if (b.has_value()) {  
@@ -198,11 +198,8 @@ RVCore::VMResult RVCore::vaddr_translate_core(addr_t vaddr, MemType type) {
             if (type & STORE) {
                 block->flag.set_d();
             }
-            // result = VMResult::VM_OK;
             return block->paddr + vaddr.tlb_off();
         } else {
-            // result = VMResult::VM_PAGE_FAULT;
-            // return -1;
             return std::unexpected(VMFault::PAGE_FAULT);
         }
     } else {
@@ -224,11 +221,150 @@ word_t RVCore::vaddr_translate(word_t vaddr, bool &valid) {
         valid = false;
         return -0x00caffee; // Translation fails, this is a placeholder
     }
-    // VMResult vmresult;
-    // word_t paddr = this->vaddr_translate_core(vaddr, MemType::DontCare, vmresult);
-    // valid = (vmresult == VMResult::VM_OK);
-    // return paddr;
 }
+
+std::optional<word_t> RVCore::pm_read_check_optional(word_t paddr, unsigned int len) {
+    bool valid;
+    word_t data = this->bus->read(paddr, len, valid);
+    return valid ? std::optional<word_t>(data) : std::nullopt;
+}
+
+#ifdef CONFIG_USE_EXCEPTION
+
+void RVCore::pm_fetch(word_t paddr) {
+    bool valid;
+    this->inst = this->bus->read(paddr, 4, valid);
+    if (!valid) {
+        throw TrapException(TrapCode::INST_ACCESS_FAULT, paddr);
+    }
+}
+
+word_t RVCore::pm_read(word_t paddr, unsigned int len) {
+    bool valid;
+    word_t data = this->bus->read(paddr, len, valid);
+    if (!valid) {
+        throw TrapException(TrapCode::LOAD_ACCESS_FAULT, paddr);
+    }
+    return data;
+}
+
+void RVCore::pm_write(word_t paddr, word_t data, unsigned int len) {
+    if (!this->bus->write(paddr, data, len)) {
+        throw TrapException(TrapCode::STORE_ACCESS_FAULT, paddr);
+    }
+}
+
+word_t RVCore::pm_read_check(word_t paddr, unsigned int len) {
+    if (unlikely(!this->pmp_check_r(paddr, len))) {
+        throw TrapException(TrapCode::LOAD_ACCESS_FAULT, paddr);
+    }
+    return this->pm_read(paddr, len);
+}
+
+void RVCore::pm_write_check(word_t paddr, word_t data, unsigned int len) {
+    if (unlikely(!this->pmp_check_w(paddr, len))) {
+        throw TrapException(TrapCode::STORE_ACCESS_FAULT, paddr);
+    }
+    this->pm_write(paddr, data, len);
+}
+
+void RVCore::vm_fetch() {
+    word_t vaddr = this->pc;
+
+    word_t paddr = this->vaddr_translate_core(vaddr, MemType::FETCH).or_else([&](VMFault fault) -> std::expected<word_t, VMFault> {
+        switch (fault) {
+            case VMFault::ACCESS_FAULT: throw TrapException(TrapCode::INST_ACCESS_FAULT, vaddr);
+            case VMFault::PAGE_FAULT:   throw TrapException(TrapCode::INST_PAGE_FAULT  , vaddr);
+        }
+    }).value();
+
+    if (unlikely(access_page_unaligned(vaddr, 4))) {
+        word_t low;
+        low = this->pm_read_check(paddr, 2);
+
+        if (likely((low & 0x3) != 0x3)) {
+            // Compressed instruction
+            this->inst = low;
+            return ;
+        }
+
+        paddr = this->vaddr_translate_core(vaddr + 2, MemType::FETCH).or_else([&](VMFault fault) -> std::expected<word_t, VMFault> {
+            switch (fault) {
+                case VMFault::ACCESS_FAULT: throw TrapException(TrapCode::INST_ACCESS_FAULT, vaddr);
+                case VMFault::PAGE_FAULT:   throw TrapException(TrapCode::INST_PAGE_FAULT  , vaddr);
+            }
+            return std::unexpected(fault);
+        }).value();
+
+        uint32_t high = this->pm_read_check(paddr, 2);
+        this->inst = (high << 16) | low;
+    } else {
+        this->inst = this->pm_read_check(paddr, 4);
+    }
+}
+
+word_t RVCore::vm_read(word_t vaddr, unsigned int len) {
+    word_t paddr = this->vaddr_translate_core(vaddr, MemType::LOAD)
+    .or_else([&](VMFault fault) -> VMResult {
+        switch (fault) {
+            case VMFault::ACCESS_FAULT: throw TrapException(TrapCode::LOAD_ACCESS_FAULT, vaddr);
+            case VMFault::PAGE_FAULT:   throw TrapException(TrapCode::LOAD_PAGE_FAULT  , vaddr); break;
+        }
+    }).value();
+    
+    if (unlikely(access_page_unaligned(vaddr, len))) {
+        // vaddr is unaligned, need to concat two memory access
+        WARN("vm_read misaligned, paddr=" FMT_WORD ", len=%d, pc=" FMT_WORD, paddr, len, this->pc);
+        NOT_IMPLEMENTED();
+    }
+
+    return this->pm_read_check(paddr, len);
+}
+
+void RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
+    word_t paddr = this->vaddr_translate_core(vaddr, MemType::STORE)
+    .or_else([&](VMFault fault) -> VMResult {
+        switch (fault) {
+            case VMFault::ACCESS_FAULT: throw TrapException(TrapCode::STORE_ACCESS_FAULT, vaddr);
+            case VMFault::PAGE_FAULT:   throw TrapException(TrapCode::STORE_PAGE_FAULT  , vaddr); break;
+        }
+    }).value();
+
+    if (unlikely(access_page_unaligned(vaddr, len))) {
+        // vaddr is unaligned, need to concat two memory access
+        WARN("vm_write misaligned, paddr=" FMT_WORD ", len=%d, pc=" FMT_WORD, paddr, len, this->pc);
+        NOT_IMPLEMENTED();
+    }
+
+    this->pm_write_check(paddr, data, len);
+}
+
+void RVCore::memory_fetch() {
+    if (unlikely(this->privMode == PrivMode::MACHINE)) {
+        this->pm_fetch(this->pc);
+    } else {
+        this->vm_fetch();
+    }
+}
+
+word_t RVCore::memory_load(word_t addr, unsigned int len) {
+    word_t data = -1;
+    if (unlikely(this->privMode == PrivMode::MACHINE)) {
+        return this->pm_read(addr, len);
+    } else {
+        return this->vm_read(addr, len);
+    }
+}
+
+void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
+    if (unlikely(this->privMode == PrivMode::MACHINE)) {
+        this->pm_write(addr, data, len);
+    } else {
+        this->vm_write(addr, data, len);
+    }
+}
+
+#else
 
 std::optional<word_t> RVCore::pm_read(word_t paddr, unsigned int len) {
     bool valid;
@@ -314,20 +450,6 @@ bool RVCore::vm_fetch() {
             return false;
         }
 
-        // word_t high;
-        // if (
-        //     !this->pm_read(paddr, 2).and_then([&](word_t data) {
-        //         high = data;
-        //         return std::optional<word_t>(data);
-        //     }).or_else([&]() -> std::optional<word_t> {
-        //         this->trap(TrapCode::INST_ACCESS_FAULT);
-        //         return std::nullopt;
-        //     })
-        // ) {
-        //     return false;
-        // }
-        
-        // inst = (high << 16) | low;
         return this->pm_read(paddr, 2).and_then([&](word_t high) -> std::optional<word_t> {
                 this->inst = (high << 16) | low;
                 return std::optional<word_t>(inst);
@@ -343,11 +465,6 @@ bool RVCore::vm_fetch() {
                 this->trap(TrapCode::INST_ACCESS_FAULT, paddr);
                 return std::nullopt;
             }).has_value();
-        // if (unlikely(!this->pm_read_check(paddr, inst, 4))) {
-        //     DEBUG("Physical memory protection check failed when fetch, pc=" FMT_WORD, this->pc);
-        //     this->trap(TrapCode::INST_ACCESS_FAULT, paddr);
-        //     return false;
-        // }
     }
     
     return true;
@@ -411,7 +528,7 @@ bool RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
 
     if (unlikely(!this->pm_write_check(paddr, data, len))) {
         WARN("Physical memory protection check failed when store, addr=" FMT_WORD ", len=%d", paddr, len);
-        this->trap(TrapCode::STORE_ACCESS_FAULT);
+        this->trap(TrapCode::STORE_ACCESS_FAULT, vaddr);
         return false;
     } else {
         return true;
@@ -428,8 +545,12 @@ bool RVCore::memory_fetch() {
                 return inst;
             })
             .or_else([&]() -> std::optional<word_t> {
+            #ifdef CONFIG_USE_EXCEPTION
+                throw TrapException(TrapCode::INST_ACCESS_FAULT, this->pc);
+            #else
                 this->trap(TrapCode::INST_ACCESS_FAULT, this->pc);
                 return std::nullopt;
+            #endif
             }).has_value();
     } else {
         return vm_fetch();
@@ -457,6 +578,8 @@ void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
         vm_write(addr, data, len);
     }
 }
+
+#endif
 
 void RVCore::update_vm_translate() {
     csr::Satp satp = this->csr.get_csr_value(CSRAddr::SATP);

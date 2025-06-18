@@ -67,36 +67,44 @@ void RVCore::do_sret(const DecodeInfo &) {
 }
 
 void RVCore::do_invalid_inst() {
-    if (this->debugMode) {
-        this->state = ERROR;
-        this->haltPC = this->pc;
-    }
-
+#ifdef CONFIG_BREAK
+    this->state = ERROR;
+    this->haltPC = this->pc;
     WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
+#endif
 
+#ifdef CONFIG_USE_EXCEPTION
+    throw TrapException(TrapCode::ILLEGAL_INST, this->inst);
+#else
     this->trap(TrapCode::ILLEGAL_INST, this->inst);
+#endif
 }
 
 void RVCore::do_invalid_inst(const DecodeInfo &) {
-    WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
+    // WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
     this->do_invalid_inst();
 }
 
 void RVCore::do_ebreak(const DecodeInfo &) {
-    if (this->debugMode) {
-        INFO("EBREAK at pc=" FMT_WORD, this->pc);
-        this->state = HALT;
-        this->haltCode = this->gpr[10];
-        this->haltPC = this->pc;
-    }
+#ifdef CONFIG_BREAK
+    INFO("EBREAK at pc=" FMT_WORD, this->pc);
+    this->state = HALT;
+    this->haltCode = this->gpr[10];
+    this->haltPC = this->pc;
+#endif
     
+#ifdef CONFIG_USE_EXCEPTION
+    throw TrapException(TrapCode::BREAKPOINT);
+#else
     this->trap(TrapCode::BREAKPOINT); 
+#endif
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
-    // INFO("WFI at pc=" FMT_WORD, this->pc);
+    INFO("WFI at pc=" FMT_WORD, this->pc);
     while (!this->scan_interrupt()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         this->update_device();
     }
+    INFO("WFI wake up at pc=" FMT_WORD, this->pc);
 }
