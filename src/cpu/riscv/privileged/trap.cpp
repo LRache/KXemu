@@ -2,7 +2,6 @@
 #include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
-#include "log.h"
 
 using namespace kxemu::cpu;
 
@@ -37,10 +36,6 @@ void RVCore::trap(TrapCode cause, word_t value) {
         mstatus.set_sie(false);
 
         this->set_priv_mode(PrivMode::SUPERVISOR);
-
-        // if (cause == TrapCode::LOAD_PAGE_FAULT) {
-        //     INFO("LOAD_PAGE_FAULT: pc=" FMT_WORD ", priv=%d, value=" FMT_WORD ", inst=%08x", this->pc, this->privMode, value, this->inst);
-        // }
     } else {
         epcAddr   = CSRAddr::MEPC;
         causeAddr = CSRAddr::MCAUSE;
@@ -67,6 +62,4 @@ void RVCore::trap(TrapCode cause, word_t value) {
     } else {
         this->npc = vec.vec();
     }
-
-    DEBUG("gpr[15]=" FMT_WORD, this->gpr[15]);
 }

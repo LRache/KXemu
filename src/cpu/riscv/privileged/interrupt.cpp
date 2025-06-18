@@ -20,7 +20,6 @@ void RVCore::set_interrupt(InterruptCode code) {
     std::lock_guard<std::mutex> lock(this->csrMtx);
     
     csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
-    // mip |= 1 << code;
     mip.set_pending(code);
     this->csr.set_csr_value(CSRAddr::MIP, mip);
 }
@@ -28,8 +27,6 @@ void RVCore::set_interrupt(InterruptCode code) {
 void RVCore::clear_interrupt(InterruptCode code) {
     std::lock_guard<std::mutex> lock(this->csrMtx);
     
-    // word_t mip = this->csr.get_csr_value(CSRAddr::MIP);
-    // mip &= ~(1 << code);
     csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
     mip.clear_pending(code);
     this->csr.set_csr_value(CSRAddr::MIP, mip);
@@ -126,12 +123,6 @@ void RVCore::interrupt_s(InterruptCode code) {
 }
 
 static constexpr InterruptCode INTER_BITS[] = {
-    // INTERRUPT_EXTERNAL_M,
-    // INTERRUPT_SOFTWARE_M,
-    // INTERRUPT_TIMER_M,
-    // INTERRUPT_EXTERNAL_S,
-    // INTERRUPT_SOFTWARE_S,
-    // INTERRUPT_TIMER_S,
     InterruptCode::EXTERNAL_M,
     InterruptCode::SOFTWARE_M,
     InterruptCode::TIMER_M,
@@ -151,9 +142,9 @@ bool RVCore::scan_interrupt() {
     if (this->mstatus.mie) {
         pending = *this->mip & *this->mie & ~*this->mideleg;
         if (pending) {
-            for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {
-                if (pending & (1 << INTER_BITS[i])) {
-                    interrupt_m(INTER_BITS[i]);
+            for (auto const &bit : INTER_BITS) {
+                if (pending & (1 << bit)) {
+                    interrupt_m(bit);
                     return true;
                 }
             }
@@ -164,9 +155,9 @@ bool RVCore::scan_interrupt() {
     if (this->mstatus.sie) {
         pending = *this->mip & *this->mie & *this->mideleg;
         if (pending) {
-            for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {
-                if (pending & (1 << INTER_BITS[i])) {
-                    interrupt_s(INTER_BITS[i]);
+            for (auto const &bit : INTER_BITS) {
+                if (pending & (1 << bit)) {
+                    interrupt_s(bit);
                     return true;
                 }
             }

@@ -21,10 +21,6 @@ void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {
     s = this->write_csr(CSR, SRC1);
     CHECK_SUCCESS;
 
-    // if (CSR == CSRAddr::SCAUSE) {
-    //     INFO("write SCAUSE: " FMT_WORD ", pc=" FMT_WORD ", priv=%d", SRC1, this->pc, this->privMode);
-    // }
-
     DEST = value;
 }
 

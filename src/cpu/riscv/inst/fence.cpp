@@ -12,10 +12,6 @@ void RVCore::do_sfence_vma(const DecodeInfo &) {
 }
 
 void RVCore::do_fence(const DecodeInfo &) {
-    // if (this->privMode == PrivMode::USER) {
-    //     do_invalid_inst();
-    //     return;
-    // } 
     this->icache_fence();
 }
 
