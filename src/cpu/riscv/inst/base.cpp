@@ -175,67 +175,32 @@ void RVCore::do_sraiw(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_lb(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
-#ifdef CONFIG_USE_EXCEPTION
-    DEST = (sword_t)(int8_t)this->memory_load(ADDR, 1);
-#else
-    this->memory_load(ADDR, 1).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = (sword_t)(int8_t)data;
-        return data;
-    });
-#endif
+
+    DEST = (sword_t)(int8_t)this->memory_load(ADDR, 1); 
 }
 
 void RVCore::do_lbu(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
-#ifdef CONFIG_USE_EXCEPTION
+
     DEST = this->memory_load(ADDR, 1);
-#else
-    this->memory_load(ADDR, 1).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_lh(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     
-#ifdef CONFIG_USE_EXCEPTION
     DEST = (sword_t)(int16_t)this->memory_load(ADDR, 2);
-#else
-    this->memory_load(ADDR, 2).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = (sword_t)(int16_t)data;
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_lhu(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
 
-#ifdef CONFIG_USE_EXCEPTION
     DEST = this->memory_load(ADDR, 2);
-#else
-    this->memory_load(ADDR, 2).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_lw(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
 
-#ifdef CONFIG_USE_EXCEPTION
     DEST = (sword_t)(int32_t)this->memory_load(ADDR, 4);
-#else
-    this->memory_load(ADDR, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = (sword_t)(int32_t)data;
-        return data;
-    });
-#endif
 }
 
 #ifdef KXEMU_ISA64
@@ -244,29 +209,14 @@ void RVCore::do_lwu(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     RV64ONLY;
     
-    // DEST = this->memory_load(ADDR, 4);
-    #ifdef CONFIG_USE_EXCEPTION
     DEST = this->memory_load(ADDR, 4);
-    #else
-    this->memory_load(ADDR, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
-    #endif
 }
 
 void RVCore::do_ld(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     RV64ONLY;
     
-#ifdef CONFIG_USE_EXCEPTION
     DEST = this->memory_load(ADDR, 8);
-#else
-    this->memory_load(ADDR, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
-#endif
 }
 
 #endif

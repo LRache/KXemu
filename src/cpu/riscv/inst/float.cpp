@@ -54,22 +54,11 @@ void RVCore::update_fcsr() {
 }
 
 void RVCore::do_flw(const DecodeInfo &decodeInfo) {
-#ifdef CONFIG_USE_EXCEPTION
     uint32_t data = this->memory_load(SRC1 + IMM, 4);
     float f;
     std::memcpy(&f, &data, 4);
     FDESTS = f;
     FPR_FILL_DEST_HIGH;
-#else
-    this->memory_load(SRC1 + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        uint32_t i = data;
-        float f;
-        std::memcpy(&f, &i, 4);
-        FDESTS = f;
-        FPR_FILL_DEST_HIGH;
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_fsw(const DecodeInfo &decodeInfo) {
@@ -360,20 +349,10 @@ void RVCore::do_fmv_w_x(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_fld(const DecodeInfo &decodeInfo) {
-#ifdef CONFIG_USE_EXCEPTION
     uint64_t data = this->memory_load(SRC1 + IMM, 8);
     double d;
     std::memcpy(&d, &data, 8);
     FDESTD = d;
-#else
-    this->memory_load(SRC1 + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        uint64_t i = data;
-        double d;
-        std::memcpy(&d, &i, 8);
-        FDESTD = d;
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_fsd(const DecodeInfo &decodeInfo) {

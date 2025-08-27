@@ -64,7 +64,6 @@ private:
 
     std::optional<word_t> pm_read_check_optional(word_t paddr, unsigned int len);
 
-#ifdef CONFIG_USE_EXCEPTION
     void   memory_fetch();
     word_t memory_load (word_t addr, unsigned int len);
     void   memory_store(word_t addr, word_t data, unsigned int len);
@@ -77,23 +76,9 @@ private:
     void   pm_write_check(word_t paddr, word_t data, unsigned int len);
 
     // Virtual address translation
-    void vm_fetch();
+    void   vm_fetch();
     word_t vm_read (word_t vaddr, unsigned int len);
     void   vm_write(word_t vaddr, word_t data, unsigned int len);
-#else
-    bool memory_fetch();
-    std::optional<word_t> memory_load(word_t addr, unsigned int len);
-    void memory_store(word_t addr, word_t data, unsigned int len);
-
-    // Virtual address translation
-    std::optional<word_t> pm_read(word_t paddr, unsigned int len);
-    bool pm_write(word_t paddr, word_t data, unsigned int len);
-    std::optional<word_t> pm_read_check (word_t paddr, unsigned int len); // With PMP check
-    bool pm_write_check(word_t paddr, word_t data, unsigned int len);
-    bool vm_fetch();
-    std::optional<word_t> vm_read(word_t vaddr, unsigned int len);
-    bool vm_write(word_t vaddr, word_t  data, unsigned int len);
-#endif
 
     enum class VMFault {
         PAGE_FAULT,
@@ -210,11 +195,7 @@ private:
 
     // Atomic extension
     std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
-    #ifdef CONFIG_USE_EXCEPTION
     word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len);
-    #else
-    std::optional<word_t> amo_vaddr_translate_and_set_trap(word_t vaddr, int len);
-    #endif
     template<typename sunit_t> void do_load_reserved(const DecodeInfo &decodeInfo);
     template<typename sunit_t> void do_store_conditional(const DecodeInfo &decodeInfo);
     template<device::AMO amo, typename sw_t> void do_amo_inst(const DecodeInfo &decodeInfo);

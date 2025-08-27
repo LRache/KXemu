@@ -1,7 +1,6 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/def.h"
-#include "log.h"
 
 #include <thread>
 #include <utility>
@@ -22,11 +21,7 @@ void RVCore::do_ecall(const DecodeInfo &) {
         default: std::unreachable();
     }
     
-    #ifdef CONFIG_USE_EXCEPTION
     throw TrapException(code);
-    #else
-    trap(code);
-    #endif
 }
 
 // An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When
@@ -81,11 +76,7 @@ void RVCore::do_invalid_inst() {
     WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
 #endif
 
-#ifdef CONFIG_USE_EXCEPTION
     throw TrapException(TrapCode::ILLEGAL_INST, this->inst);
-#else
-    this->trap(TrapCode::ILLEGAL_INST, this->inst);
-#endif
 }
 
 void RVCore::do_invalid_inst(const DecodeInfo &) {
@@ -100,11 +91,7 @@ void RVCore::do_ebreak(const DecodeInfo &) {
     this->haltPC = this->pc;
 #endif
     
-#ifdef CONFIG_USE_EXCEPTION
     throw TrapException(TrapCode::BREAKPOINT);
-#else
-    this->trap(TrapCode::BREAKPOINT); 
-#endif
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {

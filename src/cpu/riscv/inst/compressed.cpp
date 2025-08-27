@@ -2,9 +2,10 @@
 #include "cpu/word.h"
 #include "macro.h"
 
-#include "./local-decoder.h"
 #include <cstdint>
 #include <cstring>
+
+#include "./local-decoder.h"
 
 #define REQUIRE(cond) do {if (unlikely(!(cond))) { this->do_invalid_inst(); return; }} while(0);
 #define REQUIRE_NOT_x0(reg)  REQUIRE(!(reg##_is_x0))
@@ -19,14 +20,7 @@ void RVCore::do_c_lwsp(const DecodeInfo &decodeInfo) {
     
     REQUIRE_NOT_x0(rd);
 
-#ifdef CONFIG_USE_EXCEPTION
     DEST = SEXT64(this->memory_load(SP + IMM, 4));
-#else
-    this->memory_load(SP + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = SEXT64(data);
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_c_swsp(const DecodeInfo &decodeInfo) {
@@ -37,15 +31,8 @@ void RVCore::do_c_swsp(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_c_lw(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
-#ifdef CONFIG_USE_EXCEPTION
+
     DEST = SEXT64(this->memory_load(SRC1 + IMM, 4));
-#else
-    this->memory_load(SRC1 + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = SEXT64(data);
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_c_sw(const DecodeInfo &decodeInfo) {
@@ -214,14 +201,7 @@ void RVCore::do_c_ldsp(const DecodeInfo &decodeInfo) {
     
     REQUIRE_NOT_x0(rd);
 
-#ifdef CONFIG_USE_EXCEPTION
     DEST = this->memory_load(SP + IMM, 8);
-#else
-    this->memory_load(SP + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_c_sdsp(const DecodeInfo &decodeInfo) {
@@ -232,15 +212,8 @@ void RVCore::do_c_sdsp(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_c_ld(const DecodeInfo &decodeInfo) {
     TAG_RS1; TAG_IMM;
-    
-#ifdef CONFIG_USE_EXCEPTION
+
     DEST = this->memory_load(SRC1 + IMM, 8);
-#else
-    this->memory_load(SRC1 + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_c_sd(const DecodeInfo &decodeInfo) {
@@ -272,15 +245,8 @@ void RVCore::do_c_subw(const DecodeInfo &decodeInfo) {
 void RVCore::do_c_fldsp(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_IMM;
 
-#ifdef CONFIG_USE_EXCEPTION
     uint64_t data = this->memory_load(SP + IMM, 8);
     std::memcpy(&FDESTD, &data, 8);
-#else
-    this->memory_load(SP + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        std::memcpy(&FDESTD, &data, 8);
-        return data;
-    });
-#endif
 }
 
 void RVCore::do_c_fsdsp(const DecodeInfo &decodeInfo) {
@@ -294,15 +260,8 @@ void RVCore::do_c_fsdsp(const DecodeInfo &decodeInfo) {
 void RVCore::do_c_fld(const DecodeInfo &decodeInfo) {
     TAG_RS1; TAG_IMM;
 
-    #ifdef CONFIG_USE_EXCEPTION
     uint64_t data = this->memory_load(SRC1 + IMM, 8);
     std::memcpy(&FDESTD, &data, 8);
-    #else
-    this->memory_load(SRC1 + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        std::memcpy(&FDESTD, &data, 8);
-        return data;
-    });
-    #endif
 }
 
 void RVCore::do_c_fsd(const DecodeInfo &decodeInfo) {
