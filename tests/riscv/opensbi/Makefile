@@ -1,14 +1,18 @@
 XLEN ?= 64
+SMP ?= 3
 
 OPENSBI = ./build/fw_payload-$(XLEN).bin
 CROSS_COMPILE = riscv64-linux-gnu-
 
 KXEMU = ../../../build/kxemu-system-riscv$(XLEN)
 KXEMU_FLAGS += --source $(abspath ./opensbi.kdb)
-KXEMU_FLAGS += --core 1
+KXEMU_FLAGS += --core $(SMP)
 KXEMU_FLAGS += --def openSBIBIN=$(OPENSBI)
 
 QEMU = qemu-system-riscv$(XLEN)
+QEMU_FLAGS += -M virt -m 256M -nographic
+QEMU_FLAGS += -bios $(OPENSBI)
+QEMU_FLAGS += -smp $(SMP)
 
 all: run
 
@@ -24,11 +28,11 @@ run: $(OPENSBI)
 
 qemu: $(OPENSBI)
 	$(info + RUNNING QEMU)
-	$(QEMU) -M virt -m 256M -nographic -bios $(OPENSBI)
+	$(QEMU) $(QEMU_FLAGS)
 
 qemu-gdb: $(OPENSBI)
 	$(info + RUNNING QEMU GDB)
-	$(QEMU) -M virt -m 256M -nographic -bios $(OPENSBI) -s -S
+	$(QEMU) $(QEMU_FLAGS) -s -S
 
 clean:
 	$(info + CLEANING OPENSBI)
