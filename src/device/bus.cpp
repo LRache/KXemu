@@ -10,7 +10,7 @@
 #include <cstring>
 #include <optional>
 
-#define BUFFER_SIZE ((word_t)1024)
+static inline constexpr unsigned int BUFFER_SIZE = 1024;
 
 using namespace kxemu::device;
 
@@ -267,7 +267,7 @@ bool Bus::load_from_stream(std::istream &stream, word_t addr, word_t length) {
     uint8_t buffer[BUFFER_SIZE];
     word_t writen = 0;
     while (true) {
-        std::streamsize readLength = std::min(BUFFER_SIZE, length - writen);
+        std::streamsize readLength = std::min((word_t)BUFFER_SIZE, length - writen);
         stream.read((char *)buffer, readLength);
         std::streamsize count = stream.gcount();
         if (count != readLength) {
@@ -344,7 +344,6 @@ bool Bus::memcpy(word_t addr, word_t length, void *dest) {
     word_t leftLength = this->get_ptr_length(addr);
     
     if (src == nullptr || length > leftLength) {
-        WARN("memcpy addr=" FMT_HEX64 " length=" FMT_VARU64 " out of range", addr, length);
         return false;
     }
 
