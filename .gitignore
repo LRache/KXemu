@@ -20,3 +20,7 @@ cmake-build-debug
 
 # python
 __pycache__
+
+# prof
+*.profdata
+*.profraw
