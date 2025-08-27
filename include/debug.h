@@ -7,10 +7,10 @@
 
 #ifdef CONFIG_DEBUG
 
-#define SELF_PROTECT(cond, ...) \
+#define Assert(cond, ...) \
 do { \
     if (unlikely(!(cond))) { \
-        fprintf(stderr, FMT_FG_RED "[SELF-PROTECT][%s:%d %s]\nASSERT FAILED: %s\nThere must be wrong in your implemention. Please check.\n",\
+        fprintf(stderr, FMT_FG_RED "[ASSERT][%s:%d %s]\nASSERT FAILED: %s\nThere must be wrong in your implemention. Please check.\n",\
          __FILE__, __LINE__, __func__, #cond); \
         fprintf(stderr, __VA_ARGS__); \
         fprintf(stderr, FMT_FG_RESET "\n"); \

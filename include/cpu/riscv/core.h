@@ -250,7 +250,6 @@ private:
     bool icache_decode_and_exec();
     void icache_fence();
 
-    static constexpr unsigned int TLB_SET_BITS = 5;
     struct TLBBlock {
         word_t paddr;
         word_t tag;
@@ -258,7 +257,7 @@ private:
         bool valid = false;
         PTEFlag flag;
     };
-    TLBBlock tlb[1 << TLB_SET_BITS];
+    TLBBlock tlb[1 << config::TLB_SET_BITS];
     void tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t type);
     std::optional<TLBBlock *> tlb_hit(addr_t vaddr);
     void tlb_fence();

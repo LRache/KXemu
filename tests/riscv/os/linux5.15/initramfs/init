@@ -13,22 +13,17 @@
 /bin/echo "$ /bin/ls -al | /bin/grep 'init'"
 /bin/ls -al | /bin/grep "init"
 
-/bin/echo "$ /bin/ls -al /dev"
-/bin/ls /dev
-
 /bin/echo "$ /bin/ps"
 /bin/ps
 
 /bin/echo "$ /bin/uname -a"
 /bin/uname -a
 
-/bin/echo "$ /bin/sleep 1"
-/bin/sleep 1
-
 /bin/echo "$ /bin/cat /proc/cpuinfo"
 /bin/cat /proc/cpuinfo
 
-/bin/sh
+/bin/echo "$ /bin/sleep 1s"
+/bin/sleep 1s
 
-/bin/echo "goodbye, world! from Busybox"
+/bin/echo -e "Goodbye, world! from Busybox\nexit with code 10"
 exit 10
