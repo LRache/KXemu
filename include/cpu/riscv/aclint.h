@@ -5,6 +5,7 @@
 #include "utils/task-timer.h"
 
 #include <cstdint>
+#include <mutex>
 
 namespace kxemu::cpu {
     class RVCore;
@@ -26,6 +27,8 @@ public:
 
         bool msip;
         bool ssip;
+        bool mtip;
+        bool stip;
 
         uint64_t mtimecmp;
         unsigned int mtimerID;
@@ -34,6 +37,7 @@ public:
         unsigned int pendingInterrupts;
     };
     CoreObject *coreObjects;
+    std::mutex mtx;
 
     AClint();
     ~AClint();
@@ -43,7 +47,7 @@ public:
 
     word_t read(word_t addr, word_t size, bool &success) override;
     bool write(word_t addr, word_t value, word_t size) override;
-    // void update_core_interrupts(unsigned int coreID);
+    void update() override;
 
     void start_timer();
     void stop_timer();
