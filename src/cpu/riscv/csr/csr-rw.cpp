@@ -3,9 +3,9 @@
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
 #include "debug.h"
-#include "log.h"
 
 #include <optional>
+#include <utility>
 
 using namespace kxemu::cpu;
 
@@ -34,15 +34,6 @@ void RVCSR::set_csr_value(CSRAddr addr, word_t value) {
          (1 << InterruptCode::TIMER_S)    | \
          (1 << InterruptCode::EXTERNAL_S))
 
-// Bits in MIP register
-// NAME   | MIP
-// MEIP   | ReadOnly
-// MTIP   | ReadOnly
-// MSIP   | ReadOnly
-// STIP   | ReadWrite
-// SSIP   | ReadWrite
-// SEIP   | ReadOnly
-// LCOFIP | ReadOnly
 bool RVCSR::write_mip(unsigned int addr, word_t value) {
     csr::MIP mip = this->get_csr_value(CSRAddr::MIP);
     mip.set_mip(value);
@@ -51,7 +42,6 @@ bool RVCSR::write_mip(unsigned int addr, word_t value) {
 }
 
 bool RVCSR::write_mie(unsigned int addr, word_t value) {
-    // this->set_csr_value(CSRAddr::MIE, value & INTER_MASK_M);
     this->set_csr_value(CSRAddr::MIE, csr::MIE(value));
     return true;
 }
@@ -74,6 +64,7 @@ std::optional<word_t> RVCSR::read_sie(unsigned int addr) {
 }
 
 bool RVCSR::write_sie(unsigned int addr, word_t value) {
+    // INFO("Write SIE: " FMT_WORD, value);
     csr::MIE mie = this->get_csr_value(CSRAddr::MIE);
     mie.set_sie(value);
     this->set_csr_value(CSRAddr::MIE, mie);
@@ -139,33 +130,25 @@ bool RVCSR::write_frm(unsigned int addr, word_t value) {
     return true;
 }
 
-bool RVCSR::time_readable() {
-//     csr::MCounteren mcnten = this->get_csr_value(CSRAddr::MCNTEN);
+bool RVCSR::time_readable() {    
+    csr::MCounteren mcnten = this->get_csr_value(CSRAddr::MCNTEN);
+    csr::MCounteren scnten = this->get_csr_value(CSRAddr::SCNTEN);
 
-//     // Check if the timer is enabled
-//     if (!mcnten.tm() && this->privMode != PrivMode::MACHINE) {
-//         return false;
-//     }
-
-//     csr::MCounteren scnten = this->get_csr_value(CSRAddr::SCNTEN);
-//     if (!scnten.tm() && this->privMode == PrivMode::USER) {
-//         return false;
-//     }
-
-//     bool sstc;
-// #ifdef KXEMU_ISA32
-//     csr::MEnvConfigH menvcfgh = this->csr[CSRAddr::MENVCFGH].value;
-//     sstc = menvcfgh.stce();
-// #else
-//     csr::MEnvConfig menvcfg = this->csr[CSRAddr::MENVCFG].value;
-//     sstc = menvcfg.stce();
-// #endif
+    bool sstc;
+#ifdef KXEMU_ISA32
+    csr::MEnvConfigH menvcfgh = this->csr[CSRAddr::MENVCFGH].value;
+    sstc = menvcfgh.stce();
+#else
+    csr::MEnvConfig menvcfg = this->csr[CSRAddr::MENVCFG].value;
+    sstc = menvcfg.stce();
+#endif
     
-//     if (!sstc && this->privMode != PrivMode::MACHINE) {
-//         return false;
-//     }
-
-    return true;
+    switch (this->privMode) {
+        case PrivMode::MACHINE:    return true;
+        case PrivMode::SUPERVISOR: return mcnten.tm() && sstc;
+        case PrivMode::USER:       return mcnten.tm() && scnten.tm();
+        default: std::unreachable();
+    }
 }
 
 std::optional<word_t> RVCSR::read_time(unsigned int addr) {
