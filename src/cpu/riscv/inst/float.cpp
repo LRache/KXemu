@@ -8,6 +8,7 @@
 
 #include "./local-decoder.h"
 #include "cpu/word.h"
+#include "log.h"
 
 using namespace kxemu::cpu;
 
@@ -481,11 +482,19 @@ void RVCore::do_feq_d(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_flt_d(const DecodeInfo &decodeInfo) {
-    DEST = FSRC1D < FSRC2D ? 1 : 0;
+    if (std::isnan(FSRC1D) || std::isnan(FSRC2D)) {
+        DEST = 0;
+    } else {
+        DEST = FSRC1D < FSRC2D ? 1 : 0;
+    }
 }
 
 void RVCore::do_fle_d(const DecodeInfo &decodeInfo) {
-    DEST = FSRC1D <= FSRC2D ? 1 : 0;
+    if (std::isnan(FSRC1D) || std::isnan(FSRC2D)) {
+        DEST = 0;
+    } else {
+        DEST = FSRC1D <= FSRC2D ? 1 : 0;
+    }
 }
 
 static bool is_quiet_nan(double f) {
@@ -597,12 +606,18 @@ void RVCore::do_fcvt_l_d(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     uint64_t i;
-    if (std::isnan(FSRC1D) || FSRC1D > (double)INT64_MAX) {
+    if (std::isnan(FSRC1D)) {
         i = INT64_MAX;
-    } else if (FSRC1D < INT64_MIN) {
+        // TODO: Set invalid operation flag
+    } else if (FSRC1D > (double)INT64_MAX) {
+        i = INT64_MAX;
+        // TODO: Set invalid operation flag
+    } else if (FSRC1D < (double)INT64_MIN) {
         i = INT64_MIN;
+        // TODO: Set invalid operation flag
     } else {
-        i = (int64_t)FSRC1D;
+        // Use proper rounding according to current rounding mode
+        i = (int64_t)llrint(FSRC1D);
     }
     DEST = (sword_t)i;
     
@@ -627,7 +642,7 @@ void RVCore::do_fcvt_d_l(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTD = (double)(sword_t)SRC1;
-    
+
     RESTORE_FPU;
 }
 
