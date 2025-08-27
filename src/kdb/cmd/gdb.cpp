@@ -1,5 +1,5 @@
-#include "kdb/kdb.h"
-#include "kdb/cmd.h"
+#include "kdb/kdb.hpp"
+#include "kdb/cmd.hpp"
 
 #include <iostream>
 

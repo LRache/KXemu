@@ -1,7 +1,7 @@
-#ifndef __KXEMU_DEVICE_UART_H__
-#define __KXEMU_DEVICE_UART_H__
+#ifndef __KXEMU_DEVICE_UART_HPP__
+#define __KXEMU_DEVICE_UART_HPP__
 
-#include "device/mmio.h"
+#include "device/mmio.hpp"
 
 #include <cstdint>
 #include <ostream>

@@ -1,8 +1,7 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/csr-field.h"
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
-#include "log.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
 
 using namespace kxemu::cpu;
 

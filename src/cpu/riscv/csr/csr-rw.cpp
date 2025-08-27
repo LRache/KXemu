@@ -1,7 +1,7 @@
-#include "cpu/riscv/csr.h"
-#include "cpu/riscv/csr-field.h"
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
+#include "cpu/riscv/csr.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
 #include "debug.h"
 
 #include <optional>

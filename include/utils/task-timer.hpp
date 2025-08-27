@@ -1,5 +1,5 @@
-#ifndef __KXEMU_UTILS_TIMER_H__
-#define __KXEMU_UTILS_TIMER_H__
+#ifndef __KXEMU_UTILS_TIMER_HPP__
+#define __KXEMU_UTILS_TIMER_HPP__
 
 #include <chrono>
 #include <condition_variable>

@@ -1,6 +1,6 @@
-#include "device/virtio/block.h"
-#include "device/def.h"
-#include "device/virtio/virtio.h"
+#include "device/virtio/block.hpp"
+#include "device/def.hpp"
+#include "device/virtio/virtio.hpp"
 #include "device/virtio/def.h"
 #include "log.h"
 

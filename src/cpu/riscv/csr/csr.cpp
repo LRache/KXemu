@@ -1,11 +1,12 @@
-#include "cpu/riscv/csr.h"
-#include "cpu/riscv/csr-field.h"
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
+#include "cpu/riscv/csr.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
 #include "log.h"
 #include "debug.h"
 #include "macro.h"
 #include "config/config.h"
+
 #include <cstdint>
 
 using namespace kxemu::cpu;

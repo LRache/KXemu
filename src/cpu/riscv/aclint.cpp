@@ -1,8 +1,8 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/aclint.h"
-#include "cpu/riscv/def.h"
-#include "device/def.h"
-#include "utils/utils.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/aclint.hpp"
+#include "cpu/riscv/def.hpp"
+#include "device/def.hpp"
+#include "utils/utils.hpp"
 #include "log.h"
 #include "debug.h"
 

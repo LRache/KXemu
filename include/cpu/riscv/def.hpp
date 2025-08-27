@@ -1,8 +1,8 @@
-#ifndef __KXEMU_CPU_RISCV_NAMESPACE_H__
-#define __KXEMU_CPU_RISCV_NAMESPACE_H__
+#ifndef __KXEMU_CPU_RISCV_NAMESPACE_HPP__
+#define __KXEMU_CPU_RISCV_NAMESPACE_HPP__
 
-#include "cpu/word.h"
-#include "device/def.h"
+#include "cpu/word.hpp"
+#include "device/def.hpp"
 
 namespace kxemu::cpu {
     static inline constexpr unsigned int PGBITS = 12;

@@ -1,9 +1,9 @@
-#ifndef __KXEMU_CPU_RISCV_CSR_FIELD_H__
-#define __KXEMU_CPU_RISCV_CSR_FIELD_H__
+#ifndef __KXEMU_CPU_RISCV_CSR_FIELD_HPP__
+#define __KXEMU_CPU_RISCV_CSR_FIELD_HPP__
 
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
 
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
 #include <cstdint>
 
 namespace kxemu::cpu::csr {

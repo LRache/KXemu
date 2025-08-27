@@ -1,7 +1,7 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/aclint.h"
-#include "cpu/word.h"
-#include "device/bus.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/aclint.hpp"
+#include "cpu/word.hpp"
+#include "device/bus.hpp"
 #include "log.h"
 #include "word.h"
 

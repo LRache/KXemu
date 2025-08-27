@@ -1,7 +1,7 @@
-#include "kdb/kdb.h"
-#include "kdb/cmd.h"
-#include "device/bus.h"
-#include "utils/utils.h"
+#include "kdb/kdb.hpp"
+#include "kdb/cmd.hpp"
+#include "device/bus.hpp"
+#include "utils/utils.hpp"
 #include "word.h"
 
 #include <fstream>

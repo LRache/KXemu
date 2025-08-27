@@ -1,6 +1,6 @@
-#include "kdb/cmd.h"
-#include "kdb/kdb.h"
-#include "utils/utils.h"
+#include "kdb/cmd.hpp"
+#include "kdb/kdb.hpp"
+#include "utils/utils.hpp"
 
 #include <cstddef>
 #include <iostream>

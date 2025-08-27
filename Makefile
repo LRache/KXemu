@@ -11,7 +11,7 @@ all: kxemu
 
 count:
 	$(info Counting lines in src and include directories...)
-	@ find -L $(SCRIPT_DIR) $(SRC_DIR) $(INCLUDE_DIR) -type f \( -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.py" -or -name "*.instpat" -or -name "*.cmake" \) -exec cat {} + | sed '/^[[:space:]]*$$/d' | wc -l
+	@ find -L $(SCRIPT_DIR) $(SRC_DIR) $(INCLUDE_DIR) -type f \( -name '*.c' -or -name "*.cpp" -or -name "*.h" -or -name "*.hpp" -or -name "*.py" -or -name "*.instpat" -or -name "*.cmake" \) -exec cat {} + | sed '/^[[:space:]]*$$/d' | wc -l
 
 kxemu:
 	@ cmake -G Ninja -S $(KXEMU_HOME) -B $(BUILD_DIR)

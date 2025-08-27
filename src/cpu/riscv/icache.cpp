@@ -1,6 +1,6 @@
-#include "cpu/riscv/addr.h"
-#include "cpu/riscv/core.h"
-#include "cpu/word.h"
+#include "cpu/riscv/addr.hpp"
+#include "cpu/riscv/core.hpp"
+#include "cpu/word.hpp"
 
 using namespace kxemu::cpu;
 

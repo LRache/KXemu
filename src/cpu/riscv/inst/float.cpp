@@ -1,5 +1,6 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/csr-field.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/word.hpp"
 
 #include <cfenv>
 #include <cstdint>
@@ -7,8 +8,6 @@
 #include <cmath>
 
 #include "./local-decoder.h"
-#include "cpu/word.h"
-#include "log.h"
 
 using namespace kxemu::cpu;
 

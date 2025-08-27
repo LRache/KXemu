@@ -1,8 +1,8 @@
-#ifndef __KXEMU_CPU_RISCV_CLINT_H__
-#define __KXEMU_CPU_RISCV_CLINT_H__
+#ifndef __KXEMU_CPU_RISCV_CLINT_HPP__
+#define __KXEMU_CPU_RISCV_CLINT_HPP__
 
-#include "device/mmio.h"
-#include "utils/task-timer.h"
+#include "device/mmio.hpp"
+#include "utils/task-timer.hpp"
 
 #include <cstdint>
 #include <mutex>

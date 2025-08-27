@@ -1,8 +1,8 @@
-#ifndef __KXEMU_DEVICE_VIRTIO_BLOCK_H__
-#define __KXEMU_DEVICE_VIRTIO_BLOCK_H__
+#ifndef __KXEMU_DEVICE_VIRTIO_BLOCK_HPP__
+#define __KXEMU_DEVICE_VIRTIO_BLOCK_HPP__
 
-#include "device/def.h"
-#include "device/virtio/virtio.h"
+#include "device/def.hpp"
+#include "device/virtio/virtio.hpp"
 #include <cstdint>
 #include <fstream>
 #include <mutex>

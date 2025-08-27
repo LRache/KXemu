@@ -1,8 +1,8 @@
 #ifndef __KXEMU_CPU_RISCV_ADDR_H__
 #define __KXEMU_CPU_RISCV_ADDR_H__
 
-#include "cpu/word.h"
-#include "cpu/riscv/def.h"
+#include "cpu/word.hpp"
+#include "cpu/riscv/def.hpp"
 #include "cpu/riscv/config.hpp"
 
 namespace kxemu::cpu {

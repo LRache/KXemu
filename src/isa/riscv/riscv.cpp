@@ -1,6 +1,6 @@
-#include "cpu/cpu.h"
-#include "isa/isa.h"
-#include "cpu/riscv/cpu.h"
+#include "cpu/cpu.hpp"
+#include "isa/isa.hpp"
+#include "cpu/riscv/cpu.hpp"
 
 #include <elf.h>
 

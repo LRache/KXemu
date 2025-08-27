@@ -1,5 +1,5 @@
-#ifndef __KXEMU_CPU_WORD_H__
-#define __KXEMU_CPU_WORD_H__
+#ifndef __KXEMU_CPU_WORD_HPP__
+#define __KXEMU_CPU_WORD_HPP__
 
 #include "config/config.h"
 

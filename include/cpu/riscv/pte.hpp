@@ -1,7 +1,7 @@
-#ifndef __KXEMU_CPU_RISCV_PTE_H__
-#define __KXEMU_CPU_RISCV_PTE_H__
+#ifndef __KXEMU_CPU_RISCV_PTE_HPP__
+#define __KXEMU_CPU_RISCV_PTE_HPP__
 
-#include "cpu/word.h"
+#include "cpu/word.hpp"
 
 namespace kxemu::cpu {
     

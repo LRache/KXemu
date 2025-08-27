@@ -1,8 +1,8 @@
-#include "device/def.h"
+#include "device/def.hpp"
+#include "device/bus.hpp"
 #include "log.h"
 #include "macro.h"
 #include "word.h"
-#include "device/bus.h"
 
 #include <istream>
 #include <new>

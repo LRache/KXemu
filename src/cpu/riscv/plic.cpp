@@ -1,9 +1,9 @@
-#include "cpu/riscv/plic.h"
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
-#include "device/bus.h"
-#include "device/def.h"
-#include "device/mmio.h"
+#include "cpu/riscv/plic.hpp"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/def.hpp"
+#include "device/bus.hpp"
+#include "device/def.hpp"
+#include "device/mmio.hpp"
 #include "log.h"
 
 #include <cstdint>

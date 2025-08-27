@@ -1,5 +1,6 @@
-#include "device/uart.h"
-#include "kdb/kdb.h"
+#include "device/uart.hpp"
+#include "kdb/kdb.hpp"
+
 #include <string>
 
 using namespace kxemu;

@@ -1,7 +1,7 @@
-#include "device/virtio/block.h"
-#include "kdb/cmd.h"
-#include "kdb/kdb.h"
-#include "utils/utils.h"
+#include "device/virtio/block.hpp"
+#include "kdb/cmd.hpp"
+#include "kdb/kdb.hpp"
+#include "utils/utils.hpp"
 #include "word.h"
 
 #include <iostream>

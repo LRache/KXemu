@@ -1,16 +1,16 @@
-#ifndef __KXEMU_CPU_RISCV_CORE_H__
-#define __KXEMU_CPU_RISCV_CORE_H__
+#ifndef __KXEMU_CPU_RISCV_CORE_HPP__
+#define __KXEMU_CPU_RISCV_CORE_HPP__
 
-#include "cpu/core.h"
-#include "cpu/riscv/aclint.h"
-#include "cpu/riscv/addr.h"
-#include "cpu/riscv/def.h"
-#include "cpu/riscv/plic.h"
-#include "cpu/riscv/pte.h"
-#include "cpu/word.h"
-#include "cpu/riscv/csr.h"
+#include "cpu/core.hpp"
+#include "cpu/riscv/aclint.hpp"
+#include "cpu/riscv/addr.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/riscv/plic.hpp"
+#include "cpu/riscv/pte.hpp"
+#include "cpu/word.hpp"
+#include "cpu/riscv/csr.hpp"
 #include "cpu/riscv/config.hpp"
-#include "device/bus.h"
+#include "device/bus.hpp"
 
 #include <expected>
 #include <optional>

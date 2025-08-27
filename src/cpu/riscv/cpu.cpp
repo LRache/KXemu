@@ -1,5 +1,5 @@
-#include "cpu/riscv/cpu.h"
-#include "device/bus.h"
+#include "cpu/riscv/cpu.hpp"
+#include "device/bus.hpp"
 #include "log.h"
 
 #include <thread>

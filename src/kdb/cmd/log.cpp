@@ -1,4 +1,4 @@
-#include "kdb/cmd.h"
+#include "kdb/cmd.hpp"
 #include "log.h"
 
 #include <iostream>

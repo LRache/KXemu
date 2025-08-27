@@ -1,6 +1,7 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
+
 #include "./local-decoder.h"
 
 #define REQUIRE_WRITABLE do {if (csr_read_only(CSR)) {do_invalid_inst(); return;}} while(0);

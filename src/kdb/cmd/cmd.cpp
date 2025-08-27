@@ -4,12 +4,12 @@
  * Description: Implement functions for kdb command line interface.
  ***************************************************************/
 
-#include "cpu/cpu.h"
-#include "isa/isa.h"
-#include "kdb/kdb.h"
-#include "kdb/cmd.h"
+#include "cpu/cpu.hpp"
+#include "isa/isa.hpp"
+#include "kdb/kdb.hpp"
+#include "kdb/cmd.hpp"
+#include "utils/utils.hpp"
 #include "log.h"
-#include "utils/utils.h"
 
 #include <readline/chardefs.h>
 #include <readline/readline.h>

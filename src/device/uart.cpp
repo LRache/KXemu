@@ -1,4 +1,4 @@
-#include "device/uart.h"
+#include "device/uart.hpp"
 #include "log.h"
 #include "word.h"
 

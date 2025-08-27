@@ -1,7 +1,7 @@
-#include "isa/isa.h"
+#include "isa/isa.hpp"
+#include "kdb/cmd.hpp"
+#include "kdb/kdb.hpp"
 #include "word.h"
-#include "kdb/cmd.h"
-#include "kdb/kdb.h"
 
 #include <iostream>
 

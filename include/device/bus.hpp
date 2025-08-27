@@ -1,8 +1,8 @@
-#ifndef __KXEMU_DEVICE_BUS_H__
-#define __KXEMU_DEVICE_BUS_H__
+#ifndef __KXEMU_DEVICE_BUS_HPP__
+#define __KXEMU_DEVICE_BUS_HPP__
 
-#include "device/mmio.h"
-#include "device/def.h"
+#include "device/mmio.hpp"
+#include "device/def.hpp"
 
 #include <optional>
 #include <vector>

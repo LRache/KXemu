@@ -1,6 +1,7 @@
-#include "cpu/riscv/core.h"
-#include "cpu/word.h"
-#include "device/bus.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/word.hpp"
+#include "device/bus.hpp"
+#include "macro.h"
 
 #include <cstdint>
 #include <expected>
@@ -8,7 +9,6 @@
 #include <utility>
 
 #include "./local-decoder.h"
-#include "macro.h"
 
 using namespace kxemu::cpu;
 

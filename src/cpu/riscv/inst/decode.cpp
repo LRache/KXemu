@@ -1,6 +1,6 @@
-#include "cpu/riscv/core.h"
+#include "cpu/riscv/core.hpp"
 #include "config/config.h"
-#include "cpu/word.h"
+#include "cpu/word.hpp"
 
 #include <cstdint>
 
