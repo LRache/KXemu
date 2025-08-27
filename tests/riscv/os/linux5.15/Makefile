@@ -4,11 +4,14 @@ SYMBOL_ELF = ../../../os/linux-5.15.132/vmlinux
 
 INITRAMFS = ./initramfs/initramfs.cpio.gz
 
+SMP ?= 1
+
 QEMU = qemu-system-riscv64
 QEMU_FLAGS += -M virt -cpu rv64 -nographic 
 QEMU_FLAGS += -kernel $(KERNEL_IMAGE)
 QEMU_FLAGS += -bios $(OPENSBI_BIN)
 QEMU_FLAGS += -initrd $(INITRAMFS)
+QEMU_FLAGS += -smp $(SMP)
 
 GDB = gdb-multiarch
 
@@ -20,7 +23,7 @@ DTB = kxemu-virt-riscv64.dtb
 
 KXEMU = ../../../../build/kxemu-system-riscv64
 KXEMU_FLAGS += --source $(abspath ./kxemu-riscv64.kdb)
-KXEMU_FLAGS += --core 1
+KXEMU_FLAGS += --core $(SMP)
 KXEMU_FLAGS += --def kernel=$(KERNEL_IMAGE) 
 KXEMU_FLAGS += --def openSBI=$(OPENSBI_BIN) 
 KXEMU_FLAGS += --def symbolELF=$(SYMBOL_ELF)
