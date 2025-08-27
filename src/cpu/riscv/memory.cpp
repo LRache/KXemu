@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <expected>
+#include <utility>
 
 using namespace kxemu::cpu;
 
@@ -142,7 +143,8 @@ RVCore::VMResult RVCore::vaddr_translate_sv(addr_t vaddr, MemType type) noexcept
             base = ppn * PGSIZE;
         }
     }
-    return std::unexpected(VMFault::PAGE_FAULT);
+
+    std::unreachable();
 }
 
 #ifdef KXEMU_ISA32
@@ -203,12 +205,10 @@ RVCore::VMResult RVCore::vaddr_translate_core(addr_t vaddr, MemType type) noexce
             return std::unexpected(VMFault::PAGE_FAULT);
         }
     } else {
-        // return (this->*vaddr_translate_func)(vaddr, type, result);
         return (this->*vaddr_translate_func)(vaddr, type);
     }
     #else
-    // return (this->*vaddr_translate_func)(vaddr, type);
-    return (this->*vaddr_translate_func)(vaddr, type, result);
+    return (this->*vaddr_translate_func)(vaddr, type);
     #endif
 }
 
@@ -242,14 +242,16 @@ void RVCore::pm_fetch(word_t paddr) {
 word_t RVCore::pm_read(word_t paddr, unsigned int len) {
     bool valid;
     word_t data = this->bus->read(paddr, len, valid);
-    if (!valid) {
+    if (unlikely(!valid)) {
+        WARN("pm_read failed, paddr=" FMT_WORD ", len=%d", paddr, len);
         throw TrapException(TrapCode::LOAD_ACCESS_FAULT, paddr);
     }
     return data;
 }
 
 void RVCore::pm_write(word_t paddr, word_t data, unsigned int len) {
-    if (!this->bus->write(paddr, data, len)) {
+    if (unlikely(!this->bus->write(paddr, data, len))) {
+        WARN("pm_write failed, paddr=" FMT_WORD ", data=" FMT_WORD ", len=%d", paddr, data, len);
         throw TrapException(TrapCode::STORE_ACCESS_FAULT, paddr);
     }
 }
@@ -348,7 +350,6 @@ void RVCore::memory_fetch() {
 }
 
 word_t RVCore::memory_load(word_t addr, unsigned int len) {
-    word_t data = -1;
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
         return this->pm_read(addr, len);
     } else {
@@ -364,7 +365,7 @@ void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
     }
 }
 
-#else
+#else // CONFIG_USE_EXCEPTION
 
 std::optional<word_t> RVCore::pm_read(word_t paddr, unsigned int len) {
     bool valid;
@@ -601,7 +602,7 @@ void RVCore::update_vm_translate() {
             case csr::Satp::SV39: this->vaddr_translate_func = &RVCore::vaddr_translate_sv39; break;
             case csr::Satp::SV48: this->vaddr_translate_func = &RVCore::vaddr_translate_sv48; break;
             case csr::Satp::SV57: this->vaddr_translate_func = &RVCore::vaddr_translate_sv57; break;
-            default: PANIC("Invalid SATP mode"); break;
+            default: std::unreachable();
         }
         #endif
     }
