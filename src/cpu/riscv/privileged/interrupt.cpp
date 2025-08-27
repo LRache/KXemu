@@ -17,16 +17,12 @@ void RVCore::update_stimecmp() {
 }
 
 void RVCore::set_interrupt(InterruptCode code) {
-    std::lock_guard<std::mutex> lock(this->csrMtx);
-    
     csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
     mip.set_pending(code);
     this->csr.set_csr_value(CSRAddr::MIP, mip);
 }
 
 void RVCore::clear_interrupt(InterruptCode code) {
-    std::lock_guard<std::mutex> lock(this->csrMtx);
-    
     csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
     mip.clear_pending(code);
     this->csr.set_csr_value(CSRAddr::MIP, mip);
@@ -122,27 +118,39 @@ void RVCore::interrupt_s(InterruptCode code) {
     }
 }
 
-static constexpr InterruptCode INTER_BITS[] = {
-    InterruptCode::EXTERNAL_M,
-    InterruptCode::SOFTWARE_M,
-    InterruptCode::TIMER_M,
-    InterruptCode::EXTERNAL_S,
-    InterruptCode::SOFTWARE_S,
-    InterruptCode::TIMER_S,
+// Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing priority
+// order: MEI, MSI, MTI, SEI, SSI, STI, LCOFI.
+static constexpr InterruptCode INTER_BITS_M[] = {
+    InterruptCode::EXTERNAL_M,    // MEI
+    InterruptCode::SOFTWARE_M,    // MSI
+    InterruptCode::TIMER_M,       // MTI
+    InterruptCode::EXTERNAL_S,    // SEI
+    InterruptCode::SOFTWARE_S,    // SSI
+    InterruptCode::TIMER_S,       // STI
+};
+
+static constexpr InterruptCode INTER_BITS_S[] = {
+    InterruptCode::EXTERNAL_S,    // SEI
+    InterruptCode::SOFTWARE_S,    // SSI
+    InterruptCode::TIMER_S,       // STI
 };
 
 bool RVCore::scan_interrupt() {
-    if (likely(this->privMode == PrivMode::MACHINE    && !(this->mstatus.mie))) return false;
-    if (likely(this->privMode == PrivMode::SUPERVISOR && !(this->mstatus.sie))) return false;
+    // There is no interrput pending.
+    if (likely(*this->mip == 0)) return false;
 
-    if (*this->mip == 0) return false;
-
-    // Machine level interrupt
-    word_t pending;
-    if (this->mstatus.mie) {
-        pending = *this->mip & *this->mie & ~*this->mideleg;
+    // Machine Level Interrupt
+    // An interrupt `i` will trap to M-mode (causing the privilege mode to change to M-mode) if all of the
+    // following are true: 
+    // (a) either the current privilege mode is M and the MIE bit in the mstatus register is
+    //     set, or the current privilege mode has less privilege than M-mode; 
+    // (b) bit `i` is set in both mip and mie;
+    // (c) if register mideleg exists, bit `i` is not set in mideleg
+    // -- from The RISC-V Instruction Set Manual: Volume II 3.1.9  Page 42
+    if (this->privMode < PrivMode::MACHINE || this->mstatus.mie) {
+        word_t pending = *this->mip & *this->mie & ~*this->mideleg;
         if (pending) {
-            for (auto const &bit : INTER_BITS) {
+            for (auto const &bit : INTER_BITS_M) {
                 if (pending & (1 << bit)) {
                     interrupt_m(bit);
                     return true;
@@ -150,12 +158,17 @@ bool RVCore::scan_interrupt() {
             }
         }
     }
-    
+
     // Supervisor level interrupt
-    if (this->mstatus.sie) {
-        pending = *this->mip & *this->mie & *this->mideleg;
+    // An interrupt `i` will trap to S-mode if all of the following are true: 
+    // (a) either the current privilege mode is S and the SIE bit in the sstatus register is set, 
+    //     or the current privilege mode has less privilege than S-mode; 
+    // (b) bit `i` is set in both sip and sie; and
+    // -- from The RISC-V Instruction Set Manual: Volume II 12.1.3  Page 119
+    if (this->privMode < PrivMode::SUPERVISOR || (this->privMode ==  PrivMode::SUPERVISOR && this->mstatus.sie)) {
+        word_t pending = *this->mip & *this->mie & *this->mideleg;
         if (pending) {
-            for (auto const &bit : INTER_BITS) {
+            for (auto const &bit : INTER_BITS_S) {
                 if (pending & (1 << bit)) {
                     interrupt_s(bit);
                     return true;
