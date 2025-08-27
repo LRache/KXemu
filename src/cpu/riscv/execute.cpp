@@ -48,7 +48,7 @@ void RVCore::run_step(unsigned int &counter) {
         this->scan_interrupt();
         counter = 0;
     }
-            
+
     this->pc = this->npc;
     counter++;
 }
@@ -95,23 +95,27 @@ void RVCore::update_device() {
     }
 }
 
-void RVCore::execute() {
-    if (unlikely(this->pc & 0x1)) {
-        // Instruction address misaligned
-        this->trap(TrapCode::INST_ADDR_MISALIGNED);
-        this->pc = this->npc;
-        return;
-    }
-    
+void RVCore::execute() {    
     #ifdef CONFIG_USE_EXCEPTION
     try {
-        #ifdef CONFIG_ICache
+        if (unlikely(this->pc & 1)) {
+            throw TrapException(TrapCode::INST_ADDR_MISALIGNED, this->pc);
+        }
+        
         if (likely(this->icache_decode_and_exec())) {
             return;
         }
-        #endif
         
         this->memory_fetch();
+
+        #ifdef CONFIG_DEBUG_DECODER
+        std::memset(&this->gDecodeInfo, 0xac, sizeof(this->gDecodeInfo));
+        this->gDecodeInfo.rd_set  = false;
+        this->gDecodeInfo.rs1_set = false;
+        this->gDecodeInfo.rs2_set = false;
+        this->gDecodeInfo.csr_set = false;
+        this->gDecodeInfo.imm_set = false;
+        #endif
         
         unsigned int instLen;
         do_inst_t do_inst;
@@ -133,7 +137,7 @@ void RVCore::execute() {
         }
     } catch (const TrapException &e) {
         // Handle trap exception
-        this->trap(e.code(), e.value());
+        this->enter_trap(e.code(), e.value());
     }
     #else
     #ifdef CONFIG_ICache

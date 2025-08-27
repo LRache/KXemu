@@ -3,6 +3,9 @@
 #include "cpu/riscv/def.h"
 #include "log.h"
 
+#include <thread>
+#include <utility>
+
 using namespace kxemu::cpu;
 
 void RVCore::set_priv_mode(int mode) {
@@ -16,9 +19,14 @@ void RVCore::do_ecall(const DecodeInfo &) {
         case PrivMode::MACHINE:    code = TrapCode::ECALL_M; break;
         case PrivMode::SUPERVISOR: code = TrapCode::ECALL_S; break;
         case PrivMode::USER:       code = TrapCode::ECALL_U; break;
-        default: PANIC("Invalid current privileged mode."); return;
+        default: std::unreachable();
     }
-    trap(code); 
+    
+    #ifdef CONFIG_USE_EXCEPTION
+    throw TrapException(code);
+    #else
+    trap(code);
+    #endif
 }
 
 // An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When
@@ -81,7 +89,6 @@ void RVCore::do_invalid_inst() {
 }
 
 void RVCore::do_invalid_inst(const DecodeInfo &) {
-    // WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
     this->do_invalid_inst();
 }
 
@@ -101,10 +108,8 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
-    INFO("WFI at pc=" FMT_WORD, this->pc);
-    while (!this->scan_interrupt()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (!*this->mip) {
+        std::this_thread::yield();
         this->update_device();
     }
-    INFO("WFI wake up at pc=" FMT_WORD, this->pc);
 }

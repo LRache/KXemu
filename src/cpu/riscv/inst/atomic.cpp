@@ -5,21 +5,38 @@
 #include <cstdint>
 #include <expected>
 #include <optional>
+#include <utility>
 
 #include "./local-decoder.h"
+#include "macro.h"
 
 using namespace kxemu::cpu;
 
+#ifdef CONFIG_USE_EXCEPTION
+word_t RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len) {
+#else
 std::optional<word_t> RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int len) {
+#endif
     if (unlikely(vaddr & (len - 1))) {
-        this->trap(TrapCode::AMO_ACCESS_FAULT, vaddr);
-        return std::nullopt;
+        #ifdef CONFIG_USE_EXCEPTION
+            throw TrapException(TrapCode::AMO_ACCESS_MISALIGNED, vaddr);
+        #else
+            this->trap(TrapCode::AMO_ACCESS_FAULT, vaddr);
+            return std::nullopt;
+        #endif
     }
 
     word_t paddr = vaddr;
     if (unlikely(this->privMode != PrivMode::MACHINE)) {
-        VMResult vmresult;
-        
+        #ifdef CONFIG_USE_EXCEPTION
+        paddr = this->vaddr_translate_core(vaddr, MemType::AMO).or_else([&](VMFault fault) -> VMResult {
+                    switch (fault) {
+                        case VMFault::ACCESS_FAULT: throw TrapException(TrapCode::AMO_ACCESS_FAULT, vaddr);
+                        case VMFault::PAGE_FAULT:   throw TrapException(TrapCode::AMO_PAGE_FAULT  , vaddr);
+                    }
+                    std::unreachable();
+                }).value();
+        #else
         if (
             !(this->vaddr_translate_core(vaddr, MemType::AMO)
             .and_then([&](word_t addr) -> VMResult {
@@ -35,11 +52,16 @@ std::optional<word_t> RVCore::amo_vaddr_translate_and_set_trap(word_t vaddr, int
         ) {
             return std::nullopt;
         }
+        #endif
 
         bool pmp = this->pmp_check_r(paddr, len) && this->pmp_check_w(paddr, len);
         if (unlikely(!pmp)) {
+            #ifdef CONFIG_USE_EXCEPTION
+            throw TrapException(TrapCode::AMO_ACCESS_FAULT, paddr);
+            #else
             this->trap(TrapCode::AMO_ACCESS_FAULT);
             return std::nullopt;
+            #endif
         }
     }
 
@@ -50,7 +72,10 @@ template<typename sunit_t>
 void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1;
 
-    word_t addr = SRC1;
+    word_t addr;
+    #ifdef CONFIG_USE_EXCEPTION
+    addr = this->amo_vaddr_translate_and_set_trap(SRC1, sizeof(sunit_t));
+    #else
     if (
         !(this->amo_vaddr_translate_and_set_trap(addr, sizeof(sunit_t))
         .and_then([&](word_t paddr) -> std::optional<word_t> {
@@ -63,11 +88,16 @@ void RVCore::do_load_reserved(const DecodeInfo &decodeInfo) {
     )) {
         return;
     }
+    #endif
 
     bool valid;
     word_t value = (sword_t)(sunit_t)this->bus->read(addr, sizeof(sunit_t), valid);
-    if (!valid) {
-        this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
+    if (unlikely(!valid)) {
+        #ifdef CONFIG_USE_EXCEPTION
+            throw TrapException(TrapCode::AMO_ACCESS_FAULT, addr);
+        #else
+            this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
+        #endif
         return;
     }
 
@@ -79,8 +109,10 @@ template<typename sunit_t>
 void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_RS2;
 
-    bool valid;
     word_t addr;
+    #ifdef CONFIG_USE_EXCEPTION
+    addr = this->amo_vaddr_translate_and_set_trap(SRC1, sizeof(sunit_t));
+    #else
     if (
         !(this->amo_vaddr_translate_and_set_trap(SRC1, sizeof(sunit_t))
         .and_then([&](word_t paddr) -> std::optional<word_t> {
@@ -93,6 +125,7 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
     )) {
         return;
     }
+    #endif
 
     auto iter = this->reservedMemory.find(addr);
     if (iter == this->reservedMemory.end()) {
@@ -111,8 +144,7 @@ void RVCore::do_store_conditional(const DecodeInfo &decodeInfo) {
 
     sunit_t *ptr = (sunit_t *)this->bus->get_ptr(addr);
     if (ptr == nullptr) {
-        this->trap(TrapCode::AMO_ACCESS_FAULT, addr);
-        return;
+        throw TrapException(TrapCode::AMO_ACCESS_FAULT, addr);
     }
 
     sunit_t expected = iter->second;
@@ -129,6 +161,9 @@ void RVCore::do_amo_inst(const DecodeInfo &decodeInfo) {
     constexpr int LEN = sizeof(sunit_t);
 
     word_t paddr;
+    #ifdef CONFIG_USE_EXCEPTION
+    paddr = this->amo_vaddr_translate_and_set_trap(SRC1, LEN);
+    #else
     if (
         !(this->amo_vaddr_translate_and_set_trap(SRC1, LEN)
         .and_then([&](word_t addr) -> std::optional<word_t> {
@@ -141,12 +176,14 @@ void RVCore::do_amo_inst(const DecodeInfo &decodeInfo) {
     )) {
         return;
     }
+    #endif
 
     this->bus->do_atomic(paddr, SRC2, LEN, amo).and_then([&](word_t oldValue) -> std::optional<word_t> {
         DEST = (sword_t)(sunit_t)oldValue;
         return oldValue;
     }).or_else([&]() -> std::optional<word_t> {
-        this->trap(TrapCode::AMO_ACCESS_FAULT, paddr);
+        // this->enter_trap(TrapCode::AMO_ACCESS_FAULT, paddr);
+        throw TrapException(TrapCode::AMO_ACCESS_FAULT, paddr);
         return std::nullopt;
     });
 }

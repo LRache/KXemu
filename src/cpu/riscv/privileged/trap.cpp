@@ -2,6 +2,7 @@
 #include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/def.h"
 #include "cpu/word.h"
+#include "log.h"
 
 using namespace kxemu::cpu;
 
@@ -10,7 +11,7 @@ using namespace kxemu::cpu;
 // to the trap, and xPP holds the previous privilege mode. The xPP fields can only hold privilege modes
 // up to x, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode y
 // into privilege mode x, xPIE is set to the value of xIE; xIE is set to 0; and xPP is set to y.
-void RVCore::trap(TrapCode cause, word_t value) {
+void RVCore::enter_trap(TrapCode cause, word_t value) {
     bool deleg;
 #ifdef KXEMU_ISA64
     deleg = *this->medeleg & (1 << cause);
