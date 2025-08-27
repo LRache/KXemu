@@ -69,11 +69,11 @@ endmenu # menu "Core Functions"
 
 menu "Core Options"
 
-config BREAK_AS_HALT
-  bool "Use break or syscall instruction as halt"
+config HALT_WHEN_BREAK
+  bool "Halt when touched a break instruction"
 
 config HALT_WHEN_INVALID
-  bool "Halt when invalid instruction encountered"
+  bool "Halt when touched an invalid instruction"
 
 endmenu
 

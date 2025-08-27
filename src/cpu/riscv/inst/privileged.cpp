@@ -1,6 +1,7 @@
 #include "cpu/riscv/core.h"
 #include "cpu/riscv/csr-field.h"
 #include "cpu/riscv/def.h"
+#include "log.h"
 
 #include <thread>
 #include <utility>
@@ -70,7 +71,7 @@ void RVCore::do_sret(const DecodeInfo &) {
 }
 
 void RVCore::do_invalid_inst() {
-#ifdef CONFIG_BREAK
+#ifdef CONFIG_HALT_WHEN_INVALID
     this->state = ERROR;
     this->haltPC = this->pc;
     WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
@@ -84,7 +85,7 @@ void RVCore::do_invalid_inst(const DecodeInfo &) {
 }
 
 void RVCore::do_ebreak(const DecodeInfo &) {
-#ifdef CONFIG_BREAK
+#ifdef CONFIG_HALT_WHEN_BREAK
     INFO("EBREAK at pc=" FMT_WORD, this->pc);
     this->state = HALT;
     this->haltCode = this->gpr[10];
