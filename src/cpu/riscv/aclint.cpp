@@ -26,7 +26,7 @@ AClint::~AClint() {
 }
 
 void AClint::init(RVCore *cores, unsigned int coreCount) {
-    SELF_PROTECT(this->coreObjects == nullptr, "CLINT is already initialized.");
+    Assert(this->coreObjects == nullptr, "CLINT is already initialized.");
     this->coreCount = coreCount;
     this->coreObjects = new CoreObject[coreCount];
     for (unsigned int i = 0; i < coreCount; i++) {

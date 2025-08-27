@@ -106,7 +106,7 @@ void RVCSR::init(unsigned int hartId, std::function<uint64_t()> get_uptime) {
 
 void RVCSR::set_write_callbacks(unsigned int addr, callback_t callback) {
     auto iter = this->csr.find(addr);
-    SELF_PROTECT(iter != this->csr.end(), "CSR not found");
+    Assert(iter != this->csr.end(), "CSR not found");
     iter->second.writeCallback = callback;
 }
 
@@ -119,7 +119,7 @@ void RVCSR::reset() {
 }
 
 void RVCSR::add_csr(CSRAddr addr, csr_read_func_t readFunc, csr_write_func_t writeFunc, word_t resetValue) {
-    SELF_PROTECT(this->csr.find(addr) == this->csr.end(), "CSR 0x%03x already exists", addr);
+    Assert(this->csr.find(addr) == this->csr.end(), "CSR 0x%03x already exists", addr);
     this->csr[addr] = {readFunc, writeFunc, 0, resetValue, nullptr};
 }
 
@@ -220,10 +220,7 @@ bool RVCSR::pmp_check_x(word_t addr, int len) {
 word_t *RVCSR::get_csr_ptr(unsigned int addr) {
     auto iter = this->csr.find(addr);
     
-    SELF_PROTECT(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
-    // SELF_PROTECT(iter->second.readFunc == nullptr, "Access to CSR 0x%03x with read function", addr);
-    // SELF_PROTECT(iter->second.writeFunc == nullptr, "Access to CSR 0x%03x with write function", addr);
-    // SELF_PROTECT((addr & CSRAddr::READ_ONLY) != CSRAddr::READ_ONLY, "Access to read-only CSR 0x%03x", addr);
+    Assert(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
     
     return &iter->second.value;
 }
@@ -231,7 +228,7 @@ word_t *RVCSR::get_csr_ptr(unsigned int addr) {
 const word_t *RVCSR::get_csr_ptr_readonly(unsigned int addr) const {
     auto iter = this->csr.find(addr);
 
-    SELF_PROTECT(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
+    Assert(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
     
     return &iter->second.value;
 }
@@ -272,7 +269,7 @@ word_t RVCSR::read_csr(unsigned int addr) {
 
 bool RVCSR::write_csr(unsigned int addr, word_t value) {
     // Whether the destination csr is read-only should be checked in the Core
-    SELF_PROTECT(csr_read_only(addr), "Write to read-only CSR 0x%03x", addr);
+    Assert(!csr_read_only(addr), "Write to read-only CSR 0x%03x", addr);
 
     // if (csr::csr_privilege_level(addr) > this->privMode) {
     //     // If the CSR is not accessible in the current privilege mode, we should not write to it

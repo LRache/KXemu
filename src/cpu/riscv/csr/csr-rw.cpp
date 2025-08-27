@@ -11,13 +11,13 @@ using namespace kxemu::cpu;
 
 word_t RVCSR::get_csr_value(CSRAddr addr) const {
     auto iter = this->csr.find(addr);
-    SELF_PROTECT(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
+    Assert(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
     return iter->second.value;
 }
 
 void RVCSR::set_csr_value(CSRAddr addr, word_t value) {
     auto iter = this->csr.find(addr);
-    SELF_PROTECT(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
+    Assert(iter != this->csr.end(), "Access to non-exist CSR 0x%03x", addr);
     iter->second.value = value;
 }
 
