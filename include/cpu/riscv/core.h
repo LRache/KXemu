@@ -9,11 +9,10 @@
 #include "cpu/riscv/pte.h"
 #include "cpu/word.h"
 #include "cpu/riscv/csr.h"
+#include "cpu/riscv/config.hpp"
 #include "device/bus.h"
 
-#include <cstdint>
 #include <expected>
-#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -66,20 +65,21 @@ private:
     std::optional<word_t> pm_read_check_optional(word_t paddr, unsigned int len);
 
 #ifdef CONFIG_USE_EXCEPTION
-    void memory_fetch();
-    word_t memory_load(word_t addr, unsigned int len);
-    void memory_store(word_t addr, word_t data, unsigned int len);
+    void   memory_fetch();
+    word_t memory_load (word_t addr, unsigned int len);
+    void   memory_store(word_t addr, word_t data, unsigned int len);
 
-    void pm_fetch(word_t paddr);
+    void   pm_fetch(word_t paddr);
     word_t pm_read(word_t paddr, unsigned int len);
-    void pm_write(word_t paddr, word_t data, unsigned int len);
-    word_t pm_read_check(word_t paddr, unsigned int len); // With PMP check
-    void pm_write_check(word_t paddr, word_t data, unsigned int len);
+    void   pm_write(word_t paddr, word_t data, unsigned int len);
+    
+    word_t pm_read_check (word_t paddr, unsigned int len); // With PMP check
+    void   pm_write_check(word_t paddr, word_t data, unsigned int len);
 
     // Virtual address translation
     void vm_fetch();
-    word_t vm_read(word_t vaddr, unsigned int len);
-    void vm_write(word_t vaddr, word_t  data, unsigned int len);
+    word_t vm_read (word_t vaddr, unsigned int len);
+    void   vm_write(word_t vaddr, word_t data, unsigned int len);
 #else
     bool memory_fetch();
     std::optional<word_t> memory_load(word_t addr, unsigned int len);
@@ -116,7 +116,6 @@ private:
     
     word_t pageTableBase;
     VMResult (RVCore::*vaddr_translate_func)(word_t addr, MemType type);
-    // word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
     void update_vm_translate();
 
     // Physical memory protection
@@ -168,7 +167,7 @@ private:
     void run_step(unsigned int &counter);
 
     // Trap
-    void trap(TrapCode code, word_t value = 0);
+    void enter_trap(TrapCode code, word_t value = 0);
     
     // Interrupt
     void   set_interrupt(InterruptCode code);
@@ -191,7 +190,7 @@ private:
     
     void update_mstatus();
     struct {
-        bool mie;
+        bool mie;  
         bool sie;
         bool sum;
     } mstatus;
@@ -211,7 +210,11 @@ private:
 
     // Atomic extension
     std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
+    #ifdef CONFIG_USE_EXCEPTION
+    word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len);
+    #else
     std::optional<word_t> amo_vaddr_translate_and_set_trap(word_t vaddr, int len);
+    #endif
     template<typename sunit_t> void do_load_reserved(const DecodeInfo &decodeInfo);
     template<typename sunit_t> void do_store_conditional(const DecodeInfo &decodeInfo);
     template<device::AMO amo, typename sw_t> void do_amo_inst(const DecodeInfo &decodeInfo);
@@ -232,7 +235,7 @@ private:
     void update_fcsr();
 
     // Experimental ICache
-    #ifdef CONFIG_ICache
+    #ifdef CONFIG_ENABLE_ICACHE
     struct ICacheBlock {
         word_t tag;
         
@@ -241,7 +244,7 @@ private:
         unsigned int instLen;
         bool valid = false;
     };
-    ICacheBlock icache[1 << ICACHE_SET_BITS];
+    ICacheBlock icache[1 << config::ICACHE_SET_BITS];
     #endif
     void icache_push(do_inst_t do_inst, unsigned int instLen, const DecodeInfo &decodeInfo);
     bool icache_decode_and_exec();

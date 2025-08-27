@@ -3,6 +3,7 @@
 
 #include "cpu/word.h"
 #include "cpu/riscv/def.h"
+#include "cpu/riscv/config.hpp"
 
 namespace kxemu::cpu {
     
@@ -10,14 +11,14 @@ namespace kxemu::cpu {
     private:
         word_t addr;
 
-        static constexpr word_t ICACHE_SET_MASK = ((1ULL << ICACHE_SET_BITS) - 1) << 1;
-        static constexpr word_t ICACHE_TAG_BITS = WORD_BITS - ICACHE_SET_BITS - 1;
-        static constexpr word_t ICACHE_TAG_MASK = ((1ULL << ICACHE_TAG_BITS) - 1) << (ICACHE_SET_BITS + 1);
+        static constexpr word_t ICACHE_SET_MASK = ((1ULL << config::ICACHE_SET_BITS) - 1) << 1;
+        static constexpr word_t ICACHE_TAG_BITS = WORD_BITS - config::ICACHE_SET_BITS - 1;
+        static constexpr word_t ICACHE_TAG_MASK = ((1ULL << ICACHE_TAG_BITS) - 1) << (config::ICACHE_SET_BITS + 1);
 
-        static constexpr word_t TLB_TAG_BITS = WORD_BITS - TLB_SET_BITS - PGBITS;
+        static constexpr word_t TLB_TAG_BITS = WORD_BITS - config::TLB_SET_BITS - PGBITS;
         static constexpr word_t TLB_OFF_MASK = (1ULL << PGBITS) - 1;
-        static constexpr word_t TLB_SET_MASK = ((1ULL << TLB_SET_BITS) - 1) << PGBITS;
-        static constexpr word_t TLB_TAG_MASK = ((1ULL << TLB_TAG_BITS) - 1) << (PGBITS + TLB_SET_BITS);
+        static constexpr word_t TLB_SET_MASK = ((1ULL << config::TLB_SET_BITS) - 1) << PGBITS;
+        static constexpr word_t TLB_TAG_MASK = ((1ULL << TLB_TAG_BITS) - 1) << (PGBITS + config::TLB_SET_BITS);
 
     public:
         Addr() : addr(0) {}

@@ -3,12 +3,8 @@
 
 #include "cpu/word.h"
 #include "device/def.h"
-#include "config/config.h"
 
 namespace kxemu::cpu {
-    static inline constexpr unsigned int ICACHE_SET_BITS = 11;
-    static inline constexpr unsigned int TLB_SET_BITS = 5;
-
     static inline constexpr unsigned int PGBITS = 12;
     static inline constexpr word_t PGSIZE = (1 << PGBITS);
 

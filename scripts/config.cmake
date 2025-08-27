@@ -63,5 +63,19 @@ if(CONFIG_CC_UBASAN)
     list(APPEND CONFIG_CC_EXTRA_FLAGS "-fsanitize=undefined")
 endif()
 
+if(CONFIG_CC_PGO)
+    list(APPEND CONFIG_CC_EXTRA_FLAGS "-fprofile-generate")
+endif()
+
+if(CONFIG_CC_LTO)
+    list(APPEND CONFIG_CC_EXTRA_FLAGS "-flto")
+endif()
+
+if(CONFIG_CC_PROFILE_INSTR_USE)
+    list(APPEND CONFIG_CC_EXTRA_FLAGS "-fprofile-instr-use=${CONFIG_CC_PROFILE_INSTR_USE}")
+endif()
+
 add_compile_options(${CONFIG_CC_EXTRA_FLAGS})
+add_compile_options(-Wall -Wextra -Wpedantic -Werror)
+add_compile_options(-Wno-unused-parameter -Wno-deprecated-declarations -Wno-gnu-anonymous-struct -Wno-nested-anon-types)
 add_link_options(${CONFIG_CC_EXTRA_FLAGS})
