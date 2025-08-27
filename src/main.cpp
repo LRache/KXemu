@@ -16,23 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "kdb/cmd.h"
-#include "kdb/kdb.h"
+#include "kdb/cmd.hpp"
+#include "kdb/kdb.hpp"
 
-#include <bits/getopt_core.h>
 #include <getopt.h>
 #include <vector>
 
 using namespace kxemu;
 
-void parse_args(int argc, char **argv) {
+static std::vector<std::string> sourceFiles;
+static unsigned int coreCount = 1;
+
+static void parse_args(int argc, char **argv) {
     static struct option options[] = {
         {"source", required_argument, 0, 's'},
-        {"elf"   , required_argument, 0, 'e'},
+        {"def"   , required_argument, 0, 'd'},
+        {"cores" , required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
-
-    std::vector<std::string> sourceFiles;
 
     int o;
     while((o = getopt_long(argc, argv, "s:", options, NULL)) != -1) {
@@ -40,23 +41,42 @@ void parse_args(int argc, char **argv) {
             case 's':
                 sourceFiles.push_back(optarg);
                 break;
-            case 'e':
-                kdb::cmd::elfFileName = optarg;
+            case 'd':
+                kdb::cmd::add_define(optarg);
+                break;
+            case 'c':
+                coreCount = std::stoi(optarg);
                 break;
             default:
                 break;
         }
     }
+}
 
-    for (auto sourceFileName: sourceFiles) {
-        kdb::run_source_file(sourceFileName);
-    }
+static void output_info() {
+    std::cout << "KXemu build at "  << __TIMESTAMP__;
+    #ifdef __clang__
+    std::cout << " (Clang " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << ")" << std::endl;
+    #elif defined(__GNUC__)
+    std::cout << " (GCC " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << ")" << std::endl;
+    #elif defined(_MSC_VER)
+    std::cout << " (MSVC " << _MSC_VER << ")" << std::endl;
+    #endif
 }
 
 int main(int argc, char **argv) {
-    kdb::init();
-    kdb::cmd_init();
     parse_args(argc, argv);
-    int r = kdb::run_cmd_mainloop();
+
+    output_info();
+    
+    kdb::init(coreCount);
+    for (auto sourceFileName: sourceFiles) {
+        kdb::cmd::run_source_file(sourceFileName);
+    }
+    
+    kdb::cmd::init();
+    int r = kdb::cmd::mainloop();
+    kdb::deinit();
+    
     return r;
 }

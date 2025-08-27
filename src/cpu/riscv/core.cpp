@@ -1,59 +1,40 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/aclint.h"
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
-#include "device/bus.h"
-#include "isa/word.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/aclint.hpp"
+#include "cpu/word.hpp"
+#include "device/bus.hpp"
 #include "log.h"
-#include "macro.h"
+#include "word.h"
 
 #include <cstdint>
 #include <cstring>
-#include <functional>
-#include <unordered_set>
+#include <optional>
 
 using namespace kxemu::cpu;
-using kxemu::utils::TaskTimer;
 
-RVCore::RVCore() {
-    this->mtimerTaskID = -1; // -1 means the task is not exist
-    this->stimerTaskID = -1;
-    
-    this->mstatus = this->csr.get_csr_ptr(CSR_MSTATUS);
-    this->medeleg = this->csr.get_csr_ptr_readonly(CSR_MEDELEG);
-    this->mideleg = this->csr.get_csr_ptr_readonly(CSR_MIDELEG);
-    this->mie     = this->csr.get_csr_ptr_readonly(CSR_MIE);
-    this->mip     = this->csr.get_csr_ptr(CSR_MIP);
+RVCore::RVCore() {    
+    this->medeleg = this->csr.get_csr_ptr_readonly(CSRAddr::MEDELEG);
+    this->mideleg = this->csr.get_csr_ptr_readonly(CSRAddr::MIDELEG);
+    this->mie     = this->csr.get_csr_ptr_readonly(CSRAddr::MIE);
+    this->mip     = this->csr.get_csr_ptr(CSRAddr::MIP);
 
     // RV32 only
 #ifdef KXEMU_ISA32
-    this->medelegh= this->csr.get_csr_ptr_readonly(CSR_MEDELEGH);
+    this->medelegh= this->csr.get_csr_ptr_readonly(CSRAddr::MEDELEGH);
 #endif
 
-    this->satp    = this->csr.get_csr_ptr_readonly(CSR_SATP);
+    this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
+
+    this->deviceMtx = nullptr;
 }
 
-void RVCore::init(unsigned int coreID, device::Bus *bus, int flags, AClint *alint, TaskTimer *timer) {
+void RVCore::init(unsigned int coreID, device::Bus *bus, device::AClint *alint, device::PLIC *plic) {
     this->coreID = coreID;
     this->bus = bus;
-    this->flags = flags;
     this->aclint = alint;
-    this->taskTimer = timer;
+    this->plic = plic;
     this->state = IDLE;
 
-    // this->build_decoder();
-
     this->init_csr();
-    
-    this->aclint->register_core(coreID, {
-        this,
-        &this->mtimecmp,
-        &this->msip,
-        &this->ssip,
-        std::bind(&RVCore::update_mtimecmp, this),
-        nullptr,
-        nullptr
-    });
 }
 
 void RVCore::reset(word_t entry) {
@@ -63,106 +44,17 @@ void RVCore::reset(word_t entry) {
     
     this->csr.reset();
 
-    if (this->mtimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->mtimerTaskID);
-        this->mtimerTaskID = -1;
-    }
-    if (this->stimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->stimerTaskID);
-        this->stimerTaskID = -1;
-    }
-
     std::memset(this->gpr, 0, sizeof(this->gpr));
-}
+    this->gpr[10] = this->coreID;
 
-void RVCore::step() {
-    if (unlikely(this->state == BREAKPOINT)) {
-        this->state = RUNNING;
-    }
-    if (likely(this->state == RUNNING)) {
-        this->execute();
-        this->pc = this->npc;
-    } else {
-        WARN("Core is not running, nothing to do.");
-    }
-}
-
-void RVCore::run(word_t *breakpoints_, unsigned int n) {
-    std::unordered_set<word_t> breakpoints;
-    for (unsigned int i = 0; i < n; i++) {
-        breakpoints.insert(breakpoints_[i]);
-    }
-
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    this->bootTime = ts.tv_sec * 1e9 + ts.tv_nsec;
-    this->taskTimer->start_thread();
-    
-    this->state = RUNNING;
-    while (this->state == RUNNING) {
-        if (breakpoints.find(this->pc) != breakpoints.end()) {
-            this->haltCode = 0;
-            this->haltPC = this->pc;
-            this->state = BREAKPOINT;
-            break;
-        }
-        
-        this->check_timer_interrupt();
-        this->execute();
-        this->pc = this->npc;
-    }
-}
-
-void RVCore::execute() {    
-    // Interrupt
-    if (unlikely(this->scan_interrupt())) return;
-    
-    if (unlikely(this->pc & 0x1)) {
-        // Instruction address misaligned
-        this->trap(TRAP_INST_ADDR_MISALIGNED);
-        return;
-    }
-    
-    if (!this->fetch_inst()) {
-        return;
-    }
-    
-    bool valid;
-    if (likely((this->inst & 0x3) == 0x3)) {
-        this->npc = this->pc + 4;
-        valid = this->decode_and_exec();
-    } else {
-        this->npc = this->pc + 2;
-        valid = this->decode_and_exec_c();
-    }
-
-    if (unlikely(!valid)) {
-        this->do_invalid_inst();
-    }
+    #ifdef CONFIG_ICache
+    this->icache_fence();
+    #endif
+    this->tlb_fence();
 }
 
 uint64_t RVCore::get_uptime() {
-    if (unlikely(this->state != RUNNING)) {
-        return 0;
-    }
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts.tv_sec * 1e9 + ts.tv_nsec - this->bootTime;
-}
-
-void RVCore::do_invalid_inst() {
-    this->state = ERROR;
-    this->haltPC = this->pc;
-    WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
-
-    // Illegal instruction trap
-    this->trap(TRAP_ILLEGAL_INST, this->inst);
-}
-
-void RVCore::set_gpr(int index, word_t value) {
-    if (likely(index != 0)) {
-        this->gpr[index] = value;
-    }
+    return this->aclint->get_uptime();
 }
 
 bool RVCore::is_error() {
@@ -185,30 +77,217 @@ word_t RVCore::get_pc() {
     return this->pc;
 }
 
-word_t RVCore::get_gpr(int idx) {
-    if (idx >= 32 || idx < 0) {
-        WARN("GPR index=%d out of range, return 0 instead.", idx);
-        return 0;
-    }
-    return gpr[idx];
+void RVCore::set_pc(word_t pc) {
+    this->pc = pc;
 }
 
-word_t RVCore::get_register(const std::string &name, bool &success) {
-    success = true;
+word_t RVCore::get_gpr(unsigned int index) {
+    return gpr[index];
+}
+
+void RVCore::set_gpr(unsigned int index, word_t value) {
+    DEBUG("SET gpr[%u] = " FMT_WORD ", pc = " FMT_WORD, index, value, pc);
+    this->gpr[index] = value;
+}
+
+static inline const char *gprAlias[] = {
+    "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+};
+
+static inline const char *gprNames[] = {
+    "x0" , "x1" , "x2" , "x3" , "x4" , "x5" , "x6" , "x7" ,
+    "x8" , "x9" , "x10", "x11", "x12", "x13", "x14", "x15",
+    "x16", "x17", "x18", "x19", "x20", "x21", "x22", "x23",
+    "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"
+};
+
+std::optional<word_t> RVCore::get_register(const std::string &name) {
+    for (unsigned int i = 0; i < 32; i++) {
+        if (name == gprNames[i]) {
+            return this->gpr[i];
+        }
+    }
+
+    for (unsigned int i = 0; i < 32; i++) {
+        if (name == gprAlias[i]) {
+            return this->gpr[i];
+        }
+    }
+
     if (name == "pc") {
         return this->pc;
-    } else if (name == "mstatus") {
-        return *this->mstatus;
-    } else if (name == "mie") {
-        return *this->mie;
-    } else if (name == "mip") {
-        return *this->mip;
-    } else if (name == "medeleg") {
-        return *this->medeleg;
-    } else {
-        success = false;
-        return 0;
+    } else if (name == "priv") {
+        return this->privMode;
     }
+    
+    if (name == "mstatus") {
+        return this->csr.get_csr_value(CSRAddr::MSTATUS);
+    } else if (name == "misa") {
+        return this->csr.get_csr_value(CSRAddr::MISA);
+    } else if (name == "medeleg") {
+        return this->csr.get_csr_value(CSRAddr::MEDELEG);
+    } else if (name == "mideleg") {
+        return this->csr.get_csr_value(CSRAddr::MIDELEG);
+    } else if (name == "mie") {
+        return this->csr.get_csr_value(CSRAddr::MIE);
+    } else if (name == "mtvec") {
+        return this->csr.get_csr_value(CSRAddr::MTVEC);
+    } else if (name == "mcnten") {
+        return this->csr.get_csr_value(CSRAddr::MCNTEN);
+    }
+    
+    if (name == "mscratch") {
+        return this->csr.get_csr_value(CSRAddr::MSCRATCH);
+    } else if (name == "mepc") {
+        return this->csr.get_csr_value(CSRAddr::MEPC);
+    } else if (name == "mcause") {
+        return this->csr.get_csr_value(CSRAddr::MCAUSE);
+    } else if (name == "mtval") {
+        return this->csr.get_csr_value(CSRAddr::MTVAL);
+    } else if (name == "mip") {
+        return this->csr.get_csr_value(CSRAddr::MIP);
+    } else if (name == "mtinst") {
+        return this->csr.get_csr_value(CSRAddr::MTINST);
+    } else if (name == "mtval2") {
+        return this->csr.get_csr_value(CSRAddr::MTVAL2);
+    }
+
+    if (name == "pmpcfg0") {
+        return this->csr.get_csr_value(CSRAddr::PMPCFG0);
+    }
+
+    if (name == "sstatus") {
+        return this->csr.get_csr_value(CSRAddr::SSTATUS);
+    } else if (name == "sie") {
+        return this->csr.get_csr_value(CSRAddr::SIE);
+    } else if (name == "stvec") {
+        return this->csr.get_csr_value(CSRAddr::STVEC);
+    } else if (name == "scnten") {
+        return this->csr.get_csr_value(CSRAddr::SCNTEN);
+    }
+    
+    if (name == "sscratch") {
+        return this->csr.get_csr_value(CSRAddr::SSCRATCH);
+    } else if (name == "sepc") {
+        return this->csr.get_csr_value(CSRAddr::SEPC);
+    } else if (name == "scause") {
+        return this->csr.get_csr_value(CSRAddr::SCAUSE);
+    } else if (name == "stval") {
+        return this->csr.get_csr_value(CSRAddr::STVAL);
+    } else if (name == "sip") {
+        return this->csr.get_csr_value(CSRAddr::SIP);
+    } else if (name == "stimecmp") {
+        return this->csr.get_csr_value(CSRAddr::STIMECMP);
+    }
+    
+    if (name == "satp") {
+        return this->csr.get_csr_value(CSRAddr::SATP);
+    }
+
+    return std::nullopt;
+}
+
+bool RVCore::set_register(const std::string &name, word_t value) {
+    for (unsigned int i = 1; i < 32; i++) {
+        if (name == gprNames[i]) {
+            this->gpr[i] = value;
+            return true;
+        }
+    }
+
+    for (unsigned int i = 1; i < 32; i++) {
+        if (name == gprAlias[i]) {
+            this->gpr[i] = value;
+            return true;
+        }
+    }
+
+    if (name == "pc") {
+        this->pc = value;
+        return true;
+    } else if (name == "mstatus") {
+        this->csr.set_csr_value(CSRAddr::MSTATUS, value);
+        return true;
+    } else if (name == "misa") {
+        this->csr.set_csr_value(CSRAddr::MISA, value);
+        return true;
+    } else if (name == "medeleg") {
+        this->csr.set_csr_value(CSRAddr::MEDELEG, value);
+        return true;
+    } else if (name == "mideleg") {
+        this->csr.set_csr_value(CSRAddr::MIDELEG, value);
+        return true;
+    } else if (name == "mie") {
+        this->csr.set_csr_value(CSRAddr::MIE, value);
+        return true;
+    } else if (name == "mtvec") {
+        this->csr.set_csr_value(CSRAddr::MTVEC, value);
+        return true;
+    } else if (name == "mcnten") {
+        this->csr.set_csr_value(CSRAddr::MCNTEN, value);
+        return true;
+    } else if (name == "mscratch") {
+        this->csr.set_csr_value(CSRAddr::MSCRATCH, value);
+        return true;
+    } else if (name == "mepc") {
+        this->csr.set_csr_value(CSRAddr::MEPC, value);
+        return true;
+    } else if (name == "mcause") {
+        this->csr.set_csr_value(CSRAddr::MCAUSE, value);
+        return true;
+    } else if (name == "mtval") {
+        this->csr.set_csr_value(CSRAddr::MTVAL, value);
+        return true;
+    } else if (name == "mip") {
+        this->csr.set_csr_value(CSRAddr::MIP, value);
+        return true;
+    } else if (name == "mtinst") {
+        this->csr.set_csr_value(CSRAddr::MTINST, value);
+        return true;
+    } else if (name == "mtval2") {
+        this->csr.set_csr_value(CSRAddr::MTVAL2, value);
+        return true;
+    } 
+    
+    if (name == "sstatus") {
+        this->csr.set_csr_value(CSRAddr::SSTATUS, value);
+        return true;
+    } else if (name == "sie") {
+        this->csr.set_csr_value(CSRAddr::SIE, value);
+        return true;
+    } else if (name == "stvec") {
+        this->csr.set_csr_value(CSRAddr::STVEC, value);
+        return true;
+    } else if (name == "scnten") {
+        this->csr.set_csr_value(CSRAddr::SCNTEN, value);
+        return true;
+    } else if (name == "sscratch") {
+        this->csr.set_csr_value(CSRAddr::SSCRATCH, value);
+        return true;
+    } else if (name == "sepc") {
+        this->csr.set_csr_value(CSRAddr::SEPC, value);
+        return true;
+    } else if (name == "scause") {
+        this->csr.set_csr_value(CSRAddr::SCAUSE, value);
+        return true;
+    } else if (name == "stval") {
+        this->csr.set_csr_value(CSRAddr::STVAL, value);
+        return true;
+    } else if (name == "sip") {
+        this->csr.set_csr_value(CSRAddr::SIP, value);
+        return true;
+    } else if (name == "stimecmp") {
+        this->csr.set_csr_value(CSRAddr::STIMECMP, value);
+        return true;
+    } else if (name == "satp") {
+        this->csr.set_csr_value(CSRAddr::SATP, value);
+        return true;
+    }
+
+    return false;
 }
 
 word_t RVCore::get_halt_pc() {

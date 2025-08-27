@@ -2,6 +2,7 @@
 #define __TRAP_H__
 
 #include <am.h>
+#include <klib.h>
 #include <stdbool.h>
 
 #define LENGTH(arr) (sizeof(arr) / sizeof((arr)[0]))

@@ -39,5 +39,3 @@ int putchar(int c) {
     __am_uart_tx(c);
     return 0;
 }
-
-

@@ -8,15 +8,15 @@
 void __am_get_cur_as(Context *c);
 void __am_switch(Context *c);
 
-static Context* (*user_handler)(Event, Context*) = NULL;
+static Context* (*user_handler)(Context*) = NULL;
 
 Context* __am_irq_handle(Context *c) {
-    return c;
+    return user_handler(c);
 }
 
 extern void __am_asm_trap(void);
 
-void cte_init(Context*(*handler)(Event, Context*)) {
+void cte_init(Context*(*handler)(Context*)) {
     // initialize exception entry
     asm volatile("csrw mtvec, %0" : : "r"(__am_asm_trap));
     // register event handler

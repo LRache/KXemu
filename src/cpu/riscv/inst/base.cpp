@@ -1,129 +1,10 @@
-#include "cpu/riscv/core.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/word.hpp"
+#include "macro.h"
 
 #include <cstdint>
 
 #include "./local-decoder.h"
-#include "cpu/word.h"
-
-#define RD  unsigned int rd  = BITS(11, 7);
-#define RS1 unsigned int rs1 = BITS(19, 15);
-#define RS2 unsigned int rs2 = BITS(24, 20);
-#define IMM_I sword_t imm = (sword_t)SEXT(BITS(31, 20), 12);
-#define IMM_S sword_t imm = (sword_t)SEXT((BITS(31, 25) << 5) | BITS(11, 7), 12);
-#define IMM_B sword_t imm = (sword_t)SEXT((BITS(31, 31) << 12) | (BITS(30, 25) << 5) | (BITS(11, 8) << 1) | (BITS(7, 7) << 11), 13);
-#define IMM_J sword_t imm = (sword_t)SEXT((BITS(31, 31) << 20) | (BITS(30, 21) << 1) | (BITS(20, 20) << 11) | (BITS(19, 12) << 12), 21);
-#define IMM_U sword_t imm = (sword_t)(int32_t)(BITS(31, 12) << 12);
-
-// #define ADDR (MODE32 ? (this->gpr[rs1] + imm) & 0xffffffff : this->gpr[rs1] + imm)
-#define ADDR (this->gpr[rs1] + imm)
-// #define RV64ONLY do { if (this->mode32) { this->do_invalid_inst(); return; }} while(0);
-#define RV64ONLY
-
-using namespace kxemu::cpu;
-
-void RVCore::do_add() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] + this->gpr[rs2]);
-}
-
-void RVCore::do_sub() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] - this->gpr[rs2]);
-}
-
-void RVCore::do_and() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] & this->gpr[rs2]);
-}
-
-void RVCore::do_or() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] | this->gpr[rs2]);
-}
-
-void RVCore::do_xor() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] ^ this->gpr[rs2]);
-}
-
-void RVCore::do_sll() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] << (this->gpr[rs2] & 0x1F));
-}
-
-void RVCore::do_srl() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] >> (this->gpr[rs2] & 0x1F));
-}
-
-void RVCore::do_sra() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, (sword_t)this->gpr[rs1] >> (this->gpr[rs2] & 0x1F));
-}
-
-void RVCore::do_slt() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, (sword_t)this->gpr[rs1] < (sword_t)this->gpr[rs2] ? 1 : 0);
-}
-
-void RVCore::do_sltu() {
-    RD; RS1; RS2;
-    this->set_gpr(rd, this->gpr[rs1] < this->gpr[rs2] ? 1 : 0);
-}
-
-#ifdef KXEMU_ISA64
-
-void RVCore::do_addw() {
-    RD; RS1; RS2;
-    int32_t result = (int32_t)this->gpr[rs1] + (int32_t)this->gpr[rs2];
-    this->set_gpr(rd, (word_t)result);
-}
-
-void RVCore::do_subw() {
-    RD; RS1; RS2;
-    int32_t result = (int32_t)this->gpr[rs1] - (int32_t)this->gpr[rs2];
-    this->set_gpr(rd, (word_t)result);
-}
-
-void RVCore::do_sllw() {
-    RD; RS1; RS2;
-    uint32_t result = ((uint32_t)this->gpr[rs1]) << (this->gpr[rs2] & 0x1f);
-    this->set_gpr(rd, (word_t)result);
-}
-
-void RVCore::do_srlw() {
-    RD; RS1; RS2;
-    uint32_t result = ((uint32_t)this->gpr[rs1]) >> (this->gpr[rs2] & 0x1f);
-    this->set_gpr(rd, (word_t)result);
-}
-
-void RVCore::do_sraw() {
-    RD; RS1; RS2;
-    int32_t result = ((int32_t)this->gpr[rs1]) >> (this->gpr[rs2] & 0x1f);
-    this->set_gpr(rd, (word_t)result);
-}
-
-#endif
-
-void RVCore::do_addi() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->gpr[rs1] + imm);        
-}
-
-void RVCore::do_andi() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->gpr[rs1] & imm);
-}
-
-void RVCore::do_ori() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->gpr[rs1] | imm);
-}
-
-void RVCore::do_xori() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->gpr[rs1] ^ imm);
-}
 
 #ifdef KXEMU_ISA64
     #define SHAMT_MASK 0x3f
@@ -131,186 +12,310 @@ void RVCore::do_xori() {
     #define SHAMT_MASK 0x1f
 #endif
 
-void RVCore::do_slli() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->gpr[rs1] << (imm & SHAMT_MASK));
+// #define RV64ONLY do { if (this->mode32) { this->do_invalid_inst(); return; }} while(0);
+#define RV64ONLY
+
+using namespace kxemu::cpu;
+
+#define DO_INST_R(name, op) \
+void RVCore::do_##name(const DecodeInfo &decodeInfo) { \
+    TAG_RD; TAG_RS1; TAG_RS2;\
+    \
+    DEST = SRC1 op SRC2; \
+} \
+
+DO_INST_R(add, +)
+DO_INST_R(sub, -)
+DO_INST_R(and, &)
+DO_INST_R(or , |)
+DO_INST_R(xor, ^)
+
+void RVCore::do_sll(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = SRC1 << (SRC2 & SHAMT_MASK);
 }
 
-void RVCore::do_srli() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->gpr[rs1] >> (imm & SHAMT_MASK));
+void RVCore::do_srl(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = SRC1 >> (SRC2 & SHAMT_MASK);
 }
 
-void RVCore::do_srai() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, (sword_t)this->gpr[rs1] >> (imm & SHAMT_MASK));
+void RVCore::do_sra(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = (sword_t)SRC1 >> (SRC2 & SHAMT_MASK);
 }
 
-void RVCore::do_slti() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, (sword_t)this->gpr[rs1] < (sword_t)imm ? 1 : 0);
+void RVCore::do_slt(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = (sword_t)SRC1 < (sword_t)SRC2 ? 1 : 0;
 }
 
-void RVCore::do_sltiu() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->gpr[rs1] < (word_t)imm ? 1 : 0);
+void RVCore::do_sltu(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = (word_t)SRC1 < (word_t)SRC2 ? 1 : 0;
 }
 
 #ifdef KXEMU_ISA64
 
-void RVCore::do_addiw() {
-    RD; RS1; IMM_I;
-    int32_t result = (int32_t)this->gpr[rs1] + imm;
-    this->set_gpr(rd, (word_t)result);
+void RVCore::do_addw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = SEXT64((int32_t)SRC1 + (int32_t)SRC2);
 }
 
-void RVCore::do_slliw() {
-    RD; RS1; IMM_I;
-    int32_t result = ((uint32_t)this->gpr[rs1]) << (imm & 0x1f);
-    this->set_gpr(rd, (sword_t)result);
+void RVCore::do_subw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = SEXT64((int32_t)SRC1 - (int32_t)SRC2);
 }
 
-void RVCore::do_srliw() {
-    RD; RS1; IMM_I;
-    int32_t result = ((uint32_t)this->gpr[rs1]) >> (imm & 0x1f);
-    this->set_gpr(rd, (sword_t)result);
+void RVCore::do_sllw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = SEXT64((uint32_t)SRC1) << (SRC2 & 0x1f);
 }
 
-void RVCore::do_sraiw() {
-    RD; RS1; IMM_I;
-    int32_t result = ((int32_t)this->gpr[rs1]) >> (imm & 0x1f);
-    this->set_gpr(rd, (sword_t)result);
+void RVCore::do_srlw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = SEXT64(((uint32_t)SRC1) >> (SRC2 & 0x1f));
+}
+
+void RVCore::do_sraw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_RS2;
+    
+    DEST = SEXT64((int32_t)SRC1) >> (SRC2 & 0x1f);
 }
 
 #endif
 
-void RVCore::do_lb() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, (sword_t)(int8_t)this->memory_load(ADDR, 1));
+#define DO_INST_I(name, op) \
+void RVCore::do_##name(const DecodeInfo &decodeInfo) { \
+    TAG_RD; TAG_RS1; TAG_IMM; \
+    \
+    DEST = SRC1 op IMM; \
+} \
+// DO_INST_I(addi, +) expand to:
+// void RVCore::do_addi(const DecodeInfo &decodeInfo) {
+//     TAG_RD; TAG_RS1; TAG_IMM;
+//     
+//     DEST = SRC1 op IMM;      
+// }
+
+DO_INST_I(addi, +);
+DO_INST_I(andi, &);
+DO_INST_I(ori , |);
+DO_INST_I(xori, ^);
+
+void RVCore::do_slli(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = SRC1 << IMM;
 }
 
-void RVCore::do_lbu() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->memory_load(ADDR, 1));
+void RVCore::do_srli(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = SRC1 >> IMM;
 }
 
-void RVCore::do_lh() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, (sword_t)(int16_t)this->memory_load(ADDR, 2));
+void RVCore::do_srai(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = (sword_t)SRC1 >> IMM;
 }
 
-void RVCore::do_lhu() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->memory_load(ADDR, 2));
+void RVCore::do_slti(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = (sword_t)SRC1 < (sword_t)IMM ? 1 : 0;
 }
 
-void RVCore::do_lw() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, (sword_t)(int32_t)this->memory_load(ADDR, 4));
+void RVCore::do_sltiu(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = (word_t)SRC1 < (word_t)IMM ? 1 : 0;
 }
 
 #ifdef KXEMU_ISA64
-void RVCore::do_lwu() {
-    RV64ONLY;
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->memory_load(ADDR, 4));
+
+void RVCore::do_addiw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = SEXT64((int32_t)SRC1 + (int32_t)IMM);
 }
 
-void RVCore::do_ld() {
-    RV64ONLY;
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->memory_load(this->gpr[rs1] + imm, 8));
+void RVCore::do_slliw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = SEXT64(((uint32_t)SRC1) << IMM);
 }
+
+void RVCore::do_srliw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = SEXT64(((uint32_t)SRC1) >> IMM);
+}
+
+void RVCore::do_sraiw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = SEXT64(((int32_t)SRC1) >> IMM);
+}
+
 #endif
 
-void RVCore::do_sb() {
-    RS1; RS2; IMM_S;
-    this->memory_store(ADDR, this->gpr[rs2], 1);
+// #define ADDR (MODE32 ? (this->gpr[rs1] + IMM) & 0xffffffff : this->gpr[rs1] + IMM)
+#define ADDR (SRC1 + IMM)
+
+void RVCore::do_lb(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+
+    DEST = (sword_t)(int8_t)this->memory_load(ADDR, 1); 
 }
 
-void RVCore::do_sh() {
-    RS1; RS2; IMM_S;
-    this->memory_store(ADDR, this->gpr[rs2], 2);
+void RVCore::do_lbu(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+
+    DEST = this->memory_load(ADDR, 1);
 }
 
-void RVCore::do_sw() {
-    RS1; RS2; IMM_S;
-    this->memory_store(ADDR, this->gpr[rs2], 4);
+void RVCore::do_lh(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    DEST = (sword_t)(int16_t)this->memory_load(ADDR, 2);
+}
+
+void RVCore::do_lhu(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+
+    DEST = this->memory_load(ADDR, 2);
+}
+
+void RVCore::do_lw(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+
+    DEST = (sword_t)(int32_t)this->memory_load(ADDR, 4);
 }
 
 #ifdef KXEMU_ISA64
-void RVCore::do_sd() {
+
+void RVCore::do_lwu(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
     RV64ONLY;
-    RS1; RS2; IMM_S;
-    this->memory_store(this->gpr[rs1] + imm, this->gpr[rs2], 8);
+    
+    DEST = this->memory_load(ADDR, 4);
+}
+
+void RVCore::do_ld(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    RV64ONLY;
+    
+    DEST = this->memory_load(ADDR, 8);
+}
+
+#endif
+
+void RVCore::do_sb(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+    
+    this->memory_store(ADDR, SRC2, 1);
+}
+
+void RVCore::do_sh(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+    
+    this->memory_store(ADDR, SRC2, 2);
+}
+
+void RVCore::do_sw(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+    
+    this->memory_store(ADDR, SRC2, 4);
+}
+
+#ifdef KXEMU_ISA64
+void RVCore::do_sd(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+    RV64ONLY;
+    
+    this->memory_store(ADDR, SRC2, 8);
 }
 #endif
 
 // #define COND(op) (MODE32 ? ((int32_t)this->gpr[rs1] op (int32_t)this->gpr[rs2]) : ((sword_t)this->gpr[rs1] op (sword_t)this->gpr[rs2]))
 // #define COND_U(op) (MODE32 ? ((uint32_t)this->gpr[rs1] op (uint32_t)this->gpr[rs2]) : (this->gpr[rs1] op this->gpr[rs2]))
-#define COND(op) ((sword_t)this->gpr[rs1] op (sword_t)this->gpr[rs2])
-#define COND_U(op) (this->gpr[rs1] op this->gpr[rs2])
+#define COND(op) unlikely((sword_t)SRC1 op (sword_t)SRC2)
+#define COND_U(op) unlikely((word_t)SRC1 op (word_t)SRC2)
 
-void RVCore::do_beq() {
-    RS1; RS2; IMM_B;
-    if (COND(==)) {
-        this->npc = this->pc + imm;
-    }
+#define DO_INST_B(name, op) \
+void RVCore::do_##name(const DecodeInfo &decodeInfo) { \
+    TAG_RS1; TAG_RS2; TAG_NPC; \
+    \
+    if (unlikely((sword_t)SRC1 op (sword_t)SRC2)) { \
+        this->npc = NPC; \
+    } \
+} \
+
+#define DO_INST_BU(name, op) \
+void RVCore::do_##name(const DecodeInfo &decodeInfo) { \
+    TAG_RS1; TAG_RS2; TAG_NPC; \
+    \
+    if (unlikely(SRC1 op SRC2)) { \
+        this->npc = NPC; \
+    } \
+} \
+
+// DO_INST_B(beq , ==) expand to:
+// void RVCore::do_beq(const DecodeInfo &decodeInfo) {
+//     // RS1; RS2; IMM;
+//     if (COND(==)) {
+//         this->npc = this->pc + IMM;
+//     }
+// }
+
+// DO_INST_BU(bgeu, >=) expand to:
+// void RVCore::do_bgeu(const DecodeInfo &decodeInfo) {
+//     // RS1; RS2; IMM;
+//     if (COND_U(>=)) {
+//         this->npc = this->pc + IMM;
+//     }
+// }
+
+DO_INST_B (beq , ==);
+DO_INST_B (bne , !=);
+DO_INST_B (bge , >=);
+DO_INST_BU(bgeu, >=);
+DO_INST_B (blt , < );
+DO_INST_BU(bltu, < );
+
+void RVCore::do_jal(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_IMM;
+    
+    DEST = this->pc + 4;
+    this->npc = this->pc + IMM;
 }
 
-void RVCore::do_bge() {
-    RS1; RS2; IMM_B;
-    if (COND(>=)) {
-        this->npc = this->pc + imm;
-    }
+void RVCore::do_jalr(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_RS1; TAG_IMM;
+    
+    this->npc = SRC1 + IMM;
+    DEST = this->pc + 4;
 }
 
-void RVCore::do_bgeu() {
-    RS1; RS2; IMM_B;
-    if (COND_U(>=)) {
-        this->npc = this->pc + imm;
-    }
+void RVCore::do_lui(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_IMM;
+    
+    DEST = IMM;
 }
 
-void RVCore::do_blt() {
-    RS1; RS2; IMM_B;
-    if (COND(<)) {
-        this->npc = this->pc + imm;
-    }
-}
-
-void RVCore::do_bltu() {
-    RS1; RS2; IMM_B;
-    if (COND_U(<)) {
-        this->npc = this->pc + imm;
-    }
-}
-
-void RVCore::do_bne() {
-    RS1; RS2; IMM_B;
-    if (COND(!=)) {
-        this->npc = this->pc + imm;
-    }
-}
-
-void RVCore::do_jal() {
-    RD; IMM_J;
-    this->set_gpr(rd, this->pc + 4);
-    this->npc = this->pc + imm;
-}
-
-void RVCore::do_jalr() {
-    RD; RS1; IMM_I;
-    this->set_gpr(rd, this->pc + 4);
-    this->npc = this->gpr[rs1] + imm;
-}
-
-void RVCore::do_lui() {
-    RD; IMM_U;
-    this->set_gpr(rd, imm);
-}
-
-void RVCore::do_auipc() {
-    RD; IMM_U;
-    this->set_gpr(rd, this->pc + imm);
+void RVCore::do_auipc(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_IMM;
+    
+    DEST = IMM;
 }

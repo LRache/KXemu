@@ -1,5 +1,5 @@
-#include <am.h>
-#include <klib.h>
+#include "am.h"
+#include "klib.h"
 #include <stdarg.h>
 
 typedef struct FmtBuffer {
@@ -18,12 +18,18 @@ typedef void (*fmt_fun_t)(FmtBuffer *buffer, va_list*, char*);
 
 static void __fmt_s   (FmtBuffer *buffer, va_list *ap, char *arg);
 static void __fmt_d   (FmtBuffer *buffer, va_list *ap, char *arg);
+static void __fmt_ld  (FmtBuffer *buffer, va_list *ap, char *arg);
+static void __fmt_lld (FmtBuffer *buffer, va_list *ap, char *arg);
 static void __fmt_u   (FmtBuffer *buffer, va_list *ap, char *arg);
+static void __fmt_lu  (FmtBuffer *buffer, va_list *ap, char *arg);
+static void __fmt_llu (FmtBuffer *buffer, va_list *ap, char *arg);
 static void __fmt_x   (FmtBuffer *buffer, va_list *ap, char *arg);
+static void __fmt_lx  (FmtBuffer *buffer, va_list *ap, char *arg);
+static void __fmt_llx (FmtBuffer *buffer, va_list *ap, char *arg);
 static void __fmt_X   (FmtBuffer *buffer, va_list *ap, char *arg);
 static void __fmt_p   (FmtBuffer *buffer, va_list *ap, char *arg);
 static void __fmt_llu (FmtBuffer *buffer, va_list *ap, char *arg);
-static void __fmt_lld (FmtBuffer *buffer, va_list *ap, char *arg);
+
 
 typedef struct {
     char fmt[10];
@@ -34,12 +40,16 @@ typedef struct {
 static FmtEntry fmtTable[] = {
   {"s"   , 1, __fmt_s},
   {"d"   , 1, __fmt_d},
+  {"ld"  , 2, __fmt_ld},
+  {"lld" , 3, __fmt_lld},
   {"u"   , 1, __fmt_u},
+  {"lu"  , 2, __fmt_lu},
+  {"llu" , 3, __fmt_llu},
   {"x"   , 1, __fmt_x},
+  {"lx"  , 2, __fmt_lx},
+  {"llx" , 3, __fmt_llx},
   {"X"   , 1, __fmt_X},
   {"p"   , 1, __fmt_p},
-  {"llu" , 3, __fmt_llu},
-  {"lld" , 3, __fmt_lld},
 };
 
 #define FMT_TABLE_LEN (sizeof(fmtTable) / sizeof(fmtTable[0]))
@@ -78,16 +88,16 @@ static void __fmt_d(FmtBuffer *buffer, va_list *ap, char *arg) {
     int zeroFill = 0;
     if (*arg != 0) {
         if (*arg == '0') {
-        zeroFill = 1;
-        arg++;
+            zeroFill = 1;
+            arg++;
         }
         if (*arg == '-') {
-        leftAlign = 1;
-        arg++;
+            leftAlign = 1;
+            arg++;
         } 
         while (*arg) {
-        minWidth = minWidth * 10 + *arg - '0';
-        arg++;
+            minWidth = minWidth * 10 + *arg - '0';
+            arg++;
         }
     } 
     int sign = d < 0;
@@ -127,34 +137,36 @@ static void __fmt_d(FmtBuffer *buffer, va_list *ap, char *arg) {
     }
 }
 
-static void __fmt_u(FmtBuffer *buffer, va_list *ap, char *arg) {
-    unsigned int d = va_arg(*ap, unsigned int);
+static void __fmt_ld(FmtBuffer *buffer, va_list *ap, char *arg) {
+    long d = va_arg(*ap, long);
     int leftAlign = 0;
     int minWidth = 0;
     int zeroFill = 0;
     if (*arg != 0) {
         if (*arg == '0') {
-        zeroFill = 1;
-        arg++;
+            zeroFill = 1;
+            arg++;
         }
         if (*arg == '-') {
-        leftAlign = 1;
-        arg++;
+            leftAlign = 1;
+            arg++;
         } 
         while (*arg) {
-        minWidth = minWidth * 10 + *arg - '0';
-        arg++;
+            minWidth = minWidth * 10 + *arg - '0';
+            arg++;
         }
     } 
+    int sign = d < 0;
+    if (sign) d = -d;
     
-    char stack[13] = {};
+    char stack[21] = {};
     char *t = stack;
     if (d == 0) {
         *(t++) = '0';
     } else {
         while (d) {
-        *(t++) = d % 10 + '0';
-        d = d / 10;
+            *(t++) = d % 10 + '0';
+            d = d / 10;
         }
     }
 
@@ -176,59 +188,7 @@ static void __fmt_u(FmtBuffer *buffer, va_list *ap, char *arg) {
         while (t > h) buffer->write(buffer, *(--t));
         }
     } else {
-        while (t > h) buffer->write(buffer, *(--t));
-    }
-}
-
-static void __fmt_hex(FmtBuffer *buffer, va_list *ap, char *arg, char base, int width, char fill) {
-    unsigned int d = va_arg(*ap, unsigned int);
-    
-    char stack[9] = {};
-    char *t = stack;
-    if (d == 0) {
-        *(t++) = '0';
-        width--;
-    } else {
-        while (d) {
-        int x = d % 16;
-        if (x > 9) *(t++) = x - 10 + base;
-        else *(t++) = x + '0';
-        d = d / 16;
-        width--;
-        }
-    }
-
-    for (int i = width; i > 0; i--) buffer->write(buffer, fill);
-    char *h = stack;
-    while (t > h) buffer->write(buffer, *(--t)); 
-}
-
-static void __fmt_x(FmtBuffer *buffer, va_list *ap, char *arg) {
-    __fmt_hex(buffer, ap, arg, 'a', -1, 0);
-}
-
-static void __fmt_X(FmtBuffer *buffer, va_list *ap, char *arg) {
-    __fmt_hex(buffer, ap, arg, 'A', -1, 0);
-}
-
-static void __fmt_p(FmtBuffer *buffer, va_list *ap, char *arg) {
-    buffer->write(buffer, '0');
-    buffer->write(buffer, 'x');
-    __fmt_hex(buffer, ap, arg, 'a', 8, '0');
-}
-
-static void __fmt_llu(FmtBuffer *buffer, va_list *ap, char *arg) {
-    unsigned long long d = va_arg(*ap, unsigned long long);
-    if (d == 0) {
-        buffer->write(buffer, '0');
-    } else {
-        char stack[21] = {};
-        char *t = stack;
-        while (d) {
-            *(t++) = d % 10 + '0';
-            d = d / 10;
-        }
-        char *h = stack;
+        if (sign) buffer->write(buffer, '-');
         while (t > h) buffer->write(buffer, *(--t));
     }
 }
@@ -287,6 +247,256 @@ static void __fmt_lld(FmtBuffer *buffer, va_list *ap, char *arg) {
         if (sign) buffer->write(buffer, '-');
         while (t > h) buffer->write(buffer, *(--t));
     }
+}
+
+static void __fmt_u(FmtBuffer *buffer, va_list *ap, char *arg) {
+    unsigned int d = va_arg(*ap, unsigned int);
+    int leftAlign = 0;
+    int minWidth = 0;
+    int zeroFill = 0;
+    if (*arg != 0) {
+        if (*arg == '0') {
+            zeroFill = 1;
+            arg++;
+        }
+        if (*arg == '-') {
+            leftAlign = 1;
+            arg++;
+        } 
+        while (*arg) {
+            minWidth = minWidth * 10 + *arg - '0';
+            arg++;
+        }
+    } 
+    
+    char stack[13] = {};
+    char *t = stack;
+    if (d == 0) {
+        *(t++) = '0';
+    } else {
+        while (d) {
+            *(t++) = d % 10 + '0';
+            d = d / 10;
+        }
+    }
+
+    int width = t - stack;
+    char *h = stack;
+    if (width < minWidth) {
+        if (leftAlign) {
+            while (t > h) buffer->write(buffer, *(--t));
+            while (width < minWidth) {
+                buffer->write(buffer, ' ');
+                width ++;
+            }
+        } else {
+            char fill = zeroFill ? '0' : ' ';
+            while (width < minWidth) {
+                buffer->write(buffer, fill);
+                width++;
+            }
+            while (t > h) buffer->write(buffer, *(--t));
+        }
+    } else {
+        while (t > h) buffer->write(buffer, *(--t));
+    }
+}
+
+static void __fmt_lu(FmtBuffer *buffer, va_list *ap, char *arg) {
+    unsigned long d = va_arg(*ap, unsigned long);
+    int leftAlign = 0;
+    int minWidth = 0;
+    int zeroFill = 0;
+    if (*arg != 0) {
+        if (*arg == '0') {
+            zeroFill = 1;
+            arg++;
+        }
+        if (*arg == '-') {
+            leftAlign = 1;
+            arg++;
+        } 
+        while (*arg) {
+            minWidth = minWidth * 10 + *arg - '0';
+            arg++;
+        }
+    } 
+    
+    char stack[21] = {};
+    char *t = stack;
+    if (d == 0) {
+        *(t++) = '0';
+    } else {
+        while (d) {
+            *(t++) = d % 10 + '0';
+            d = d / 10;
+        }
+    }
+
+    int width = t - stack;
+    char *h = stack;
+    if (width < minWidth) {
+        if (leftAlign) {
+            while (t > h) buffer->write(buffer, *(--t));
+            while (width < minWidth) {
+                buffer->write(buffer, ' ');
+                width ++;
+            }
+        } else {
+            char fill = zeroFill ? '0' : ' ';
+            while (width < minWidth) {
+                buffer->write(buffer, fill);
+                width++;
+            }
+            while (t > h) buffer->write(buffer, *(--t));
+        }
+    } else {
+        while (t > h) buffer->write(buffer, *(--t));
+    }
+}
+
+static void __fmt_llu(FmtBuffer *buffer, va_list *ap, char *arg) {
+    unsigned long long d = va_arg(*ap, unsigned long long);
+    int leftAlign = 0;
+    int minWidth = 0;
+    int zeroFill = 0;
+    if (*arg != 0) {
+        if (*arg == '0') {
+            zeroFill = 1;
+            arg++;
+        }
+        if (*arg == '-') {
+            leftAlign = 1;
+            arg++;
+        } 
+        while (*arg) {
+            minWidth = minWidth * 10 + *arg - '0';
+            arg++;
+        }
+    } 
+    
+    char stack[21] = {};
+    char *t = stack;
+    if (d == 0) {
+        *(t++) = '0';
+    } else {
+        while (d) {
+            *(t++) = d % 10 + '0';
+            d = d / 10;
+        }
+    }
+
+    int width = t - stack;
+    char *h = stack;
+    if (width < minWidth) {
+        if (leftAlign) {
+            while (t > h) buffer->write(buffer, *(--t));
+            while (width < minWidth) {
+                buffer->write(buffer, ' ');
+                width ++;
+            }
+        } else {
+            char fill = zeroFill ? '0' : ' ';
+            while (width < minWidth) {
+                buffer->write(buffer, fill);
+                width++;
+            }
+            while (t > h) buffer->write(buffer, *(--t));
+        }
+    } else {
+        while (t > h) buffer->write(buffer, *(--t));
+    }
+}
+
+static void __fmt_hex(FmtBuffer *buffer, va_list *ap, char *arg, char base, int width, char fill) {
+    unsigned int d = va_arg(*ap, unsigned int);
+    
+    char stack[9] = {};
+    char *t = stack;
+    if (d == 0) {
+        *(t++) = '0';
+        width--;
+    } else {
+        while (d) {
+            int x = d % 16;
+            if (x > 9) *(t++) = x - 10 + base;
+            else *(t++) = x + '0';
+            d = d / 16;
+            width--;
+        }
+    }
+
+    for (int i = width; i > 0; i--) buffer->write(buffer, fill);
+    char *h = stack;
+    while (t > h) buffer->write(buffer, *(--t)); 
+}
+
+static void __fmt_hex_l(FmtBuffer *buffer, va_list *ap, char *arg, char base, int width, char fill) {
+    unsigned long d = va_arg(*ap, unsigned long);
+    
+    char stack[17] = {};
+    char *t = stack;
+    if (d == 0) {
+        *(t++) = '0';
+        width--;
+    } else {
+        while (d) {
+            int x = d % 16;
+            if (x > 9) *(t++) = x - 10 + base;
+            else *(t++) = x + '0';
+            d = d / 16;
+            width--;
+        }
+    }
+
+    for (int i = width; i > 0; i--) buffer->write(buffer, fill);
+    char *h = stack;
+    while (t > h) buffer->write(buffer, *(--t)); 
+}
+
+static void __fmt_hex_ll(FmtBuffer *buffer, va_list *ap, char *arg, char base, int width, char fill) {
+    unsigned long long d = va_arg(*ap, unsigned long long);
+    
+    char stack[17] = {};
+    char *t = stack;
+    if (d == 0) {
+        *(t++) = '0';
+        width--;
+    } else {
+        while (d) {
+            int x = d % 16;
+            if (x > 9) *(t++) = x - 10 + base;
+            else *(t++) = x + '0';
+            d = d / 16;
+            width--;
+        }
+    }
+
+    for (int i = width; i > 0; i--) buffer->write(buffer, fill);
+    char *h = stack;
+    while (t > h) buffer->write(buffer, *(--t)); 
+}
+
+static void __fmt_x(FmtBuffer *buffer, va_list *ap, char *arg) {
+    __fmt_hex(buffer, ap, arg, 'a', -1, 0);
+}
+
+static void __fmt_lx(FmtBuffer *buffer, va_list *ap, char *arg) {
+    __fmt_hex_l(buffer, ap, arg, 'a', -1, 0);
+}
+
+static void __fmt_llx(FmtBuffer *buffer, va_list *ap, char *arg) {
+    __fmt_hex_ll(buffer, ap, arg, 'a', -1, 0);
+}
+
+static void __fmt_X(FmtBuffer *buffer, va_list *ap, char *arg) {
+    __fmt_hex(buffer, ap, arg, 'A', -1, 0);
+}
+
+static void __fmt_p(FmtBuffer *buffer, va_list *ap, char *arg) {
+    buffer->write(buffer, '0');
+    buffer->write(buffer, 'x');
+    __fmt_hex(buffer, ap, arg, 'a', 8, '0');
 }
 
 int printf(const char *fmt, ...) {

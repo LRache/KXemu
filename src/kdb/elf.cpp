@@ -1,8 +1,10 @@
-#include "isa/isa.h"
-#include "kdb/kdb.h"
-#include "log.h"
+#include "isa/isa.hpp"
+#include "kdb/kdb.hpp"
 #include "config/config.h"
+#include "word.h"
 
+#include <cerrno>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <elf.h>
@@ -15,43 +17,37 @@
 #include <vector>
 
 #ifdef KXEMU_ISA64
-    #define Elf_Ehdr Elf64_Ehdr
-    #define Elf_Phdr Elf64_Phdr
-    #define Elf_Shdr Elf64_Shdr
-    #define Elf_Sym  Elf64_Sym
-    #define Elf_Word Elf64_Word
-    #define Elf_Addr Elf64_Addr
-    #define Elf_Off  Elf64_Off
-    #define EXPECTED_CLASS ELFCLASS64
+    using Elf_Ehdr = Elf64_Ehdr;
+    using Elf_Phdr = Elf64_Phdr;
+    using Elf_Shdr = Elf64_Shdr;
+    using Elf_Sym  = Elf64_Sym;
+    using Elf_Word = Elf64_Word;
+    using Elf_Addr = Elf64_Addr;
+    using Elf_Off  = Elf64_Off;
+    static const int EXPECTED_CLASS = ELFCLASS64;
 #else
-    #define Elf_Ehdr Elf32_Ehdr
-    #define Elf_Phdr Elf32_Phdr
-    #define Elf_Shdr Elf32_Shdr
-    #define Elf_Sym  Elf32_Sym
-    #define Elf_Word Elf32_Word
-    #define Elf_Addr Elf32_Addr
-    #define Elf_Off  Elf32_Off
-    #define EXPECTED_CLASS ELFCLASS32
+    using Elf_Ehdr = Elf32_Ehdr;
+    using Elf_Phdr = Elf32_Phdr;
+    using Elf_Shdr = Elf32_Shdr;
+    using Elf_Sym  = Elf32_Sym;
+    using Elf_Word = Elf32_Word;
+    using Elf_Addr = Elf32_Addr;
+    using Elf_Off  = Elf32_Off;
+    static const int EXPECTED_CLASS = ELFCLASS32;
 #endif
-
-#ifdef ISA
-    #if ISA == riscv32
-        #define EXPECTED_ISA EM_RISCV
-    #endif
-#endif
-
-#define CHECK_READ_SUCCESS(expectedSize) \
-do { \
-    if (f.gcount() != expectedSize) { \
-        std::cout << "An error occurred when read from file." << std::endl; \
-        f.close(); \
-        return false; \
-    } \
-} while (0) 
 
 using namespace kxemu;
 
 std::map<kdb::word_t, std::string> kdb::symbolTable;
+
+static bool check_read_success(std::fstream &f, long expectedSize) {
+    if (f.gcount() != expectedSize) {
+        std::cerr << "An error occurred when read from file." << std::endl;
+        f.close();
+        return false;
+    }
+    return true;
+}
 
 static bool check_is_valid_elf(const Elf_Ehdr &ehdr) {
     // check elf magic number
@@ -89,8 +85,18 @@ static bool load_program(const Elf_Phdr &phdr, std::fstream &f) {
     if (memsze == 0) return true;
 
     f.seekg(phdr.p_offset, std::ios::beg);
-    kdb::bus->memset(start, memsze, 0); // clear memory
-    kdb::bus->load_from_stream(f, start, filesz); // copy ELF file to memory
+    
+    // clear memory
+    if (!kdb::bus->memset(start, memsze, 0)) {
+        std::cerr << "Faliled to clear memory, start=" <<  FMT_STREAM_WORD(start) << ", memsize=" << FMT_STREAM_WORD(memsze) << std::endl;
+        return false; 
+    }
+    
+    // copy ELF file to memory
+    if (!kdb::bus->load_from_stream(f, start, filesz)) {
+        std::cerr << "Failed to load ELF file to memory, start=" <<  FMT_STREAM_WORD(start) << ", filesize=" << FMT_STREAM_WORD(filesz) << std::endl;
+        return false; // clear memory
+    }
     
     return true;
 }
@@ -108,7 +114,9 @@ static bool load_symbol_table(const Elf_Shdr &symtabShdr, const Elf_Shdr &strtab
         Elf_Sym sym;
         f.seekg(offset, std::ios::beg);
         f.read((char *)&sym, sizeof(sym));
-        CHECK_READ_SUCCESS(sizeof(sym));
+        if (!check_read_success(f, sizeof(sym))) {
+            return false;
+        }
         offset = f.tellg();
 
         if (sym.st_name == 0) {
@@ -125,20 +133,24 @@ static bool load_symbol_table(const Elf_Shdr &symtabShdr, const Elf_Shdr &strtab
 
 // For ELF file format, see https://www.man7.org/linux/man-pages/man5/elf.5.html
 // Load elf file from local disk to memory and build symbol table for debug.
-kdb::word_t kdb::load_elf(const std::string &filename) {
+std::optional<kdb::word_t> kdb::load_elf(const std::string &filename) {
     std::fstream f;
     f.open(filename, std::ios_base::in);
     if (!f.is_open()) {
-        return 0;
+        std::cout << "Failed to open file: " << filename << std::endl;
+        return std::nullopt;
     }
 
     Elf_Ehdr ehdr;
     f.read((char *)&ehdr, sizeof(ehdr));
-    CHECK_READ_SUCCESS(sizeof(ehdr));
+    if (!check_read_success(f, sizeof(ehdr))) {
+        std::cout << "An error occurred when read elf header." << std::endl;
+        return std::nullopt;
+    }
 
     if (!check_is_valid_elf(ehdr)) {
         std::cout << "BAD elf header" << std::endl;
-        return 0;
+        return std::nullopt;
     }
 
     // read program header
@@ -147,13 +159,18 @@ kdb::word_t kdb::load_elf(const std::string &filename) {
     for (uint16_t i = 0; i < ehdr.e_phnum; i++) {
         Elf_Phdr phdr;
         f.read((char *)&phdr, sizeof(phdr));
-        CHECK_READ_SUCCESS(sizeof(phdr));
+        if (!check_read_success(f, sizeof(phdr))) {
+            std::cout << "An error occurred when read program header." << std::endl;
+            return std::nullopt;
+        }
         phdrArray.push_back(phdr);
     }
-    DEBUG("Load ELF: find %d programs", ehdr.e_phnum);
 
     for (auto phdr: phdrArray) {
-        load_program(phdr, f);
+        if (!load_program(phdr, f)) {
+            std::cout << "An error occurred when load program header." << std::endl;
+            return std::nullopt;
+        }
     }
 
     // read section header to load symbol table
@@ -185,6 +202,55 @@ kdb::word_t kdb::load_elf(const std::string &filename) {
     return ehdr.e_entry;
 }
 
+bool kdb::load_symbol(const std::string &filename) {
+    std::fstream f;
+    f.open(filename, std::ios_base::in);
+    if (!f.is_open()) {
+        std::cerr << "Failed to open file \"" << filename << "\": " << std::strerror(errno) << std::endl;
+        return false;
+    }
+
+    Elf_Ehdr ehdr;
+    f.read((char *)&ehdr, sizeof(ehdr));
+    if (!check_read_success(f, sizeof(ehdr))) {
+        std::cerr << "Failed to read file \"" << filename << "\": " << std::strerror(errno) << std::endl;
+        return false;
+    }
+
+    if (!check_is_valid_elf(ehdr)) {
+        std::cerr << "BAD elf header" << std::endl;
+        return false;
+    }
+
+    Elf_Shdr symtabShdr = {}, strtabShdr = {};
+    bool symtabFound = false;
+    bool strtabFound = false;
+    uint16_t shstrndx = ehdr.e_shstrndx;
+    f.seekg(ehdr.e_shoff, std::ios::beg);
+    for (uint16_t i = 0; i < ehdr.e_shnum; i++) {
+        Elf_Shdr shdr;
+        f.read((char *)&shdr, sizeof(shdr));
+        if (shdr.sh_type == SHT_SYMTAB) {  // find .symtab
+            symtabShdr = shdr;
+            symtabFound = true;
+        } else if (shdr.sh_type == SHT_STRTAB && i != shstrndx) { // find .strtab
+            strtabShdr = shdr;
+            strtabFound = true;
+        }
+    }
+
+    if (symtabFound && strtabFound) {
+        size_t before = kdb::symbolTable.size();
+        load_symbol_table(symtabShdr, strtabShdr, f);
+        size_t after = kdb::symbolTable.size();
+        std::cout << "Loaded " << (after - before) << " symbols from \"" << filename << "\"" << std::endl;
+    } else {
+        std::cerr << "No symbol table was founded in \"" << filename << "\"" << std::endl;
+    }
+
+    return true;
+}
+
 std::optional<std::string> kdb::addr_match_symbol(word_t addr, word_t &offset) {
     if (kdb::symbolTable.empty()) {
         return std::nullopt;
@@ -201,10 +267,11 @@ std::optional<std::string> kdb::addr_match_symbol(word_t addr, word_t &offset) {
         }
     }
 
-    if (addr - iter->first < 0x100) {
-        offset = addr - iter->first;
-        return iter->second;
-    } else {
+    offset = addr - iter->first;
+    
+    if (offset >= 0x8000) {
         return std::nullopt;
+    } else {
+        return iter->second;
     }
 }

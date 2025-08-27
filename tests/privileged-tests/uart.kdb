@@ -1,1 +1,1 @@
-uart add 0x10000000
+device add 10 uart 0x10000000

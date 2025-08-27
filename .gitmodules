@@ -1,3 +1,21 @@
 [submodule "utils/mini-gdbstub"]
 	path = utils/mini-gdbstub
 	url = https://github.com/RinHizakura/mini-gdbstub.git
+[submodule "utils/LA-disassembler"]
+	path = utils/LA-disassembler
+	url = git@github.com:LRache/LA-disassembler.git
+[submodule "tests/riscv/xv6-riscv/xv6-riscv"]
+	path = tests/riscv/xv6-riscv/xv6-riscv
+	url = https://github.com/mit-pdos/xv6-riscv.git
+[submodule "tests/riscv/opensbi/opensbi"]
+	path = tests/riscv/opensbi/opensbi
+	url = https://github.com/riscv-software-src/opensbi.git
+[submodule "utils/softfloat"]
+	path = utils/softfloat
+	url = https://github.com/ucb-bar/berkeley-softfloat-3
+[submodule "tests/riscv/os/linux6.5.5/opensbi"]
+	path = tests/riscv/os/linux6.5.5/opensbi
+	url = https://github.com/riscv-software-src/opensbi.git
+[submodule "tests/riscv/os/linux5.15/opensbi"]
+	path = tests/riscv/os/linux5.15/opensbi
+	url = https://github.com/riscv-software-src/opensbi.git

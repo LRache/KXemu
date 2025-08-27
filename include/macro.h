@@ -7,7 +7,11 @@
 #define MACRO_TO_STRING(x) #x
 #define EMPTY_MACRO(x) x
 
+#define CONCAT(x, y) x##y
+#define CONCAT2(x, y) CONCAT(x, y)
+
 #define ARRLEN(array) (sizeof(array) / sizeof(array[0]))
+#define ALIGN(x, a) (((x) + (a) - 1) & ~((a) - 1))
 
 #define FMT_FG_RED     "\x1b[31m"
 #define FMT_FG_GREEN   "\x1b[32m"

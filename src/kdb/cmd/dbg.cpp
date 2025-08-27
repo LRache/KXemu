@@ -1,8 +1,8 @@
-#include "cpu/cpu.h"
-#include "isa/word.h"
-#include "kdb/kdb.h"
-#include "kdb/cmd.h"
-#include "macro.h"
+#include "cpu/cpu.hpp"
+#include "kdb/kdb.hpp"
+#include "kdb/cmd.hpp"
+#include "utils/utils.hpp"
+#include "word.h"
 
 #include <cstdint>
 #include <iostream>
@@ -11,8 +11,18 @@
 using namespace kxemu;
 using namespace kxemu::kdb;
 
-int cmd::reset(const args_t &) {
-    kdb::reset_cpu();
+int cmd::reset(const args_t &args) {
+    if (args.size() != 1) {
+        try {
+            word_t entry = std::stoul(args[1], nullptr, 0);
+            kdb::reset_cpu(entry);
+        } catch (const std::exception &e) {
+            std::cout << "Invalid entry point: " << args[1] << std::endl;
+            return cmd::InvalidArgs;
+        }
+    } else {
+        kdb::reset_cpu();
+    }
     return 0;
 }
 
@@ -24,13 +34,13 @@ static void output_disassemble(word_t pc) {
         std::cout << "Cannot access memory at pc= " << FMT_STREAM_WORD(pc) << "." << std::endl;
         return;
     }
+    
     if (paddr != pc) {
-        std::cout << "(vaddr=" << FMT_STREAM_WORD(pc) << ")";
+        std::cout << "(paddr=" << FMT_STREAM_WORD(paddr) << ")";
     }
-    pc = paddr;
 
-    uint8_t *mem = kdb::bus->get_ptr(pc);
-    uint64_t memSize = kdb::bus->get_ptr_length(pc);
+    uint8_t *mem = (uint8_t *)kdb::bus->get_ptr(paddr);
+    uint64_t memSize = kdb::bus->get_ptr_length(paddr);
     if (mem == nullptr) {
         std::cout << "Unsupport to disassemble at pc=" << FMT_STREAM_WORD(pc) << std::endl;
         return;
@@ -41,7 +51,7 @@ static void output_disassemble(word_t pc) {
         
         uint64_t instLength;
         std::string inst = isa::disassemble(mem, memSize, pc, instLength);
-        std::cout << FMT_STREAM_WORD(pc) << ": ";
+        std::cout << FMT_FG_BLUE << FMT_STREAM_WORD(pc) << FMT_FG_RESET << ": ";
         if (symbolName != std::nullopt) {
             std::cout << "<" << FMT_FG_YELLOW << symbolName.value() << FMT_FG_RESET << "+" << symbolOffset << "> ";
         }
@@ -58,19 +68,15 @@ int cmd::step(const args_t &args) {
     if (args.size() == 1) {
         n = 1;
     } else {
-        std::string ns = args[1];
-        try {
-            n = std::stoul(ns);
-        } catch (std::invalid_argument &) {
-            std::cout << "Invalid step count: " << ns << std::endl;
-            return cmd::InvalidArgs;
-        } catch (std::out_of_range &) {
-            std::cout << "Step count out of range: " << ns << std::endl;
+        bool s;
+        n = utils::string_to_unsigned(args[1], s);
+        if (!s) {
+            std::cout << "Invalid step count: " << args[1] << std::endl;
             return cmd::InvalidArgs;
         }
     }
 
-    auto core = cmd::currentCore;
+    auto core = kdb::cpu->get_core(cmd::currentCore);
     kdb::brkTriggered = false;
     for (unsigned long i = 0; i < n; i++) {
         if (core->is_halt()) {
@@ -80,7 +86,7 @@ int cmd::step(const args_t &args) {
         word_t pc = core->get_pc();
 
         // core step
-        kdb::step_core(core);
+        kdb::step_core(cmd::currentCore);
 
         // disassemble
         output_disassemble(pc);
@@ -94,14 +100,15 @@ int cmd::step(const args_t &args) {
 }
 
 int cmd::run(const args_t &) {
-    if (!kdb::cpu->is_running()) {
-        std::cout << "CPU is not running." << std::endl;
-    } else {
-        kdb::run_cpu();
-        if (kdb::brkTriggered) {
-            std::cout << "Breakpoint at " << FMT_STREAM_WORD(currentCore->get_pc()) << " triggered."<< std::endl;
+    kdb::run_cpu();
+    
+    for (unsigned int i = 0; i < kdb::cpu->core_count(); i++) {
+        auto core = kdb::cpu->get_core(i);
+        if (core->is_break()) {
+            std::cout << "Core " << i << ": Breakpoint at " << FMT_FG_BLUE << FMT_STREAM_WORD(core->get_pc()) << FMT_FG_RESET << " triggered."<< std::endl;
         }
     }
+    
     return 0;
 }
 
@@ -110,6 +117,7 @@ int cmd::symbol(const cmd::args_t &) {
         std::cout << "No symbol found" << std::endl;
         return cmd::Success;
     }
+    
     std::cout << std::setfill(' ')
     << std::setw(16)  << "name" << " | "
     << std::setw(WORD_WIDTH + 2) << "addr"
@@ -120,6 +128,7 @@ int cmd::symbol(const cmd::args_t &) {
         << FMT_STREAM_WORD(sym.first) 
         << std::endl;
     }
+    
     return cmd::Success;
 }
 
@@ -128,6 +137,7 @@ int cmd::breakpoint(const cmd::args_t &args) {
         std::cout << "Usage: breakpoint <addr>" << std::endl;
         return cmd::EmptyArgs;
     }
+    
     std::string addrStr = args[1];
     bool success;
     word_t addr = string_to_addr(addrStr, success);
@@ -137,7 +147,7 @@ int cmd::breakpoint(const cmd::args_t &args) {
     }
     
     kdb::add_breakpoint(addr);
-    std::cout << "Set breakpoint at " << FMT_STREAM_WORD(addr) << std::endl;
+    std::cout << "Set breakpoint at " << FMT_FG_BLUE << FMT_STREAM_WORD(addr) << FMT_FG_RESET << "." << std::endl;
     
     return cmd::Success;
 }

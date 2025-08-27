@@ -7,12 +7,13 @@ else
 	PLATFORM ?= kxemu
 endif
 
+ISA ?= riscv64
 ARCH = $(PLATFORM)-$(ISA)
 ARCH_NAME = $(ARCH)-$(NAME)
 
 ELF     = $(BUILD_DIR)/$(ARCH_NAME).elf
 ARCHIVE = $(BUILD_DIR)/$(ARCH_NAME).a
-ASM     = $(BUILD_DIR)/$(ARCH_NAME).txt
+ASM     = $(BUILD_DIR)/$(ARCH_NAME).asm
 
 BUILD_DIR := build
 OBJ_DIR   := build/$(ARCH)
@@ -28,9 +29,10 @@ LIBS += am klib
 LIBS_ARCHIVE = $(foreach name, $(LIBS), $(AM_DIR)/$(name)/build/$(ARCH)-$(name).a)
 
 # Kxemu configuration
-KXEMU = $(AM_DIR)/../../build/$(ISA)-kxemu
-KXEMU_FLAGS += --elf $(abspath $(ELF)) --source $(AM_DIR)/scripts/kdb/init.kdb
+KXEMU = $(AM_DIR)/../../build/kxemu-system-$(KXEMU_ISA)
+KXEMU_FLAGS += --def elf=$(abspath $(ELF)) --source $(AM_DIR)/scripts/kdb/init.kdb
 KXEMU_FLAGS += $(addprefix --source , $(KDB_INIT_SRC))
+QEMU_FLAGS += -serial stdio -monitor none
 
 # Load ISA specific configuration
 -include $(AM_DIR)/scripts/$(ISA).mk
@@ -44,7 +46,7 @@ OBJDUMP = $(CROSS_COMPILE)-objdump
 
 INC_PATH += $(foreach name, $(LIBS), $(AM_DIR)/$(name)/include)
 
-CFLAGS += -nostdlib -fno-stack-protector -O3 -fno-builtin -fno-asynchronous-unwind-tables
+CFLAGS += -nostdlib -fno-stack-protector -g -O3 -fno-builtin -fno-asynchronous-unwind-tables
 CFLAGS += $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(CFLAGS) -fno-exceptions
 
@@ -54,6 +56,11 @@ else ifeq ($(PLATFORM),kxemu)
 	COMPILE_FLAGS += -D__KXEMU__
 else
 	$(error "Unknown platform $(PLATFORM)")
+endif
+
+ifneq ($(CORES),)
+	KXEMU_FLAGS += --cores $(CORES)
+	QEMU_FLAGS  += -smp $(CORES)
 endif
 
 CFLAGS += -D__PLATFORM__=$(PLATFORM)
@@ -74,12 +81,12 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(OBJ_DIR)/%.o: %.S
 	$(info + AS $<)
 	@ mkdir -p $(dir $@)
-	@ $(AS) $(ASFLAGS) $(COMPILE_FLAGS) -c $< -o $@
+	$(AS) $(ASFLAGS) $(COMPILE_FLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.S
 	$(info + AS $<)
 	@ mkdir -p $(dir $@)
-	@ $(AS) $(COMPILE_FLAGS) -c $< -o $@
+	$(AS) $(ASFLAGS) $(COMPILE_FLAGS) -c $< -o $@
 
 $(OBJ_DIR)/%.o: %.cc
 	$(info + CC $<)
@@ -94,7 +101,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cc
 $(ELF): $(OBJS) $(LIBS)
 	$(info + LD $@)
 	@ $(LD) $(OBJS) $(LIBS_ARCHIVE) -o $@ $(LDFLAGS)
-	@ $(OBJDUMP) -d $@ > $(ASM)
+	@ $(OBJDUMP) -S $@ > $(ASM)
 
 $(LIBS): %:
 	$(info + MAKELIB $@)
@@ -113,11 +120,15 @@ run: $(ELF)
 
 debug: $(ELF)
 	$(info + DEBUGGING KXEMU)
-	@ $(KXEMU) $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/debug.kdb
+	@ $(KXEMU) $(KXEMU_FLAGS)
+
+gdb: $(ELF)
+	$(info + DEBUGGING GDB)
+	@ gdb $(KXEMU) -ex "set args $(KXEMU_FLAGS) --source $(AM_DIR)/scripts/kdb/run.kdb" 
 
 qemu: $(ELF)
 	$(info + RUNNING QEMU)
-	@ $(QEMU) $(QEMU_FLAGS) -kernel $(ELF)
+	$(QEMU) $(QEMU_FLAGS) -kernel $(ELF)
 
 qemu-gdb: $(ELF)
 	$(info + DEBUGGING QEMU)

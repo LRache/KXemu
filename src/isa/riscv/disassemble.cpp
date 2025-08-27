@@ -1,4 +1,4 @@
-#include "isa/isa.h"
+#include "isa/isa.hpp"
 
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
@@ -22,9 +22,9 @@ static MCInstPrinter *gIP = nullptr;
 static MCSubtargetInfo *gSTI = nullptr;
 
 void init_disasm() {
-    InitializeAllTargetInfos();
-    InitializeAllTargetMCs();
-    InitializeAllDisassemblers();
+    LLVMInitializeRISCVTargetInfo();
+    LLVMInitializeRISCVTargetMC();
+    LLVMInitializeRISCVDisassembler();
     
     #ifdef KXEMU_ISA64
     std::string targetTriple = "riscv64-unknown-elf";
@@ -35,8 +35,7 @@ void init_disasm() {
     const Target *target = TargetRegistry::lookupTarget(targetTriple, error);
 
     MCTargetOptions MCOptions;
-    gSTI = target->createMCSubtargetInfo(targetTriple, "", "");
-    gSTI->ApplyFeatureFlag("+c");
+    gSTI = target->createMCSubtargetInfo(targetTriple, "generic", "+m,+a,+f,+d,+c");
     auto gMII = target->createMCInstrInfo();
     auto gMRI = target->createMCRegInfo(targetTriple);
     auto asmInfo = target->createMCAsmInfo(*gMRI, targetTriple, MCOptions);

@@ -1,0 +1,13 @@
+log off DEBUG
+log on INFO
+device add memory 0x0 0x100000
+device add memory 0x80000000 0x8000000
+device add 10 uart 0x10000000
+device add 1 virtio-blk 0x10001000
+load bin {dtb} 0x82200000
+load bin {openSBI} 0x80000000
+load bin {kernel} 0x80200000
+load bin {initramfs} 0x84200000
+load symbol {symbolELF}
+reset
+set reg a1 0x82200000

@@ -1,0 +1,6 @@
+mem create mem 0x80000000 0x8000000
+log off DEBUG
+device add 10 uart 0x10000000 8192
+device add 1 virtio-blk 0x10001000 raw {fsimg}
+load elf {elf}
+reset

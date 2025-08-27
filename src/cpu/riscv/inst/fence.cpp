@@ -1,0 +1,20 @@
+#include "cpu/riscv/core.hpp"
+
+using namespace kxemu::cpu;
+
+void RVCore::do_sfence_vma(const DecodeInfo &) {
+    if (this->privMode == PrivMode::USER) {
+        do_invalid_inst();
+        return;
+    }
+    this->icache_fence();
+    this->tlb_fence();
+}
+
+void RVCore::do_fence(const DecodeInfo &) {
+    this->icache_fence();
+}
+
+void RVCore::do_fence_i(const DecodeInfo &) {
+    this->icache_fence();
+}

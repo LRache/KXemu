@@ -7,7 +7,20 @@ build
 compile_commands.json
 .cache
 
+# CLion
+.idea
+
+# autogen
 autogen
 autoconf.h
+/export
 
+# cmake
+cmake-build-debug
+
+# python
 __pycache__
+
+# prof
+*.profdata
+*.profraw

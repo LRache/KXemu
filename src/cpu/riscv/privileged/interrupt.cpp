@@ -1,178 +1,176 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
-#include "log.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
 #include "macro.h"
-
-#include <cstdint>
 
 using namespace kxemu::cpu;
 
-void RVCore::update_mtimecmp() {
-    // Remove the previous task first
-    if (this->mtimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->mtimerTaskID);
-    }
-
-    uint64_t uptimecmp = MTIME_TO_UPTIME(this->mtimecmp);
-    uint64_t uptime = this->get_uptime();
-    uint64_t delay = uptimecmp - uptime;
-    this->taskTimer->add_task(delay, [this]() {
-        this->set_interrupt(INTERRUPT_TIMER_M);
-        this->mtimerTaskID = -1;
-    });
-}
-
 void RVCore::update_stimecmp() {
-    // Remove the previous task first
-    if (this->stimerTaskID != (unsigned int)-1) {
-        this->taskTimer->remove_task(this->stimerTaskID);
-    }
-
-    uint64_t cmp = this->csr.read_csr(CSR_STIMECMP);
+    uint64_t stimecmp = this->csr.read_csr(CSRAddr::STIMECMP);
 #ifdef KXEMU_ISA32
-    cmp &= 0xffffffff;
-    cmp |= (uint64_t)this->csr.read_csr(CSR_STIMECMPH) << 32;
+    stimecmp &= 0xffffffff;
+    stimecmp |= (uint64_t)this->csr.read_csr(CSRAddr::STIMECMPH) << 32;
 #endif
-    uint64_t uptimecmp = MTIME_TO_UPTIME(cmp);
-    uint64_t uptime = this->get_uptime();
-    uint64_t delay = uptimecmp - uptime;
-    this->taskTimer->add_task(delay, [this]() {
-        this->set_interrupt(INTERRUPT_TIMER_S);
-        this->stimerTaskID = -1;
-        // INFO("STIMER interrupt triggered, mip=" FMT_WORD, this->csr.read_csr(CSR_MIP));
-    });
-    // INFO("Set STIMECMP, delay=" FMT_VARU, delay);
+    this->aclint->register_stimer(this->coreID, stimecmp);
+    this->clear_timer_interrupt_s();
 }
 
-void RVCore::set_interrupt(word_t code) {
-    word_t mip = this->csr.read_csr(CSR_MIP);
-    mip |= 1 << code;
-    this->csr.write_csr(CSR_MIP, mip);
+void RVCore::set_interrupt(InterruptCode code) {
+    csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
+    mip.set_pending(code);
+    this->csr.set_csr_value(CSRAddr::MIP, mip);
 }
 
-void RVCore::clear_interrupt(word_t code) {
-    word_t mip = this->csr.read_csr(CSR_MIP);
-    mip &= ~(1 << code);
-    this->csr.write_csr(CSR_MIP, mip);
+void RVCore::clear_interrupt(InterruptCode code) {
+    csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
+    mip.clear_pending(code);
+    this->csr.set_csr_value(CSRAddr::MIP, mip);
 }
 
-bool RVCore::check_timer_interrupt() {
-    // if (unlikely(this->timerIntrruptNotTriggered && this->uptime >= this->uptimecmp)) {
-    //     this->set_interrupt(INTERRUPT_TIMER_M);
-    //     this->timerIntrruptNotTriggered = false;
-    //     return true;
-    // }
-    // if (unlikely(this->stimerIntrruptNotTriggered && this->uptime >= this->suptimecmp)) {
-    //     this->set_interrupt(INTERRUPT_TIMER_S);
-    //     this->stimerIntrruptNotTriggered = false;
-    //     return true;
-    // }
-    return false;
+void RVCore::set_timer_interrupt_m() {
+    set_interrupt(InterruptCode::TIMER_M);
+}
+
+void RVCore::set_timer_interrupt_s() {
+    set_interrupt(InterruptCode::TIMER_S);
+}
+
+void RVCore::clear_timer_interrupt_m() {
+    clear_interrupt(InterruptCode::TIMER_M);
+}
+
+void RVCore::clear_timer_interrupt_s() {
+    clear_interrupt(InterruptCode::TIMER_S);
+}
+
+void RVCore::set_software_interrupt_m() {
+    set_interrupt(InterruptCode::SOFTWARE_M);
+}
+
+void RVCore::set_software_interrupt_s() {
+    set_interrupt(InterruptCode::SOFTWARE_S);
+}
+
+void RVCore::clear_software_interrupt_m() {
+    clear_interrupt(InterruptCode::SOFTWARE_M);
+}
+
+void RVCore::clear_software_interrupt_s() {
+    clear_interrupt(InterruptCode::SOFTWARE_S);
 }
 
 void RVCore::set_external_interrupt_m() {
-    set_interrupt(INTERRUPT_EXTERNAL_M);
+    set_interrupt(InterruptCode::EXTERNAL_M);
 }
 
 void RVCore::set_external_interrupt_s() {
-    set_interrupt(INTERRUPT_EXTERNAL_S);
+    set_interrupt(InterruptCode::EXTERNAL_S);
 }
 
 void RVCore::clear_external_interrupt_m() {
-    clear_interrupt(INTERRUPT_EXTERNAL_M);
+    clear_interrupt(InterruptCode::EXTERNAL_M);
 }
 
 void RVCore::clear_external_interrupt_s() {
-    clear_interrupt(INTERRUPT_EXTERNAL_S);
+    clear_interrupt(InterruptCode::EXTERNAL_S);
 }
 
-void RVCore::interrupt_m(word_t code) {
-    INFO("Machine level interrupt, code=" FMT_WORD, code);
-    clear_interrupt(code);
-    
-    this->csr.write_csr(CSR_MEPC, this->pc);
-    this->csr.write_csr(CSR_MCAUSE, code | CAUSE_INTERRUPT_MASK);
-    this->csr.write_csr(CSR_MTVAL, 0);
+void RVCore::interrupt_m(InterruptCode code) {
+    this->csr.set_csr_value(CSRAddr::MEPC, this->npc);
+    this->csr.set_csr_value(CSRAddr::MTVAL, 0);
+    this->csr.set_csr_value(CSRAddr::MCAUSE, csr::MCause(code));
 
-    word_t mstatus = this->csr.read_csr(CSR_MSTATUS);
-    mstatus = (mstatus & ~STATUS_MPP_MASK) | (this->privMode << STATUS_MPP_OFF);
-    mstatus = (mstatus & ~STATUS_MPIE_MASK) | ((mstatus & STATUS_MIE_MASK) << (STATUS_MPIE_OFF - STATUS_MIE_OFF));
-    mstatus = (mstatus & ~STATUS_MIE_MASK);
-    this->csr.write_csr(CSR_MSTATUS, mstatus);
+    csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
+    mstatus.set_mpp(this->privMode);
+    mstatus.set_mpie(mstatus.mie());
+    mstatus.set_mie(false);
+    this->csr.set_csr_value(CSRAddr::MSTATUS, mstatus);
 
-    this->privMode = PrivMode::MACHINE;
+    this->set_priv_mode(PrivMode::MACHINE);
 
-    word_t mtvec = this->csr.read_csr(CSR_MTVEC);
-    word_t vecMode = mtvec & TVEC_MODE_MASK;
-    if (vecMode == TVEC_MODE_VECTORED) {
-        this->npc = (mtvec & ~TVEC_MODE_MASK) + (code << 2);
+    csr::TrapVec mtvec = this->csr.get_csr_value(CSRAddr::MTVEC);
+    if (mtvec.mode() == csr::TrapVec::VECTORED) {
+        this->npc = (mtvec.vec()) + (code << 2);
     } else {
-        this->npc = mtvec & ~TVEC_MODE_MASK;
+        this->npc = mtvec.vec();
     }
 }
 
-void RVCore::interrupt_s(word_t code) {
-    // INFO("Interrupt S, code=" FMT_WORD, code);
-    clear_interrupt(code);
-    
-    this->csr.write_csr(CSR_SEPC, this->pc);
-    this->csr.write_csr(CSR_SCAUSE, code | CAUSE_INTERRUPT_MASK);
-    this->csr.write_csr(CSR_STVAL, 0);
+void RVCore::interrupt_s(InterruptCode code) {
+    this->csr.write_csr(CSRAddr::SEPC, this->npc);
+    this->csr.write_csr(CSRAddr::SCAUSE, csr::MCause(code));
+    this->csr.write_csr(CSRAddr::STVAL, 0);
 
-    word_t mstatus = this->csr.read_csr(CSR_MSTATUS);
-    mstatus = (mstatus & ~STATUS_SPP_MASK) | (this->privMode << STATUS_SPP_OFF);
-    mstatus = (mstatus & ~STATUS_SPIE_MASK) | ((mstatus & STATUS_SIE_MASK) << (STATUS_SPIE_OFF - STATUS_SIE_OFF));
-    mstatus = (mstatus & ~STATUS_SIE_MASK);
-    this->write_csr(CSR_MSTATUS, mstatus);
+    csr::MStatus mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
+    mstatus.set_spp(this->privMode != PrivMode::USER);
+    mstatus.set_spie(mstatus.sie());
+    mstatus.set_sie(false);
+    this->write_csr(CSRAddr::MSTATUS, mstatus);
 
-    this->privMode = PrivMode::SUPERVISOR;
+    this->set_priv_mode(PrivMode::SUPERVISOR);
 
-    word_t stvec = this->csr.read_csr(CSR_STVEC);
-    word_t vecMode = stvec & TVEC_MODE_MASK;
-    if (vecMode == TVEC_MODE_VECTORED) {
-        this->npc = (stvec & ~TVEC_MODE_MASK) + (code << 2);
+    csr::TrapVec stvec = this->csr.get_csr_value(CSRAddr::STVEC);
+    if (stvec.mode() == csr::TrapVec::VECTORED) {
+        this->npc = stvec.vec() + (code << 2);
     } else {
-        this->npc = stvec & ~TVEC_MODE_MASK;
+        this->npc = stvec.vec();
     }
 }
 
-static constexpr word_t INTER_BITS[] = {
-    INTERRUPT_SOFTWARE_S,
-    INTERRUPT_SOFTWARE_M,
-    INTERRUPT_TIMER_S,
-    INTERRUPT_TIMER_M,
-    INTERRUPT_EXTERNAL_S,
-    INTERRUPT_EXTERNAL_M
+// Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing priority
+// order: MEI, MSI, MTI, SEI, SSI, STI, LCOFI.
+static constexpr InterruptCode INTER_BITS_M[] = {
+    InterruptCode::EXTERNAL_M,    // MEI
+    InterruptCode::SOFTWARE_M,    // MSI
+    InterruptCode::TIMER_M,       // MTI
+    InterruptCode::EXTERNAL_S,    // SEI
+    InterruptCode::SOFTWARE_S,    // SSI
+    InterruptCode::TIMER_S,       // STI
+};
+
+static constexpr InterruptCode INTER_BITS_S[] = {
+    InterruptCode::EXTERNAL_S,    // SEI
+    InterruptCode::SOFTWARE_S,    // SSI
+    InterruptCode::TIMER_S,       // STI
 };
 
 bool RVCore::scan_interrupt() {
-    if (likely(this->privMode == PrivMode::MACHINE    && !(*this->mstatus & STATUS_MIE_MASK))) return false;
-    if (likely(this->privMode == PrivMode::SUPERVISOR && !(*this->mstatus & STATUS_SIE_MASK))) return false;
+    // There is no interrput pending.
+    if (likely(*this->mip == 0)) return false;
 
-    if (*this->mip == 0) return false;
-
-    // Machine level interrupt
-    word_t pending;
-    if (*this->mstatus & STATUS_MIE_MASK) {
-        pending = *this->mip & *this->mie & ~*this->mideleg;
+    // Machine Level Interrupt
+    // An interrupt `i` will trap to M-mode (causing the privilege mode to change to M-mode) if all of the
+    // following are true: 
+    // (a) either the current privilege mode is M and the MIE bit in the mstatus register is
+    //     set, or the current privilege mode has less privilege than M-mode; 
+    // (b) bit `i` is set in both mip and mie;
+    // (c) if register mideleg exists, bit `i` is not set in mideleg
+    // -- from The RISC-V Instruction Set Manual: Volume II 3.1.9  Page 42
+    if (this->privMode < PrivMode::MACHINE || this->mstatus.mie) {
+        word_t pending = *this->mip & *this->mie & ~*this->mideleg;
         if (pending) {
-            for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {
-                if (pending & (1 << INTER_BITS[i])) {
-                    interrupt_m(INTER_BITS[i]);
+            for (auto const &bit : INTER_BITS_M) {
+                if (pending & (1 << bit)) {
+                    interrupt_m(bit);
                     return true;
                 }
             }
         }
     }
-    
+
     // Supervisor level interrupt
-    if (*this->mstatus & STATUS_SIE_MASK) {
-        pending = *this->mip & *this->mie & *this->mideleg;
+    // An interrupt `i` will trap to S-mode if all of the following are true: 
+    // (a) either the current privilege mode is S and the SIE bit in the sstatus register is set, 
+    //     or the current privilege mode has less privilege than S-mode; 
+    // (b) bit `i` is set in both sip and sie; and
+    // -- from The RISC-V Instruction Set Manual: Volume II 12.1.3  Page 119
+    if (this->privMode < PrivMode::SUPERVISOR || (this->privMode ==  PrivMode::SUPERVISOR && this->mstatus.sie)) {
+        word_t pending = *this->mip & *this->mie & *this->mideleg;
         if (pending) {
-            for (unsigned int i = 0; i < sizeof(INTER_BITS) / sizeof(INTER_BITS[0]); i++) {
-                if (pending & (1 << INTER_BITS[i])) {
-                    interrupt_s(INTER_BITS[i]);
+            for (auto const &bit : INTER_BITS_S) {
+                if (pending & (1 << bit)) {
+                    interrupt_s(bit);
                     return true;
                 }
             }

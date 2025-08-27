@@ -5,16 +5,24 @@
 #include <cstdio>
 #include <cstdlib>
 
-#define SELF_PROTECT(cond, ...) \
+#ifdef CONFIG_DEBUG
+
+#define Assert(cond, ...) \
 do { \
     if (unlikely(!(cond))) { \
-        fprintf(stderr, FMT_FG_RED "[SELF-PROTECT][%s:%d %s]\nASSERT FAILED: %s\nThere must be wrong in your implemention. Please check.\n",\
+        fprintf(stderr, FMT_FG_RED "[ASSERT][%s:%d %s]\nASSERT FAILED: %s\nThere must be wrong in your implemention. Please check.\n",\
          __FILE__, __LINE__, __func__, #cond); \
         fprintf(stderr, __VA_ARGS__); \
         fprintf(stderr, FMT_FG_RESET "\n"); \
         exit(1); \
     } \
 } while(0);
+
+#else
+
+#define Assert(cond, ...) (void)(cond);
+
+#endif
 
 #define NOT_IMPLEMENTED() \
 do { \

@@ -1,34 +1,183 @@
-mainmenu "KXemu Configurations"
+mainmenu "KXemu Configuration Menu"
 
 choice
-    prompt "ISA"
+    prompt "Base ISA"
     default ISA_riscv32
-
 config ISA_riscv32
     bool "riscv32"
-
 config ISA_riscv64
     bool "riscv64"
-
+config ISA_loongarch32r
+    bool "loongarch32-reduced"
+config ISA_loongarch32
+    bool "loongarch32"
+config ISA_loongarch64
+    bool "loongarch64"
 endchoice
 
 config ISA
     string
-    default riscv32 if ISA_riscv32
-    default riscv64 if ISA_riscv64
+    default "riscv32" if ISA_riscv32
+    default "riscv64" if ISA_riscv64
+    default "loongarch32r" if ISA_loongarch32r
+    default "loongarch32" if ISA_loongarch32
+    default "loongarch64" if ISA_loongarch64
+    default "none"
 
 config BASE_ISA
     string
-    default riscv if ISA_riscv32
-    default riscv if ISA_riscv64
+    default "riscv" if ISA_riscv32
+    default "riscv" if ISA_riscv64
+    default "loongarch" if ISA_loongarch32r
+    default "loongarch" if ISA_loongarch32
+    default "loongarch" if ISA_loongarch64
+    default "none"
 
-config SRC_CPU_ISA
-    string
-    default riscv if ISA_riscv32
-    default riscv if ISA_riscv64
+menu "Core Functions"
 
+config ENABLE_ICACHE
+    bool "Enable ICache"
+
+config ICACHE_SET_BITS
+    int "ICache set bits" if ENABLE_ICACHE
+    default 0 if !ENABLE_ICACHE
+    default 11 if ENABLE_ICACHE
+
+config TLB
+    bool "Enable TLB"
+
+config TLB_SET_BITS
+    int "TLB set bits" if TLB
+    default 0 if !TLB
+    default 5 if TLB
+
+config DCache
+    bool "Enable DCache"
+
+choice
+  prompt "FPU Emulation"
+  default FPU_HOST
+config FPU_HOST
+  bool "Use host floating point operation"
+config FPU_SOFT
+  bool "Use softfloat library"
+config FPU_NONE
+  bool "Disable FPU Emulation"
+endchoice
+
+endmenu # menu "Core Functions"
+
+menu "Core Options"
+
+config HALT_WHEN_BREAK
+  bool "Halt when touched a break instruction"
+
+config HALT_WHEN_INVALID
+  bool "Halt when touched an invalid instruction"
+
+endmenu
+
+choice
+  prompt "Kxemu execution engine"
+  default ENGINE_INTERPRETER
+
+config ENGINE_INTERPRETER
+  bool "Interpreter"
+  help
+    Interpreter guest instructions one by one.
+endchoice
+
+config ENGINE
+  string
+  default "interpreter" if ENGINE_INTERPRETER
+  default "none"
+
+choice
+  prompt "Running mode"
+  default MODE_SYSTEM
+
+config MODE_SYSTEM
+  bool "System mode"
+  help
+    Support full-system functionality, including privileged instructions, MMU and devices.
+endchoice
+
+choice
+  prompt "Build target"
+  default TARGET_NATIVE_ELF
+config TARGET_NATIVE_ELF
+  bool "Executable on Linux Native"
+config TARGET_SHARE
+  bool "Shared object (used as REF for differential testing)"
+endchoice
+
+menu "Build Options"
+choice
+    prompt "Compiler"
+    default CC_CLANGPP
+config CC_GPP
+    bool "g++"
+config CC_CLANGPP
+    bool "clang++"
+endchoice
+
+config CC
+  string
+  default "g++" if CC_GPP
+  default "clang++" if CC_CLANGPP
+  default "none"
+
+config CC_LTO
+  bool "Enable link-time optimization"
+  default n
+  help
+    Enable link-time optimization (LTO) for better performance.
+    This requires the compiler to support LTO.
+
+config CC_ADDRASAN
+  bool "Enable address sanitizer"
+  default n
+
+config CC_UBASAN
+  bool "Enable undefined sanitizer"
+  default n
+
+config CC_PGO
+  bool "Enable profile-guided optimization"
+  default n
+
+config CC_PROFILE_INSTR_USE
+  string "Profile data file"
+  default ""
+  help
+    Specify the profile data file to use for profile-guided optimization.
+    This is used with `-fprofile-instr-use` option.
+
+endmenu
+
+menu "Testing and Debugging"
 config LOG
-    bool "LOG"
+    bool "Enable log"
 
 config HINT
     bool "Show hints"
+
+menu "DEBUG mode"
+config DEBUG
+    bool "DEBUG mode"
+
+config DEBUG_DECODER
+    bool "DEBUG decoder" if DEBUG
+
+config DEBUG_DCACHE
+    bool "DEBUG dcache" if DEBUG && DCache
+endmenu
+
+menu "Other"
+config BREAK
+    bool "Break for DEBUG"
+config USE_EXCEPTION
+    bool "Use exception to handle traps"
+endmenu
+
+endmenu

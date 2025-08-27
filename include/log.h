@@ -6,8 +6,6 @@
 
 #include <cstdio>
 
-#include "isa/word.h"
-
 #define PUTLOG(FG, TYPE, ...) \
 do { \
     if (!(kxemu::logFlag & kxemu::TYPE)) break; \
@@ -17,6 +15,7 @@ do { \
 } while(0);
 
 #ifdef CONFIG_LOG
+    #include "word.h"
 
     #define DEBUG(...) \
         PUTLOG(FMT_FG_YELLOW_BLOD, DEBUG, __VA_ARGS__) \
@@ -49,7 +48,8 @@ do { \
 #endif
 
 namespace kxemu {
-    enum LogFlag {
+    
+enum LogFlag {
     DEBUG = 1,
     INFO  = 2,
     WARN  = 4,
@@ -58,6 +58,7 @@ namespace kxemu {
 };
 
 extern int logFlag;
+
 } // namespace kxemu
 
 #endif

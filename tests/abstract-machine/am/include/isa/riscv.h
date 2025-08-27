@@ -32,20 +32,26 @@
 #define MSTATUS_MPP_MASK 0x00001800
 #define MSTATUS_MPP_U 0
 
+#define MSTATUS_MIE_MASK (1 << 3)
+#define MIE_MEIE_MASK (1 << 11)
+
 typedef uintptr_t word_t;
 
+word_t csrr_mhartid();
 word_t csrr_time();
 
 word_t csrr_mstatus();
 word_t csrr_mcause ();
 word_t csrr_mepc   ();
 word_t csrr_medeleg();
+word_t csrr_mie    ();
 
 void csrw_pmpcfg0(word_t value);
 void csrw_pmpaddr0(word_t value);
 
 void csrw_mstatus(word_t value);
 void csrw_mcause (word_t value);
+void csrw_mie    (word_t value);
 void csrw_mepc   (word_t value);
 void csrw_mtvec  (word_t value);
 void csrw_medeleg(word_t value);
@@ -75,7 +81,7 @@ typedef struct {
     uintptr_t cause;
 } Event;
 
-void cte_init(Context*(*handler)(Event, Context*));
+void cte_init(Context*(*handler)(Context*));
 void yield();
 
 #endif
