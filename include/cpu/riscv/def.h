@@ -141,8 +141,8 @@ namespace kxemu::cpu {
         return mtime * 100;
     }
 
-    inline constexpr device::AddrSpace ACLINT   = {0x02000000, 0x00010000};
-    inline constexpr device::AddrSpace PLIC     = {0x0c000000, 0x4000000};
+    inline constexpr device::AddrSpace ACLINT = {0x02000000, 0x00010000};
+    inline constexpr device::AddrSpace PLIC   = {0x0c000000, 0x04000000};
 
     class RVCore;
 
