@@ -130,9 +130,9 @@ namespace kxemu::cpu::csr {
         void set_mie (bool mie ) { this->value = (this->value & ~ (1 << 3)) | (mie << 3); }
         void set_spie(bool spie) { this->value = (this->value & ~ (1 << 5)) | (spie << 5); }
         void set_mpie(bool mpie) { this->value = (this->value & ~ (1 << 7)) | (mpie << 7); }
-        void set_spp (word_t spp) { this->value = (this->value & ~ (1 <<  8)) | (spp <<  8); }
-        void set_mpp (word_t mpp) { this->value = (this->value & ~ (3 << 11)) | (mpp << 11); }
-        void set_mprv(word_t mprv) { this->value = (this->value & ~ (1 << 17)) | (mprv << 17);}
+        void set_spp (bool spp) { this->value = (this->value & ~ (1 <<  8)) | (spp <<  8); }
+        void set_mpp (word_t mpp) { this->value = (this->value & ~ (3 << 11)) | ((mpp & 0x3) << 11); }
+        void set_mprv(bool mprv) { this->value = (this->value & ~ (1 << 17)) | (mprv << 17);}
 
         static constexpr word_t SSTATUS_MASK = (
             (1ULL <<  1) | // SIE
