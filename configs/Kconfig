@@ -75,6 +75,9 @@ config HALT_WHEN_BREAK
 config HALT_WHEN_INVALID
   bool "Halt when touched an invalid instruction"
 
+config HALT_WHEN_EXIT_SYSCALL
+  bool "Halt when touched an exit syscall"
+
 endmenu
 
 choice
