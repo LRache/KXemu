@@ -1,5 +1,5 @@
-#ifndef __KXEMU_CPU_CORE_H__
-#define __KXEMU_CPU_CORE_H__
+#ifndef __KXEMU_CPU_CORE_HPP__
+#define __KXEMU_CPU_CORE_HPP__
 
 #include <optional>
 #include <string>

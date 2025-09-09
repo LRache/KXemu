@@ -1,9 +1,11 @@
-#include "cpu/riscv/core.h"
-#include "cpu/word.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/word.hpp"
 #include "macro.h"
 
-#include "./local-decoder.h"
+#include <cstdint>
 #include <cstring>
+
+#include "./local-decoder.h"
 
 #define REQUIRE(cond) do {if (unlikely(!(cond))) { this->do_invalid_inst(); return; }} while(0);
 #define REQUIRE_NOT_x0(reg)  REQUIRE(!(reg##_is_x0))
@@ -18,11 +20,7 @@ void RVCore::do_c_lwsp(const DecodeInfo &decodeInfo) {
     
     REQUIRE_NOT_x0(rd);
 
-    // DEST = SEXT64(this->memory_load(SP + IMM, 4));
-    this->memory_load(SP + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = SEXT64(data);
-        return data;
-    });
+    DEST = SEXT64(this->memory_load(SP + IMM, 4));
 }
 
 void RVCore::do_c_swsp(const DecodeInfo &decodeInfo) {
@@ -33,12 +31,8 @@ void RVCore::do_c_swsp(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_c_lw(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
-    // DEST = SEXT64(this->memory_load(SRC1 + IMM, 4));
-    this->memory_load(SRC1 + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = SEXT64(data);
-        return data;
-    });
+
+    DEST = SEXT64(this->memory_load(SRC1 + IMM, 4));
 }
 
 void RVCore::do_c_sw(const DecodeInfo &decodeInfo) {
@@ -207,11 +201,7 @@ void RVCore::do_c_ldsp(const DecodeInfo &decodeInfo) {
     
     REQUIRE_NOT_x0(rd);
 
-    // DEST = this->memory_load(SP + IMM, 8);
-    this->memory_load(SP + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
+    DEST = this->memory_load(SP + IMM, 8);
 }
 
 void RVCore::do_c_sdsp(const DecodeInfo &decodeInfo) {
@@ -222,12 +212,8 @@ void RVCore::do_c_sdsp(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_c_ld(const DecodeInfo &decodeInfo) {
     TAG_RS1; TAG_IMM;
-    
-    // DEST = this->memory_load(SRC1 + IMM, 8);
-    this->memory_load(SRC1 + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
+
+    DEST = this->memory_load(SRC1 + IMM, 8);
 }
 
 void RVCore::do_c_sd(const DecodeInfo &decodeInfo) {
@@ -259,10 +245,8 @@ void RVCore::do_c_subw(const DecodeInfo &decodeInfo) {
 void RVCore::do_c_fldsp(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_IMM;
 
-    this->memory_load(SP + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        std::memcpy(&FDESTD, &data, 8);
-        return data;
-    });
+    uint64_t data = this->memory_load(SP + IMM, 8);
+    std::memcpy(&FDESTD, &data, 8);
 }
 
 void RVCore::do_c_fsdsp(const DecodeInfo &decodeInfo) {
@@ -276,10 +260,8 @@ void RVCore::do_c_fsdsp(const DecodeInfo &decodeInfo) {
 void RVCore::do_c_fld(const DecodeInfo &decodeInfo) {
     TAG_RS1; TAG_IMM;
 
-    this->memory_load(SRC1 + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        std::memcpy(&FDESTD, &data, 8);
-        return data;
-    });
+    uint64_t data = this->memory_load(SRC1 + IMM, 8);
+    std::memcpy(&FDESTD, &data, 8);
 }
 
 void RVCore::do_c_fsd(const DecodeInfo &decodeInfo) {
@@ -288,6 +270,39 @@ void RVCore::do_c_fsd(const DecodeInfo &decodeInfo) {
     uint64_t i;
     std::memcpy(&i, &FSRC2D, 8);
     this->memory_store(SRC1 + IMM, i, 8);
+}
+
+#else
+
+void RVCore::do_c_flw(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+
+    uint32_t data = this->memory_load(SRC1 + IMM, 4);
+    std::memcpy(&FDESTD, &data, 4);
+    FPR_FILL_DEST_HIGH;
+}
+
+void RVCore::do_c_fsw(const DecodeInfo &decodeInfo) {
+    TAG_RS1; TAG_RS2; TAG_IMM;
+
+    uint32_t i;
+    std::memcpy(&i, &FSRC2S, 4);
+    this->memory_store(SRC1 + IMM, i, 4);
+}
+
+void RVCore::do_c_flwsp(const DecodeInfo &decodeInfo) {
+    TAG_RD; TAG_IMM;
+
+    uint32_t data = this->memory_load(SP + IMM, 4);
+    std::memcpy(&FDESTS, &data, 4);
+}
+
+void RVCore::do_c_fswsp(const DecodeInfo &decodeInfo) {
+    TAG_RS2; TAG_IMM;
+
+    uint32_t i;
+    std::memcpy(&i, &FSRC2S, 4);
+    this->memory_store(SP + IMM, i, 4);
 }
 
 #endif

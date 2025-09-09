@@ -1,10 +1,12 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/aclint.h"
-#include "cpu/riscv/def.h"
-#include "device/def.h"
-#include "utils/utils.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/aclint.hpp"
+#include "cpu/riscv/def.hpp"
+#include "device/def.hpp"
+#include "utils/utils.hpp"
 #include "log.h"
 #include "debug.h"
+
+#include <mutex>
 
 using namespace kxemu::device;
 using kxemu::cpu::RVCore;
@@ -24,7 +26,7 @@ AClint::~AClint() {
 }
 
 void AClint::init(RVCore *cores, unsigned int coreCount) {
-    SELF_PROTECT(this->coreObjects == nullptr, "CLINT is already initialized.");
+    Assert(this->coreObjects == nullptr, "CLINT is already initialized.");
     this->coreCount = coreCount;
     this->coreObjects = new CoreObject[coreCount];
     for (unsigned int i = 0; i < coreCount; i++) {
@@ -32,6 +34,10 @@ void AClint::init(RVCore *cores, unsigned int coreCount) {
         this->coreObjects[i].mtimecmp = -1;
         this->coreObjects[i].mtimerID = -1;
         this->coreObjects[i].stimerID = -1;
+        this->coreObjects[i].msip = false;
+        this->coreObjects[i].ssip = false;
+        this->coreObjects[i].mtip = false;
+        this->coreObjects[i].stip = false;
     }
 }
 
@@ -42,6 +48,14 @@ void AClint::reset() {
             this->taskTimer.remove_task(this->coreObjects[i].mtimerID);
             this->coreObjects[i].mtimerID = -1;
         }
+        if (this->coreObjects[i].stimerID != (unsigned int)-1) {
+            this->taskTimer.remove_task(this->coreObjects[i].stimerID);
+            this->coreObjects[i].stimerID = -1;
+        }
+        this->coreObjects[i].msip = false;
+        this->coreObjects[i].ssip = false;
+        this->coreObjects[i].mtip = false;
+        this->coreObjects[i].stip = false;
     }
     this->timerRunning = false;
 }
@@ -255,6 +269,21 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
     return true;
 }
 
+void AClint::update() {
+    std::lock_guard<std::mutex> lock(this->mtx);
+    for (unsigned int i = 0; i < this->coreCount; i++) {
+        CoreObject &coreObj = this->coreObjects[i];
+        if (coreObj.mtip) {
+            coreObj.core->set_timer_interrupt_m();
+            coreObj.mtip = false;
+        }
+        if (coreObj.stip) {
+            coreObj.core->set_timer_interrupt_s();
+            coreObj.stip = false;
+        }
+    }
+}
+
 void AClint::start_timer() {
     if (this->timerRunning) {
         PANIC("Timer is already running.");
@@ -296,9 +325,16 @@ void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {
 
     uint64_t uptimecmp = cpu::mtime_to_realtime(stimecmp);
     uint64_t uptime = this->get_uptime();
+    if (uptimecmp <= uptime) {
+        // If the stimecmp is already passed, we can just set the interrupt immediately
+        coreObj->stip = true;
+        coreObj->stimerID = -1;
+        return ;
+    }
     uint64_t delay = uptimecmp - uptime;
-    this->coreObjects[coreID].stimerID = this->taskTimer.add_task(delay, [coreObj]() {
-        coreObj->core->set_timer_interrupt_s();
+    this->coreObjects[coreID].stimerID = this->taskTimer.add_task(delay, [this, coreObj]() {
+        std::lock_guard<std::mutex> lock(this->mtx);
+        coreObj->stip = true;
         coreObj->stimerID = -1;
     });
 }
@@ -309,21 +345,22 @@ void AClint::update_core_mtimecmp(unsigned int coreID) {
         return ;
     }
 
-    const CoreObject &coreObj = this->coreObjects[coreID];
+    CoreObject *coreObj = &this->coreObjects[coreID];
 
-    if (coreObj.mtimerID != (unsigned int)-1) {
-        this->taskTimer.remove_task(coreObj.mtimerID);
+    if (coreObj->mtimerID != (unsigned int)-1) {
+        this->taskTimer.remove_task(coreObj->mtimerID);
     }
 
-    coreObj.core->clear_timer_interrupt_m();
+    coreObj->core->clear_timer_interrupt_m();
 
-    uint64_t mtimecmp = coreObj.mtimecmp;
+    uint64_t mtimecmp = coreObj->mtimecmp;
     uint64_t uptimecmp = cpu::mtime_to_realtime(mtimecmp);
     uint64_t uptime = this->get_uptime();
     uint64_t delay = uptimecmp - uptime;
-    this->coreObjects[coreID].mtimerID = this->taskTimer.add_task(delay, [this, coreID]() {
-        this->coreObjects[coreID].core->set_timer_interrupt_m();
-        this->coreObjects[coreID].mtimerID = -1;
+    coreObj->mtimerID = this->taskTimer.add_task(delay, [this, coreObj]() {
+        std::lock_guard<std::mutex> lock(this->mtx);
+        coreObj->mtip = true;
+        coreObj->mtimerID = -1;
     });
 }
 

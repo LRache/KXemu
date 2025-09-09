@@ -1,6 +1,6 @@
 /***************************************************************
  * Project Name: KXemu
- * File Name: include/kdb/cmd.h
+ * File Name: include/kdb/cmd.hpp
  * Description: Define functions for kdb command line interface.
                 Command line is just an interface for user to interact with the system and the KDB.
                 Only do such things in the cmd::* functions:
@@ -10,8 +10,8 @@
                 4. Return the result code to the caller.
  ***************************************************************/
 
-#ifndef __KXEMU_KDB_CMD_H__
-#define __KXEMU_KDB_CMD_H__
+#ifndef __KXEMU_KDB_CMD_HPP__
+#define __KXEMU_KDB_CMD_HPP__
 
 #include <unordered_map>
 #include <vector>

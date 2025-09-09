@@ -1,8 +1,8 @@
-#ifndef __KXEMU_CPU_RISCV_PLIC_H__
-#define __KXEMU_CPU_RISCV_PLIC_H__
+#ifndef __KXEMU_CPU_RISCV_PLIC_HPP__
+#define __KXEMU_CPU_RISCV_PLIC_HPP__
 
-#include "device/mmio.h"
-#include "cpu/riscv/def.h"
+#include "device/mmio.hpp"
+#include "cpu/riscv/def.hpp"
 
 #include <cstdint>
 

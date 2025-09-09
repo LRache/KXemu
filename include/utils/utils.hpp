@@ -1,5 +1,5 @@
-#ifndef __KXEMU_UTILS_UTILS_H__
-#define __KXEMU_UTILS_UTILS_H__
+#ifndef __KXEMU_UTILS_UTILS_HPP__
+#define __KXEMU_UTILS_UTILS_HPP__
 
 #include <chrono>
 #include <optional>

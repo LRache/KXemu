@@ -1,5 +1,5 @@
-#include "cpu/core.h"
-#include "kdb/kdb.h"
+#include "cpu/core.hpp"
+#include "kdb/kdb.hpp"
 #include "macro.h"
 #include "word.h"
 

@@ -1,18 +1,18 @@
-#ifndef __KXEMU_CPU_RISCV_CORE_H__
-#define __KXEMU_CPU_RISCV_CORE_H__
+#ifndef __KXEMU_CPU_RISCV_CORE_HPP__
+#define __KXEMU_CPU_RISCV_CORE_HPP__
 
-#include "cpu/core.h"
-#include "cpu/riscv/aclint.h"
-#include "cpu/riscv/addr.h"
-#include "cpu/riscv/def.h"
-#include "cpu/riscv/plic.h"
-#include "cpu/riscv/pte.h"
-#include "cpu/word.h"
-#include "cpu/riscv/csr.h"
-#include "device/bus.h"
+#include "cpu/core.hpp"
+#include "cpu/riscv/aclint.hpp"
+#include "cpu/riscv/addr.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/riscv/plic.hpp"
+#include "cpu/riscv/pte.hpp"
+#include "cpu/word.hpp"
+#include "cpu/riscv/csr.hpp"
+#include "cpu/riscv/config.hpp"
+#include "device/bus.hpp"
 
 #include <expected>
-#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -35,6 +35,19 @@ private:
     word_t haltCode;
     word_t haltPC;
 
+    class TrapException : public std::exception {
+    private:
+        TrapCode code_;
+        word_t value_;
+    public:
+        TrapException(TrapCode code, word_t value = 0) : code_(code), value_(value) {}
+        TrapCode code() const { return code_; }
+        word_t value() const { return value_; }
+        const char *what() const noexcept override {
+            return "Trap Exception";
+        }
+    };
+
     // Memory access
     enum MemType {
         DontCare = 0,
@@ -48,54 +61,46 @@ private:
     device::PLIC *plic;
     std::mutex *deviceMtx;
     void update_device();
-    bool memory_fetch();
-    std::optional<word_t> memory_load(word_t addr, unsigned int len);
-    void memory_store(word_t addr, word_t data, unsigned int len);
+
+    std::optional<word_t> pm_read_check_optional(word_t paddr, unsigned int len);
+
+    void   memory_fetch();
+    word_t memory_load (word_t addr, unsigned int len);
+    void   memory_store(word_t addr, word_t data, unsigned int len);
+
+    void   pm_fetch(word_t paddr);
+    word_t pm_read(word_t paddr, unsigned int len);
+    void   pm_write(word_t paddr, word_t data, unsigned int len);
+    
+    word_t pm_read_check (word_t paddr, unsigned int len); // With PMP check
+    void   pm_write_check(word_t paddr, word_t data, unsigned int len);
 
     // Virtual address translation
-    std::optional<word_t> pm_read(word_t paddr, unsigned int len);
-    bool pm_write(word_t paddr, word_t data, unsigned int len);
-    std::optional<word_t> pm_read_check (word_t paddr, unsigned int len); // With PMP check
-    bool pm_write_check(word_t paddr, word_t data, unsigned int len);
-    bool vm_fetch();
-    std::optional<word_t> vm_read(word_t vaddr, unsigned int len);
-    bool vm_write(word_t vaddr, word_t  data, unsigned int len);
+    void   vm_fetch();
+    word_t vm_read (word_t vaddr, unsigned int len);
+    void   vm_write(word_t vaddr, word_t data, unsigned int len);
 
-    // enum VMFault {
-    //     VM_PAGE_FAULT,
-    //     VM_ACCESS_FAULT,
-    // };
-    enum class VMResult {
-        VM_OK,
-        VM_PAGE_FAULT,
-        VM_ACCESS_FAULT,
-        VM_UNSET, // Not set yet
+    enum class VMFault {
+        PAGE_FAULT,
+        ACCESS_FAULT,
     };
-    // using VMResult = std::expected<word_t, VMFault>;
-    // word_t vaddr_translate_core(word_t addr, MemType type, VMResult &result);
-    // VMResult vaddr_translate_core(addr_t addr, MemType type);
-    word_t vaddr_translate_core(addr_t addr, MemType type, VMResult &result);
+    using VMResult = std::expected<word_t, VMFault>;
+    VMResult vaddr_translate_core(addr_t addr, MemType type) noexcept;
     
     template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
-    // VMResult vaddr_translate_sv(addr_t vaddr, MemType type); // The template function for sv32, sv39, sv48, sv57
-    word_t vaddr_translate_sv(addr_t vaddr, MemType type, VMResult &result);
+    VMResult vaddr_translate_sv(addr_t vaddr, MemType type) noexcept; // The template function for sv32, sv39, sv48, sv57
     
-    // VMResult vaddr_translate_bare(word_t vaddr, MemType type);
-    word_t vaddr_translate_bare(word_t addr, MemType type, VMResult &result);
+    VMResult vaddr_translate_bare(word_t vaddr, MemType type);
     #ifdef KXEMU_ISA32
-    word_t vaddr_translate_sv32(word_t addr, MemType type, VMResult &result);
+    VMResult vaddr_translate_sv32(word_t addr, MemType type);
     #else
-    // VMResult vaddr_translate_sv39(word_t vaddr, MemType type);
-    // VMResult vaddr_translate_sv48(word_t vaddr, MemType type);
-    // VMResult vaddr_translate_sv57(word_t vaddr, MemType type);
-    word_t vaddr_translate_sv39(word_t addr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv48(word_t addr, MemType type, VMResult &result);
-    word_t vaddr_translate_sv57(word_t addr, MemType type, VMResult &result);
+    VMResult vaddr_translate_sv39(word_t vaddr, MemType type);
+    VMResult vaddr_translate_sv48(word_t vaddr, MemType type);
+    VMResult vaddr_translate_sv57(word_t vaddr, MemType type);
     #endif
     
     word_t pageTableBase;
-    // VMResult (RVCore::*vaddr_translate_func)(word_t addr, MemType type);
-    word_t (RVCore::*vaddr_translate_func)(word_t addr, MemType type, VMResult &result);
+    VMResult (RVCore::*vaddr_translate_func)(word_t addr, MemType type);
     void update_vm_translate();
 
     // Physical memory protection
@@ -147,7 +152,7 @@ private:
     void run_step(unsigned int &counter);
 
     // Trap
-    void trap(TrapCode code, word_t value = 0);
+    void enter_trap(TrapCode code, word_t value = 0);
     
     // Interrupt
     void   set_interrupt(InterruptCode code);
@@ -170,7 +175,7 @@ private:
     
     void update_mstatus();
     struct {
-        bool mie;
+        bool mie;  
         bool sie;
         bool sum;
     } mstatus;
@@ -190,10 +195,10 @@ private:
 
     // Atomic extension
     std::unordered_map<word_t, word_t> reservedMemory; // for lr, sc
-    word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len, bool &valid);
-    template<typename unit> void do_load_reserved(const DecodeInfo &decodeInfo);
-    template<typename unit> void do_store_conditional(const DecodeInfo &decodeInfo);
-    template<device::AMO amo, typename sw_t = int32_t> void do_amo_inst(const DecodeInfo &decodeInfo);
+    word_t amo_vaddr_translate_and_set_trap(word_t vaddr, int len);
+    template<typename sunit_t> void do_load_reserved(const DecodeInfo &decodeInfo);
+    template<typename sunit_t> void do_store_conditional(const DecodeInfo &decodeInfo);
+    template<device::AMO amo, typename sw_t> void do_amo_inst(const DecodeInfo &decodeInfo);
 
     word_t gpr[33];
     
@@ -211,7 +216,7 @@ private:
     void update_fcsr();
 
     // Experimental ICache
-    #ifdef CONFIG_ICache
+    #ifdef CONFIG_ENABLE_ICACHE
     struct ICacheBlock {
         word_t tag;
         
@@ -220,13 +225,12 @@ private:
         unsigned int instLen;
         bool valid = false;
     };
-    ICacheBlock icache[1 << ICACHE_SET_BITS];
+    ICacheBlock icache[1 << config::ICACHE_SET_BITS];
     #endif
     void icache_push(do_inst_t do_inst, unsigned int instLen, const DecodeInfo &decodeInfo);
     bool icache_decode_and_exec();
     void icache_fence();
 
-    static constexpr unsigned int TLB_SET_BITS = 5;
     struct TLBBlock {
         word_t paddr;
         word_t tag;
@@ -234,10 +238,9 @@ private:
         bool valid = false;
         PTEFlag flag;
     };
-    TLBBlock tlb[1 << TLB_SET_BITS];
+    TLBBlock tlb[1 << config::TLB_SET_BITS];
     void tlb_push(addr_t vaddr, addr_t paddr, word_t pteAddr, uint8_t type);
     std::optional<TLBBlock *> tlb_hit(addr_t vaddr);
-    // TLBBlock &tlb_hit(addr_t vaddr, bool &hit);
     void tlb_fence();
 
 public:

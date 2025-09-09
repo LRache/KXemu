@@ -1,14 +1,10 @@
-#ifndef __KXEMU_CPU_RISCV_NAMESPACE_H__
-#define __KXEMU_CPU_RISCV_NAMESPACE_H__
+#ifndef __KXEMU_CPU_RISCV_NAMESPACE_HPP__
+#define __KXEMU_CPU_RISCV_NAMESPACE_HPP__
 
-#include "cpu/word.h"
-#include "device/def.h"
-#include "config/config.h"
+#include "cpu/word.hpp"
+#include "device/def.hpp"
 
 namespace kxemu::cpu {
-    static inline constexpr unsigned int ICACHE_SET_BITS = 11;
-    static inline constexpr unsigned int TLB_SET_BITS = 5;
-
     static inline constexpr unsigned int PGBITS = 12;
     static inline constexpr word_t PGSIZE = (1 << PGBITS);
 
@@ -141,8 +137,8 @@ namespace kxemu::cpu {
         return mtime * 100;
     }
 
-    inline constexpr device::AddrSpace ACLINT   = {0x02000000, 0x00010000};
-    inline constexpr device::AddrSpace PLIC     = {0x0c000000, 0x4000000};
+    inline constexpr device::AddrSpace ACLINT = {0x02000000, 0x00010000};
+    inline constexpr device::AddrSpace PLIC   = {0x0c000000, 0x04000000};
 
     class RVCore;
 

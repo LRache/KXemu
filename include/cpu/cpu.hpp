@@ -1,15 +1,15 @@
 /***************************************************************
  * Project Name: KXemu
- * File Name: include/cpu/cpu.h
+ * File Name: include/cpu/cpu.hpp
  * Description: Define interface of the cpu and the cpu core for
                 different ISA.
  ***************************************************************/
 
-#ifndef __KXEMU_CPU_CPU_H__
-#define __KXEMU_CPU_CPU_H__
+#ifndef __KXEMU_CPU_CPU_HPP__
+#define __KXEMU_CPU_CPU_HPP__
 
-#include "cpu/core.h"
-#include "device/bus.h"
+#include "cpu/core.hpp"
+#include "device/bus.hpp"
 
 namespace kxemu::cpu {
 

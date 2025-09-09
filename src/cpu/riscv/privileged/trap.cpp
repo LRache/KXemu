@@ -1,8 +1,7 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/csr-field.h"
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
-#include "log.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
 
 using namespace kxemu::cpu;
 
@@ -11,7 +10,7 @@ using namespace kxemu::cpu;
 // to the trap, and xPP holds the previous privilege mode. The xPP fields can only hold privilege modes
 // up to x, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode y
 // into privilege mode x, xPIE is set to the value of xIE; xIE is set to 0; and xPP is set to y.
-void RVCore::trap(TrapCode cause, word_t value) {
+void RVCore::enter_trap(TrapCode cause, word_t value) {
     bool deleg;
 #ifdef KXEMU_ISA64
     deleg = *this->medeleg & (1 << cause);
@@ -37,10 +36,6 @@ void RVCore::trap(TrapCode cause, word_t value) {
         mstatus.set_sie(false);
 
         this->set_priv_mode(PrivMode::SUPERVISOR);
-
-        // if (cause == TrapCode::LOAD_PAGE_FAULT) {
-        //     INFO("LOAD_PAGE_FAULT: pc=" FMT_WORD ", priv=%d, value=" FMT_WORD ", inst=%08x", this->pc, this->privMode, value, this->inst);
-        // }
     } else {
         epcAddr   = CSRAddr::MEPC;
         causeAddr = CSRAddr::MCAUSE;
@@ -67,6 +62,4 @@ void RVCore::trap(TrapCode cause, word_t value) {
     } else {
         this->npc = vec.vec();
     }
-
-    DEBUG("gpr[15]=" FMT_WORD, this->gpr[15]);
 }

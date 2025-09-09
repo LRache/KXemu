@@ -1,16 +1,21 @@
-#include "device/virtio/virtio.h"
-#include "debug.h"
-#include "device/def.h"
+#include "device/virtio/virtio.hpp"
+#include "device/def.hpp"
 #include "device/virtio/def.h"
 #include "log.h"
 #include "word.h"
+#include "debug.h"
 
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
-#define SET_UPPER(target, upper) (target) &=  0xffffffffULL; (target) |= (uint64_t)(upper) << 32;
-#define SET_LOWER(target, lower) (target) &= ~0xffffffffULL; (target) |= (lower) & 0xffffffff;
+static inline void set_upper(uint64_t &value, uint32_t upper) {
+    value = (value & 0xffffffffULL) | ((uint64_t)upper << 32);
+}
+
+static inline void set_lower(uint64_t &value, uint32_t lower) {
+    value =  (value & ~0xffffffffULL) | (lower & 0xffffffff);
+}
 
 using namespace kxemu::device;
 
@@ -298,13 +303,13 @@ bool VirtIO::write(word_t offset, word_t data, word_t size) {
         case 0x64: break; // Interrupt ACK, not implenmted ignore yet
         case 0x70: this->write_status(data); break;
 
-        case 0x80: SET_LOWER(this->virtQueues[this->queueSelect].p_desc , data); break;
-        case 0x84: SET_UPPER(this->virtQueues[this->queueSelect].p_desc , data); break;
-        case 0x90: SET_LOWER(this->virtQueues[this->queueSelect].p_avail, data); break;
-        case 0x94: SET_UPPER(this->virtQueues[this->queueSelect].p_avail, data); break;
-        case 0xa0: SET_LOWER(this->virtQueues[this->queueSelect].p_used , data); break;
-        case 0xa4: SET_UPPER(this->virtQueues[this->queueSelect].p_used , data); break;
-        
+        case 0x80: set_lower(this->virtQueues[this->queueSelect].p_desc , data); break;
+        case 0x84: set_upper(this->virtQueues[this->queueSelect].p_desc , data); break;
+        case 0x90: set_lower(this->virtQueues[this->queueSelect].p_avail, data); break;
+        case 0x94: set_upper(this->virtQueues[this->queueSelect].p_avail, data); break;
+        case 0xa0: set_lower(this->virtQueues[this->queueSelect].p_used , data); break;
+        case 0xa4: set_upper(this->virtQueues[this->queueSelect].p_used , data); break;
+
         default: valid = false; break;
     }
 

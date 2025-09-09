@@ -1,11 +1,10 @@
-#ifndef __KXEMU_CPU_RISCV_CPU_H__
-#define __KXEMU_CPU_RISCV_CPU_H__
+#ifndef __KXEMU_CPU_RISCV_CPU_HPP__
+#define __KXEMU_CPU_RISCV_CPU_HPP__
 
-#include "cpu/cpu.h"
-#include "cpu/riscv/aclint.h"
-#include "cpu/riscv/plic.h"
-#include "cpu/riscv/core.h"
-#include "utils/task-timer.h"
+#include "cpu/cpu.hpp"
+#include "cpu/riscv/aclint.hpp"
+#include "cpu/riscv/plic.hpp"
+#include "cpu/riscv/core.hpp"
 
 #include <mutex>
 #include <thread>
@@ -21,7 +20,6 @@ private:
     
     device::AClint aclint;
     device::PLIC plic;
-    utils::TaskTimer taskTimer;
     std::mutex deviceMtx;
     
 public:

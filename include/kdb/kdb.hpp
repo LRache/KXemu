@@ -1,11 +1,11 @@
-#ifndef __KXEMU_KDB_KDB_H__
-#define __KXEMU_KDB_KDB_H__
+#ifndef __KXEMU_KDB_KDB_HPP__
+#define __KXEMU_KDB_KDB_HPP__
 
-#include "device/mmio.h"
-#include "device/uart.h"
-#include "cpu/cpu.h"
-#include "device/bus.h"
-#include "isa/isa.h"
+#include "device/mmio.hpp"
+#include "device/uart.hpp"
+#include "cpu/cpu.hpp"
+#include "device/bus.hpp"
+#include "isa/isa.hpp"
 
 #include <cstddef>
 #include <optional>

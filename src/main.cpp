@@ -16,8 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "kdb/cmd.h"
-#include "kdb/kdb.h"
+#include "kdb/cmd.hpp"
+#include "kdb/kdb.hpp"
 
 #include <getopt.h>
 #include <vector>

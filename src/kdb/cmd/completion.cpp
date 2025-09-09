@@ -1,5 +1,5 @@
-#include "kdb/cmd.h"
-#include "utils/utils.h"
+#include "kdb/cmd.hpp"
+#include "utils/utils.hpp"
 
 #include <string>
 #include <unordered_map>

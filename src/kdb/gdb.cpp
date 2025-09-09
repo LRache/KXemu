@@ -1,5 +1,5 @@
-#include "isa/isa.h"
-#include "kdb/kdb.h"
+#include "isa/isa.hpp"
+#include "kdb/kdb.hpp"
 #include "log.h"
 
 #include <cstddef>

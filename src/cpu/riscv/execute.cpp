@@ -1,5 +1,5 @@
-#include "cpu/riscv/core.h"
-#include "cpu/word.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/word.hpp"
 #include "macro.h"
 #include "log.h"
 
@@ -48,7 +48,7 @@ void RVCore::run_step(unsigned int &counter) {
         this->scan_interrupt();
         counter = 0;
     }
-            
+
     this->pc = this->npc;
     counter++;
 }
@@ -95,50 +95,47 @@ void RVCore::update_device() {
     }
 }
 
-void RVCore::execute() {
-    if (unlikely(this->pc & 0x1)) {
-        // Instruction address misaligned
-        this->trap(TrapCode::INST_ADDR_MISALIGNED);
-        this->pc = this->npc;
-        return;
-    }
+void RVCore::execute() {    
+    try {
+        if (unlikely(this->pc & 1)) {
+            throw TrapException(TrapCode::INST_ADDR_MISALIGNED, this->pc);
+        }
+        
+        if (likely(this->icache_decode_and_exec())) {
+            return;
+        }
+        
+        this->memory_fetch();
 
-    #ifdef CONFIG_ICache
-    if (this->icache_decode_and_exec()) {
-        return;
-    }
-    #endif
-    
-    if (!this->memory_fetch()) {
-        this->pc = this->npc;
-        return;
-    }
-    
-    #ifdef CONFIG_DEBUG_DECODER
-    std::memset(&this->gDecodeInfo, 0xac, sizeof(this->gDecodeInfo));
-    this->gDecodeInfo.rd_set  = false;
-    this->gDecodeInfo.rs1_set = false;
-    this->gDecodeInfo.rs2_set = false;
-    this->gDecodeInfo.csr_set = false;
-    this->gDecodeInfo.imm_set = false;
-    #endif
-    
-    unsigned int instLen;
-    do_inst_t do_inst;
-    DecodeInfo decodeInfo;
-    if (unlikely((this->inst & 0x3) == 0x3)) {
-        this->npc = this->pc + 4;
-        instLen = 4;
-        do_inst = this->decode_and_exec(decodeInfo);
-    } else {
-        this->npc = this->pc + 2;
-        instLen = 2;
-        do_inst = this->decode_and_exec_c(decodeInfo);
-    }
-    
-    if (unlikely(do_inst == nullptr)) {
-        this->do_invalid_inst();
-    } else {
-        this->icache_push(do_inst, instLen, decodeInfo);
+        #ifdef CONFIG_DEBUG_DECODER
+        std::memset(&this->gDecodeInfo, 0xac, sizeof(this->gDecodeInfo));
+        this->gDecodeInfo.rd_set  = false;
+        this->gDecodeInfo.rs1_set = false;
+        this->gDecodeInfo.rs2_set = false;
+        this->gDecodeInfo.csr_set = false;
+        this->gDecodeInfo.imm_set = false;
+        #endif
+        
+        unsigned int instLen;
+        do_inst_t do_inst;
+        DecodeInfo decodeInfo;
+        if (unlikely((this->inst & 0x3) == 0x3)) {
+            this->npc = this->pc + 4;
+            instLen = 4;
+            do_inst = this->decode_and_exec(decodeInfo);
+        } else {
+            this->npc = this->pc + 2;
+            instLen = 2;
+            do_inst = this->decode_and_exec_c(decodeInfo);
+        }
+        
+        if (unlikely(do_inst == nullptr)) {
+            this->do_invalid_inst();
+        } else {
+            this->icache_push(do_inst, instLen, decodeInfo);
+        }
+    } catch (const TrapException &e) {
+        // Handle trap exception
+        this->enter_trap(e.code(), e.value());
     }
 }

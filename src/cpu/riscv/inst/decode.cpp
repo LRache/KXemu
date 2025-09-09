@@ -1,6 +1,6 @@
-#include "cpu/riscv/core.h"
+#include "cpu/riscv/core.hpp"
 #include "config/config.h"
-#include "cpu/word.h"
+#include "cpu/word.hpp"
 
 #include <cstdint>
 
@@ -106,7 +106,7 @@ DECODE(r_frm) {
 DECODE(r_f) {
     set_frd(BITS(11,  7));
     set_rs1(BITS(19, 15));
-    set_imm(SEXT(BITS(31, 20), 12));
+    set_rs2(BITS(24, 20));
 }
 
 DECODE(csrr) {

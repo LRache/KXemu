@@ -23,6 +23,8 @@
 #define FSRC2D (this->fpr[decodeInfo.rs2].f64)
 #define FSRC3D (this->fpr[decodeInfo.rs3].f64)
 
+#define FPR_FILL_DEST_HIGH this->fpr[decodeInfo.rd].high = -1;
+
 // #define  rd_is_x0 (decodeInfo.rd  == &this->gpr[32])
 // #define rs1_is_x0 (decodeInfo.rs1 == &this->gpr[ 0])
 #define  rd_is_x0 (decodeInfo.rd  == 32)
@@ -30,12 +32,12 @@
 
 #ifdef CONFIG_DEBUG_DECODER
 
-#define TAG_RD  SELF_PROTECT(decodeInfo.rd_set, "decodeInfo.rd is not set by decoder.");
-#define TAG_RS1 SELF_PROTECT(decodeInfo.rs1_set, "decodeInfo.rs1 is not set by decoder.");
-#define TAG_RS2 SELF_PROTECT(decodeInfo.rs2_set, "decodeInfo.rs2 is not set by decoder.");
-#define TAG_IMM SELF_PROTECT(decodeInfo.imm_set, "decodeInfo.imm is not set by decoder.");
-#define TAG_CSR SELF_PROTECT(decodeInfo.csr_set, "decodeInfo.csr is not set by decoder.");
-#define TAG_NPC SELF_PROTECT(decodeInfo.npc_set, "decodeInfo.npc is not set by decoder.");
+#define TAG_RD  Assert(decodeInfo.rd_set, "decodeInfo.rd is not set by decoder.");
+#define TAG_RS1 Assert(decodeInfo.rs1_set, "decodeInfo.rs1 is not set by decoder.");
+#define TAG_RS2 Assert(decodeInfo.rs2_set, "decodeInfo.rs2 is not set by decoder.");
+#define TAG_IMM Assert(decodeInfo.imm_set, "decodeInfo.imm is not set by decoder.");
+#define TAG_CSR Assert(decodeInfo.csr_set, "decodeInfo.csr is not set by decoder.");
+#define TAG_NPC Assert(decodeInfo.npc_set, "decodeInfo.npc is not set by decoder.");
 
 #else
 

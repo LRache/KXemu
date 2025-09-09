@@ -1,8 +1,8 @@
-#ifndef __KXEMU_DEVICE_VIRTIO_VIRTIO_H__
-#define __KXEMU_DEVICE_VIRTIO_VIRTIO_H__
+#ifndef __KXEMU_DEVICE_VIRTIO_VIRTIO_HPP__
+#define __KXEMU_DEVICE_VIRTIO_VIRTIO_HPP__
 
-#include "device/bus.h"
-#include "device/def.h"
+#include "device/bus.hpp"
+#include "device/def.hpp"
 #include <cstdint>
 #include <mutex>
 #include <vector>

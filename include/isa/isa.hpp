@@ -1,8 +1,8 @@
-#ifndef __KXEMU_ISA_ISA_H__
-#define __KXEMU_ISA_ISA_H__
+#ifndef __KXEMU_ISA_ISA_HPP__
+#define __KXEMU_ISA_ISA_HPP__
 
 #include "config/config.h"
-#include "cpu/cpu.h"
+#include "cpu/cpu.hpp"
 
 #include <string>
 #include <cstdint>

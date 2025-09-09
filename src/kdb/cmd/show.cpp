@@ -1,7 +1,7 @@
-#include "word.h"
-#include "kdb/cmd.h"
-#include "kdb/kdb.h"
+#include "kdb/cmd.hpp"
+#include "kdb/kdb.hpp"
 #include "macro.h"
+#include "word.h"
 
 #include <bitset>
 #include <cstdint>

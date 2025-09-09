@@ -1,6 +1,6 @@
-#include "device/mmio.h"
-#include "kdb/kdb.h"
-#include "device/bus.h"
+#include "device/mmio.hpp"
+#include "kdb/kdb.hpp"
+#include "device/bus.hpp"
 
 #include <vector>
 

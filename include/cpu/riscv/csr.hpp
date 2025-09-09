@@ -1,8 +1,8 @@
-#ifndef __KXEMU_CPU_RISCV_CSR_H__
-#define __KXEMU_CPU_RISCV_CSR_H__
+#ifndef __KXEMU_CPU_RISCV_CSR_HPP__
+#define __KXEMU_CPU_RISCV_CSR_HPP__
 
-#include "cpu/riscv/def.h"
-#include "cpu/word.h"
+#include "cpu/riscv/def.hpp"
+#include "cpu/word.hpp"
 
 #include <functional>
 #include <optional>

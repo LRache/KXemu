@@ -1,7 +1,7 @@
-#ifndef __KXEMU_DEVICE_MMIO_H__
-#define __KXEMU_DEVICE_MMIO_H__
+#ifndef __KXEMU_DEVICE_MMIO_HPP__
+#define __KXEMU_DEVICE_MMIO_HPP__
 
-#include "device/def.h"
+#include "device/def.hpp"
 
 namespace kxemu::device {
 

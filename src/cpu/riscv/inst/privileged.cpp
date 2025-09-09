@@ -1,7 +1,9 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/csr-field.h"
-#include "cpu/riscv/def.h"
-#include "log.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/riscv/def.hpp"
+
+#include <thread>
+#include <utility>
 
 using namespace kxemu::cpu;
 
@@ -16,9 +18,10 @@ void RVCore::do_ecall(const DecodeInfo &) {
         case PrivMode::MACHINE:    code = TrapCode::ECALL_M; break;
         case PrivMode::SUPERVISOR: code = TrapCode::ECALL_S; break;
         case PrivMode::USER:       code = TrapCode::ECALL_U; break;
-        default: PANIC("Invalid current privileged mode."); return;
+        default: std::unreachable();
     }
-    trap(code); 
+    
+    throw TrapException(code);
 }
 
 // An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When
@@ -67,36 +70,33 @@ void RVCore::do_sret(const DecodeInfo &) {
 }
 
 void RVCore::do_invalid_inst() {
-    if (this->debugMode) {
-        this->state = ERROR;
-        this->haltPC = this->pc;
-    }
-
+#ifdef CONFIG_HALT_WHEN_INVALID
+    this->state = ERROR;
+    this->haltPC = this->pc;
     WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
+#endif
 
-    this->trap(TrapCode::ILLEGAL_INST, this->inst);
+    throw TrapException(TrapCode::ILLEGAL_INST, this->inst);
 }
 
 void RVCore::do_invalid_inst(const DecodeInfo &) {
-    WARN("Invalid instruction at pc=" FMT_WORD ", inst=" FMT_WORD32, this->pc, this->inst);
     this->do_invalid_inst();
 }
 
 void RVCore::do_ebreak(const DecodeInfo &) {
-    if (this->debugMode) {
-        INFO("EBREAK at pc=" FMT_WORD, this->pc);
-        this->state = HALT;
-        this->haltCode = this->gpr[10];
-        this->haltPC = this->pc;
-    }
+#ifdef CONFIG_HALT_WHEN_BREAK
+    INFO("EBREAK at pc=" FMT_WORD, this->pc);
+    this->state = HALT;
+    this->haltCode = this->gpr[10];
+    this->haltPC = this->pc;
+#endif
     
-    this->trap(TrapCode::BREAKPOINT); 
+    throw TrapException(TrapCode::BREAKPOINT);
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
-    // INFO("WFI at pc=" FMT_WORD, this->pc);
-    while (!this->scan_interrupt()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    while (!*this->mip) {
+        std::this_thread::yield();
         this->update_device();
     }
 }

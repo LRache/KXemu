@@ -1,9 +1,8 @@
-#include "kdb/kdb.h"
-#include "cpu/cpu.h"
-#include "isa/isa.h"
+#include "kdb/kdb.hpp"
+#include "cpu/cpu.hpp"
+#include "isa/isa.hpp"
+#include "utils/utils.hpp"
 #include "log.h"
-#include "isa/isa.h"
-#include "utils/utils.h"
 
 #include <string>
 

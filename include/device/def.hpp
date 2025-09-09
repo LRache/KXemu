@@ -1,5 +1,5 @@
-#ifndef __KXEMU_DEVICE_DEF_H__
-#define __KXEMU_DEVICE_DEF_H__
+#ifndef __KXEMU_DEVICE_DEF_HPP__
+#define __KXEMU_DEVICE_DEF_HPP__
 
 #include <cstdint>
 

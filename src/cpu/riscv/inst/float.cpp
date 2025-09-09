@@ -1,5 +1,6 @@
-#include "cpu/riscv/core.h"
-#include "cpu/riscv/csr-field.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/riscv/csr-field.hpp"
+#include "cpu/word.hpp"
 
 #include <cfenv>
 #include <cstdint>
@@ -9,8 +10,6 @@
 #include "./local-decoder.h"
 
 using namespace kxemu::cpu;
-
-#define FILL_DEST_HIGH this->fpr[decodeInfo.rd].high = -1;
 
 static void set_fpu_rounding_mode(unsigned int rm) {
     switch (rm) {
@@ -54,19 +53,11 @@ void RVCore::update_fcsr() {
 }
 
 void RVCore::do_flw(const DecodeInfo &decodeInfo) {
-    // uint32_t i = this->memory_load(SRC1 + IMM, 4);
-    // float f;
-    // std::memcpy(&f, &i, 4);
-    // FDESTS = f;
-    // FILL_DEST_HIGH;
-    this->memory_load(SRC1 + IMM, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        uint32_t i = data;
-        float f;
-        std::memcpy(&f, &i, 4);
-        FDESTS = f;
-        FILL_DEST_HIGH;
-        return data;
-    });
+    uint32_t data = this->memory_load(SRC1 + IMM, 4);
+    float f;
+    std::memcpy(&f, &data, 4);
+    FDESTS = f;
+    FPR_FILL_DEST_HIGH;
 }
 
 void RVCore::do_fsw(const DecodeInfo &decodeInfo) {
@@ -79,7 +70,7 @@ void RVCore::do_fmadd_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = FSRC1S * FSRC2S + FSRC3S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -88,7 +79,7 @@ void RVCore::do_fmsub_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = FSRC1S * FSRC2S - FSRC3S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -97,7 +88,7 @@ void RVCore::do_fnmsub_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = -FSRC1S * FSRC2S + FSRC3S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -106,7 +97,7 @@ void RVCore::do_fnmadd_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = -FSRC1S * FSRC2S - FSRC3S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -115,7 +106,7 @@ void RVCore::do_fadd_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = FSRC1S + FSRC2S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -124,7 +115,7 @@ void RVCore::do_fsub_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = FSRC1S - FSRC2S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -133,7 +124,7 @@ void RVCore::do_fmul_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = FSRC1S * FSRC2S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -142,7 +133,7 @@ void RVCore::do_fdiv_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = FSRC1S / FSRC2S;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -151,7 +142,7 @@ void RVCore::do_fsqrt_s(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = std::sqrt(FSRC1S);
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -159,29 +150,29 @@ void RVCore::do_fsqrt_s(const DecodeInfo &decodeInfo) {
 void RVCore::do_fsgnj_s(const DecodeInfo &decodeInfo) {
     int sign = std::signbit(FSRC2S) ? -1 : 1;
     FDESTS = std::abs(FSRC1S) * sign;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
 }
 
 void RVCore::do_fsgnjn_s(const DecodeInfo &decodeInfo) {
     int sign = std::signbit(FSRC2S) ? 1 : -1;
     FDESTS = std::abs(FSRC1S) * sign;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
 }
 
 void RVCore::do_fsgnjx_s(const DecodeInfo &decodeInfo) {
     int sign = std::signbit(FSRC2S) ? 1 : -1;
     FDESTS = FSRC1S * sign;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
 }
 
 void RVCore::do_fmin_s(const DecodeInfo &decodeInfo) {
     FDESTS = std::min(FSRC1S, FSRC2S);
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
 }
 
 void RVCore::do_fmax_s(const DecodeInfo &decodeInfo) {
     FDESTS = std::max(FSRC1S, FSRC2S);
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
 }
 
 void RVCore::do_feq_s(const DecodeInfo &decodeInfo) {
@@ -270,7 +261,7 @@ void RVCore::do_fcvt_s_w(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = (float)(sword_t)SRC1;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -279,7 +270,7 @@ void RVCore::do_fcvt_s_wu(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = (float)(word_t)SRC1;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -320,7 +311,7 @@ void RVCore::do_fcvt_s_l(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = (float)(sword_t)SRC1;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -329,7 +320,7 @@ void RVCore::do_fcvt_s_lu(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = (float)(word_t)SRC1;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -353,21 +344,14 @@ void RVCore::do_fmv_w_x(const DecodeInfo &decodeInfo) {
     float f;
     std::memcpy(&f, &i, 4);
     FDESTS = f;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
 }
 
 void RVCore::do_fld(const DecodeInfo &decodeInfo) {
-    // uint64_t i = this->memory_load(SRC1 + IMM, 8);
-    // double d;
-    // std::memcpy(&d, &i, 8);
-    // FDESTD = d;
-    this->memory_load(SRC1 + IMM, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        uint64_t i = data;
-        double d;
-        std::memcpy(&d, &i, 8);
-        FDESTD = d;
-        return data;
-    });
+    uint64_t data = this->memory_load(SRC1 + IMM, 8);
+    double d;
+    std::memcpy(&d, &data, 8);
+    FDESTD = d;
 }
 
 void RVCore::do_fsd(const DecodeInfo &decodeInfo) {
@@ -476,11 +460,19 @@ void RVCore::do_feq_d(const DecodeInfo &decodeInfo) {
 }
 
 void RVCore::do_flt_d(const DecodeInfo &decodeInfo) {
-    DEST = FSRC1D < FSRC2D ? 1 : 0;
+    if (std::isnan(FSRC1D) || std::isnan(FSRC2D)) {
+        DEST = 0;
+    } else {
+        DEST = FSRC1D < FSRC2D ? 1 : 0;
+    }
 }
 
 void RVCore::do_fle_d(const DecodeInfo &decodeInfo) {
-    DEST = FSRC1D <= FSRC2D ? 1 : 0;
+    if (std::isnan(FSRC1D) || std::isnan(FSRC2D)) {
+        DEST = 0;
+    } else {
+        DEST = FSRC1D <= FSRC2D ? 1 : 0;
+    }
 }
 
 static bool is_quiet_nan(double f) {
@@ -527,7 +519,7 @@ void RVCore::do_fcvt_s_d(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTS = (float)FSRC1D;
-    FILL_DEST_HIGH;
+    FPR_FILL_DEST_HIGH;
     
     RESTORE_FPU;
 }
@@ -592,12 +584,18 @@ void RVCore::do_fcvt_l_d(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     uint64_t i;
-    if (std::isnan(FSRC1D) || FSRC1D > (double)INT64_MAX) {
+    if (std::isnan(FSRC1D)) {
         i = INT64_MAX;
-    } else if (FSRC1D < INT64_MIN) {
+        // TODO: Set invalid operation flag
+    } else if (FSRC1D > (double)INT64_MAX) {
+        i = INT64_MAX;
+        // TODO: Set invalid operation flag
+    } else if (FSRC1D < (double)INT64_MIN) {
         i = INT64_MIN;
+        // TODO: Set invalid operation flag
     } else {
-        i = (int64_t)FSRC1D;
+        // Use proper rounding according to current rounding mode
+        i = (int64_t)llrint(FSRC1D);
     }
     DEST = (sword_t)i;
     
@@ -622,7 +620,7 @@ void RVCore::do_fcvt_d_l(const DecodeInfo &decodeInfo) {
     SET_FPU;
     
     FDESTD = (double)(sword_t)SRC1;
-    
+
     RESTORE_FPU;
 }
 

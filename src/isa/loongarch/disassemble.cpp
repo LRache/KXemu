@@ -1,4 +1,4 @@
-#include "isa/isa.h"
+#include "isa/isa.hpp"
 
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"

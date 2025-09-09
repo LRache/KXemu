@@ -1,9 +1,8 @@
-#include "cpu/cpu.h"
+#include "cpu/cpu.hpp"
+#include "kdb/kdb.hpp"
+#include "kdb/cmd.hpp"
+#include "utils/utils.hpp"
 #include "word.h"
-#include "kdb/kdb.h"
-#include "kdb/cmd.h"
-#include "utils/utils.h"
-#include "macro.h"
 
 #include <cstdint>
 #include <iostream>

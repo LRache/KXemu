@@ -1,6 +1,6 @@
-#include "kdb/kdb.h"
-#include "kdb/cmd.h"
-#include "utils/utils.h"
+#include "kdb/kdb.hpp"
+#include "kdb/cmd.hpp"
+#include "utils/utils.hpp"
 #include "word.h"
 
 #include <cerrno>

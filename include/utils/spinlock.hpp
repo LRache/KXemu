@@ -1,5 +1,5 @@
-#ifndef __KXEMU_UTILS_SPINLOCK_H__
-#define __KXEMU_UTILS_SPINLOCK_H__
+#ifndef __KXEMU_UTILS_SPINLOCK_HPP__
+#define __KXEMU_UTILS_SPINLOCK_HPP__
 
 #include <atomic>
 #include <thread>

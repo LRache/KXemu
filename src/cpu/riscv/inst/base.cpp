@@ -1,5 +1,5 @@
-#include "cpu/riscv/core.h"
-#include "cpu/word.h"
+#include "cpu/riscv/core.hpp"
+#include "cpu/word.hpp"
 #include "macro.h"
 
 #include <cstdint>
@@ -175,52 +175,32 @@ void RVCore::do_sraiw(const DecodeInfo &decodeInfo) {
 
 void RVCore::do_lb(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
-    // DEST = (sword_t)(int8_t)this->memory_load(ADDR, 1);
-    this->memory_load(ADDR, 1).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = (sword_t)(int8_t)data;
-        return data;
-    });
+
+    DEST = (sword_t)(int8_t)this->memory_load(ADDR, 1); 
 }
 
 void RVCore::do_lbu(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
-    // DEST = this->memory_load(ADDR, 1);
-    this->memory_load(ADDR, 1).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
+
+    DEST = this->memory_load(ADDR, 1);
 }
 
 void RVCore::do_lh(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     
-    // DEST = (sword_t)(int16_t)this->memory_load(ADDR, 2);
-    this->memory_load(ADDR, 2).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = (sword_t)(int16_t)data;
-        return data;
-    });
+    DEST = (sword_t)(int16_t)this->memory_load(ADDR, 2);
 }
 
 void RVCore::do_lhu(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
-    
-    // DEST = this->memory_load(ADDR, 2);
-    this->memory_load(ADDR, 2).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
+
+    DEST = this->memory_load(ADDR, 2);
 }
 
 void RVCore::do_lw(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
 
-    // DEST = (sword_t)(int32_t)this->memory_load(ADDR, 4);
-    this->memory_load(ADDR, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = (sword_t)(int32_t)data;
-        return data;
-    });
+    DEST = (sword_t)(int32_t)this->memory_load(ADDR, 4);
 }
 
 #ifdef KXEMU_ISA64
@@ -229,22 +209,14 @@ void RVCore::do_lwu(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     RV64ONLY;
     
-    // DEST = this->memory_load(ADDR, 4);
-    this->memory_load(ADDR, 4).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
+    DEST = this->memory_load(ADDR, 4);
 }
 
 void RVCore::do_ld(const DecodeInfo &decodeInfo) {
     TAG_RD; TAG_RS1; TAG_IMM;
     RV64ONLY;
     
-    // DEST = this->memory_load(ADDR, 8);
-    this->memory_load(ADDR, 8).and_then([&](word_t data) -> std::optional<word_t> {
-        DEST = data;
-        return data;
-    });
+    DEST = this->memory_load(ADDR, 8);
 }
 
 #endif
