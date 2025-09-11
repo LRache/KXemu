@@ -16,10 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "autogen/git_info.hpp"
 #include "kdb/cmd.hpp"
 #include "kdb/kdb.hpp"
 
 #include <getopt.h>
+#include <iostream>
 #include <vector>
 
 using namespace kxemu;
@@ -36,47 +38,52 @@ static void parse_args(int argc, char **argv) {
     };
 
     int o;
-    while((o = getopt_long(argc, argv, "s:", options, NULL)) != -1) {
+    while ((o = getopt_long(argc, argv, "s:", options, NULL)) != -1) {
         switch (o) {
-            case 's':
-                sourceFiles.push_back(optarg);
-                break;
-            case 'd':
-                kdb::cmd::add_define(optarg);
-                break;
-            case 'c':
-                coreCount = std::stoi(optarg);
-                break;
-            default:
-                break;
+        case 's':
+            sourceFiles.push_back(optarg);
+            break;
+        case 'd':
+            kdb::cmd::add_define(optarg);
+            break;
+        case 'c':
+            coreCount = std::stoi(optarg);
+            break;
+        default:
+            break;
         }
     }
 }
 
 static void output_info() {
-    std::cout << "KXemu build at "  << __TIMESTAMP__;
-    #ifdef __clang__
-    std::cout << " (Clang " << __clang_major__ << "." << __clang_minor__ << "." << __clang_patchlevel__ << ")" << std::endl;
-    #elif defined(__GNUC__)
-    std::cout << " (GCC " << __GNUC__ << "." << __GNUC_MINOR__ << "." << __GNUC_PATCHLEVEL__ << ")" << std::endl;
-    #elif defined(_MSC_VER)
+    std::cout << "KXemu build at " << __TIMESTAMP__;
+#ifdef __clang__
+    std::cout << " (Clang " << __clang_major__ << "." << __clang_minor__ << "."
+              << __clang_patchlevel__ << ")" << std::endl;
+#elif defined(__GNUC__)
+    std::cout << " (GCC " << __GNUC__ << "." << __GNUC_MINOR__ << "."
+              << __GNUC_PATCHLEVEL__ << ")" << std::endl;
+#elif defined(_MSC_VER)
     std::cout << " (MSVC " << _MSC_VER << ")" << std::endl;
-    #endif
+#endif
+
+    std::cout << "Git: " << kxemu::git::get_version_string() << std::endl;
+    std::cout << "Commit: " << kxemu::git::commit_hash << std::endl;
 }
 
 int main(int argc, char **argv) {
     parse_args(argc, argv);
 
     output_info();
-    
+
     kdb::init(coreCount);
-    for (auto sourceFileName: sourceFiles) {
+    for (auto sourceFileName : sourceFiles) {
         kdb::cmd::run_source_file(sourceFileName);
     }
-    
+
     kdb::cmd::init();
     int r = kdb::cmd::mainloop();
     kdb::deinit();
-    
+
     return r;
 }

@@ -20,6 +20,7 @@ if(PROJECT_BINARY_DIR STREQUAL PROJECT_SOURCE_DIR)
 endif()
 
 include(${PROJECT_SOURCE_DIR}/scripts/filelist.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/git_info.cmake)
 
 find_package(Readline MODULE REQUIRED)
 message(STATUS "Found Readline")
@@ -34,6 +35,7 @@ if(NOT CONFIG_TARGET_SHARE)
     target_include_directories(${KXEMU_TARGET}
         PRIVATE
         ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_BINARY_DIR}/include
         ${Readline_INCLUDE_DIRS}
         ${LLVM_INCLUDE_DIRS}
     )
@@ -48,8 +50,11 @@ else()
     target_include_directories(${KXEMU_TARGET}
         PRIVATE
         ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_BINARY_DIR}/include
     )
 endif()
+
+add_dependencies(${KXEMU_TARGET} update_git_info)
 
 include(${PROJECT_SOURCE_DIR}/scripts/isa/${CONFIG_BASE_ISA}.cmake)
 

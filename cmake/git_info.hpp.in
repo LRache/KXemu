@@ -1,0 +1,41 @@
+#ifndef __KXEMU_GIT_INFO_HPP__
+#define __KXEMU_GIT_INFO_HPP__
+
+#include <cstdio>
+#include <cstring>
+
+#define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
+#define GIT_COMMIT_HASH_SHORT "@GIT_COMMIT_HASH_SHORT@"
+#define GIT_BRANCH "@GIT_BRANCH@"
+#define GIT_COMMIT_DATE "@GIT_COMMIT_DATE@"
+#define GIT_DIRTY_SUFFIX "@GIT_DIRTY_SUFFIX@"
+
+namespace kxemu {
+namespace git {
+constexpr const char *commit_hash = GIT_COMMIT_HASH;
+constexpr const char *commit_hash_short = GIT_COMMIT_HASH_SHORT;
+constexpr const char *branch = GIT_BRANCH;
+constexpr const char *commit_date = GIT_COMMIT_DATE;
+constexpr bool is_dirty = @GIT_IS_DIRTY@;
+constexpr const char *dirty_suffix = GIT_DIRTY_SUFFIX;
+
+// 获取完整的版本字符串
+inline const char *get_version_string() {
+  static char version_str[256];
+  std::snprintf(version_str, sizeof(version_str), "%s%s (%s)",
+                commit_hash_short, dirty_suffix, branch);
+  return version_str;
+}
+
+// 获取详细的版本信息
+inline const char *get_detailed_version() {
+  static char detailed_str[512];
+  std::snprintf(detailed_str, sizeof(detailed_str),
+                "commit %s%s\nBranch: %s\nDate: %s", commit_hash, dirty_suffix,
+                branch, commit_date);
+  return detailed_str;
+}
+} // namespace git
+} // namespace kxemu
+
+#endif // __KXEMU_GIT_INFO_HPP__
