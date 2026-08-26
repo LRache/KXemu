@@ -47,7 +47,7 @@ void RVCore::reset(word_t entry) {
     std::memset(this->gpr, 0, sizeof(this->gpr));
     this->gpr[10] = this->coreID;
 
-    #ifdef CONFIG_ICache
+    #ifdef CONFIG_ENABLE_ICACHE
     this->icache_fence();
     #endif
     this->tlb_fence();
