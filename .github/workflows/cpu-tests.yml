@@ -44,7 +44,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends \
             build-essential \
-            clang \
+            clang-20 \
             cmake \
             libreadline-dev \
             llvm-dev \
@@ -55,6 +55,7 @@ jobs:
         run: |
           make -f build.mk \
             CONFIG_ISA=${{ matrix.isa }} \
+            CONFIG_CC=clang++-20 \
             CONFIG_HALT_WHEN_BREAK=y \
             CMAKE_ARGS="-DLLVM_DIR=$(llvm-config --cmakedir)"
 
