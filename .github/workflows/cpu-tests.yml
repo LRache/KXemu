@@ -31,6 +31,7 @@ jobs:
             cross_packages: >-
               binutils-riscv64-linux-gnu
               gcc-riscv64-linux-gnu
+              libc6-dev-riscv64-cross
 
     steps:
       - name: Check out repository
