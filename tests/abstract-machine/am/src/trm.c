@@ -1,5 +1,4 @@
 #include "am.h"
-#include <stdio.h>
 
 #ifdef MAINARGS
     static const char *mainargs = "" MAINARGS "";

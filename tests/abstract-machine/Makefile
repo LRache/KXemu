@@ -46,7 +46,7 @@ OBJDUMP = $(CROSS_COMPILE)-objdump
 
 INC_PATH += $(foreach name, $(LIBS), $(AM_DIR)/$(name)/include)
 
-CFLAGS += -nostdlib -fno-stack-protector -g -O3 -fno-builtin -fno-asynchronous-unwind-tables
+CFLAGS += -nostdlib -ffreestanding -fno-stack-protector -g -O3 -fno-builtin -fno-asynchronous-unwind-tables
 CFLAGS += $(addprefix -I, $(INC_PATH))
 CXXFLAGS += $(CFLAGS) -fno-exceptions
 
