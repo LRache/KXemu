@@ -27,11 +27,10 @@ jobs:
               binutils-riscv64-unknown-elf
               gcc-riscv64-unknown-elf
           - isa: riscv64
-            cross_compile: riscv64-linux-gnu
+            cross_compile: riscv64-unknown-elf
             cross_packages: >-
-              binutils-riscv64-linux-gnu
-              gcc-riscv64-linux-gnu
-              libc6-dev-riscv64-cross
+              binutils-riscv64-unknown-elf
+              gcc-riscv64-unknown-elf
 
     steps:
       - name: Check out repository
