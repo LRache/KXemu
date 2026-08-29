@@ -12,9 +12,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  riscv64:
+  cpu-tests:
+    name: ${{ matrix.isa }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - isa: riscv32
+            cross_compile: riscv64-unknown-elf
+            cross_packages: >-
+              binutils-riscv64-unknown-elf
+              gcc-riscv64-unknown-elf
+          - isa: riscv64
+            cross_compile: riscv64-linux-gnu
+            cross_packages: >-
+              binutils-riscv64-linux-gnu
+              gcc-riscv64-linux-gnu
 
     steps:
       - name: Check out repository
@@ -27,24 +43,23 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends \
-            binutils-riscv64-linux-gnu \
             build-essential \
             clang \
             cmake \
-            gcc-riscv64-linux-gnu \
             libreadline-dev \
             llvm-dev \
-            ninja-build
+            ninja-build \
+            ${{ matrix.cross_packages }}
 
       - name: Build KXemu
         run: |
           make -f build.mk \
-            CONFIG_ISA=riscv64 \
+            CONFIG_ISA=${{ matrix.isa }} \
             CONFIG_HALT_WHEN_BREAK=y \
             CMAKE_ARGS="-DLLVM_DIR=$(llvm-config --cmakedir)"
 
       - name: Run CPU tests
         run: |
           make -C tests/cpu-tests run \
-            ISA=riscv64 \
-            CROSS_COMPILE=riscv64-linux-gnu
+            ISA=${{ matrix.isa }} \
+            CROSS_COMPILE=${{ matrix.cross_compile }}
