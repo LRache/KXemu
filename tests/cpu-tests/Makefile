@@ -7,6 +7,14 @@ COLOR_RED   = \033[1;31m
 COLOR_GREEN = \033[1;32m
 COLOR_NONE  = \033[0m
 
+define report-result
+	@cat $(RESULT)
+	@status=0; \
+	if grep -qF "***FAIL***" $(RESULT); then status=1; fi; \
+	rm -f $(RESULT); \
+	exit $$status
+endef
+
 ALL = $(basename $(notdir $(shell find tests/. -name "*.c")))
 
 all: $(addprefix Makefile., $(ALL))
@@ -24,15 +32,13 @@ Makefile.%: tests/%.c latest
 	-@rm -f Makefile.$*
 
 run: all
-	@cat $(RESULT)
-	@rm $(RESULT)
+	$(report-result)
 
 debug: all
-	@cat $(RESULT)
-	@rm $(RESULT)
+	$(report-result)
 
 qemu: all
-	@rm $(RESULT)
+	$(report-result)
 
 clean:
 	rm -rf Makefile.* build/

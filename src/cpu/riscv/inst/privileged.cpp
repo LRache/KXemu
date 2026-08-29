@@ -1,6 +1,7 @@
 #include "cpu/riscv/core.hpp"
 #include "cpu/riscv/csr-field.hpp"
 #include "cpu/riscv/def.hpp"
+#include "log.h"
 
 #include <thread>
 #include <utility>

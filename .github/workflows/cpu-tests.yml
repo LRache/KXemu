@@ -1,0 +1,50 @@
+name: CPU tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cpu-tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  riscv64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Initialize required submodule
+        run: git submodule update --init --depth 1 utils/mini-gdbstub
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            binutils-riscv64-linux-gnu \
+            build-essential \
+            clang \
+            cmake \
+            gcc-riscv64-linux-gnu \
+            libreadline-dev \
+            llvm-dev \
+            ninja-build
+
+      - name: Build KXemu
+        run: |
+          make -f build.mk \
+            CONFIG_ISA=riscv64 \
+            CONFIG_HALT_WHEN_BREAK=y \
+            CMAKE_ARGS="-DLLVM_DIR=$(llvm-config --cmakedir)"
+
+      - name: Run CPU tests
+        run: |
+          make -C tests/cpu-tests run \
+            ISA=riscv64 \
+            CROSS_COMPILE=riscv64-linux-gnu
