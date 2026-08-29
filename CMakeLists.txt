@@ -33,6 +33,7 @@ if(NOT CONFIG_TARGET_SHARE)
     add_executable(${KXEMU_TARGET} ${EMU_SRCS} ${KDB_SRCS})
     target_include_directories(${KXEMU_TARGET}
         PRIVATE
+        ${PROJECT_BINARY_DIR}/include
         ${PROJECT_SOURCE_DIR}/include
         ${Readline_INCLUDE_DIRS}
         ${LLVM_INCLUDE_DIRS}
@@ -47,6 +48,7 @@ else()
     add_library(${KXEMU_TARGET} SHARED ${EMU_SRCS})
     target_include_directories(${KXEMU_TARGET}
         PRIVATE
+        ${PROJECT_BINARY_DIR}/include
         ${PROJECT_SOURCE_DIR}/include
     )
 endif()

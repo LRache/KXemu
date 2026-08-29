@@ -2,7 +2,7 @@
 #define __KXEMU_LOG_H__
 
 #include "macro.h"
-#include "config/autoconf.h"
+#include <config/autoconf.h>
 
 #include <cstdio>
 

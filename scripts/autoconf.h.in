@@ -1,0 +1,45 @@
+/*
+ * Automatically generated file; DO NOT EDIT.
+ * KXemu build configuration
+ */
+#cmakedefine CONFIG_ISA_riscv32 1
+#cmakedefine CONFIG_ISA_riscv64 1
+#cmakedefine CONFIG_ISA_loongarch32r 1
+#cmakedefine CONFIG_ISA_loongarch32 1
+#cmakedefine CONFIG_ISA_loongarch64 1
+#define CONFIG_ISA "@CONFIG_ISA@"
+#define CONFIG_BASE_ISA "@CONFIG_BASE_ISA@"
+
+#cmakedefine CONFIG_ENABLE_ICACHE 1
+#define CONFIG_ICACHE_SET_BITS @CONFIG_ICACHE_SET_BITS@
+#cmakedefine CONFIG_TLB 1
+#define CONFIG_TLB_SET_BITS @CONFIG_TLB_SET_BITS@
+#cmakedefine CONFIG_DCache 1
+#cmakedefine CONFIG_FPU_HOST 1
+#cmakedefine CONFIG_FPU_SOFT 1
+#cmakedefine CONFIG_FPU_NONE 1
+#cmakedefine CONFIG_HALT_WHEN_BREAK 1
+#cmakedefine CONFIG_HALT_WHEN_INVALID 1
+
+#cmakedefine CONFIG_ENGINE_INTERPRETER 1
+#define CONFIG_ENGINE "@CONFIG_ENGINE@"
+#cmakedefine CONFIG_MODE_SYSTEM 1
+#cmakedefine CONFIG_TARGET_NATIVE_ELF 1
+#cmakedefine CONFIG_TARGET_SHARE 1
+
+#cmakedefine CONFIG_CC_GPP 1
+#cmakedefine CONFIG_CC_CLANGPP 1
+#define CONFIG_CC "@CONFIG_CC@"
+#cmakedefine CONFIG_CC_LTO 1
+#cmakedefine CONFIG_CC_ADDRASAN 1
+#cmakedefine CONFIG_CC_UBASAN 1
+#cmakedefine CONFIG_CC_PGO 1
+#define CONFIG_CC_PROFILE_INSTR_USE "@CONFIG_CC_PROFILE_INSTR_USE@"
+
+#cmakedefine CONFIG_LOG 1
+#cmakedefine CONFIG_HINT 1
+#cmakedefine CONFIG_DEBUG 1
+#cmakedefine CONFIG_DEBUG_DECODER 1
+#cmakedefine CONFIG_DEBUG_DCACHE 1
+#cmakedefine CONFIG_BREAK 1
+#cmakedefine CONFIG_USE_EXCEPTION 1

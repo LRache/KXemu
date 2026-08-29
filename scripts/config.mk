@@ -19,10 +19,25 @@ $(MCONF):
 
 menuconfig: $(CONF) $(MCONF)
 	@ cd $(CONFIG_DIR) && $(MCONF) -s Kconfig
-	@ cd $(CONFIG_DIR) && $(CONF) -s --syncconfig Kconfig
-	@ cp $(CONFIG_DIR)/include/generated/autoconf.h ./include/config
+	@ $(MAKE) syncconfig
+
+define kconfig-syncconfig
+	cd $(CONFIG_DIR) && $(CONF) -s --syncconfig Kconfig
+	cp $(CONFIG_DIR)/include/generated/autoconf.h $(KXEMU_HOME)/include/config
+endef
+
+syncconfig: $(CONF)
+	@ $(kconfig-syncconfig)
+
+# Usage: make defconfig ISA=riscv64 [EXTRA_CONFIG='CONFIG_A=y CONFIG_B=y']
+defconfig: $(CONF)
+	@ echo "CONFIG_ISA_$(ISA)=y" > $(CONFIG_DIR)/.config
+	@ for opt in $(EXTRA_CONFIG); do echo $$opt >> $(CONFIG_DIR)/.config; done
+	@ $(kconfig-syncconfig)
+	@ grep -q '^CONFIG_ISA="$(ISA)"$$' $(CONFIG_DIR)/.config || \
+		{ echo "Error: ISA '$(ISA)' is not supported"; exit 1; }
 
 distclean:
 	-@ rm -rf $(rm-distclean)
 
-.PHONY: distclean
+.PHONY: distclean syncconfig defconfig

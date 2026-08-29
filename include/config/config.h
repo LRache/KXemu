@@ -1,7 +1,7 @@
 #ifndef __KXEMU_CONFIG_CONFIG_H__
 #define __KXEMU_CONFIG_CONFIG_H__
 
-#include "config/autoconf.h"
+#include <config/autoconf.h>
 #include "macro.h"
 
 #if defined (CONFIG_ISA_riscv32) && CONFIG_ISA_riscv32 == 1

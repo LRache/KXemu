@@ -1,13 +1,11 @@
-if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/configs/.config)
-    message(FATAL_ERROR "${CMAKE_CURRENT_SOURCE_DIR}/configs does not exist!")
-endif()
-
 function(parse_kconfig config_file)
     file(STRINGS "${config_file}" lines)
 
     foreach(line IN LISTS lines)
         if(line MATCHES "^# (CONFIG_[A-Za-z0-9_]+) is not set")
-            set(${CMAKE_MATCH_1} OFF PARENT_SCOPE)
+            if(NOT DEFINED ${CMAKE_MATCH_1})
+                set(${CMAKE_MATCH_1} OFF PARENT_SCOPE)
+            endif()
             continue()
         endif()
 
@@ -23,12 +21,32 @@ function(parse_kconfig config_file)
                 string(REGEX REPLACE "^\"(.*)\"$" "\\1" var_value "${var_value}")
             endif()
 
-            set(${var_name} "${var_value}" PARENT_SCOPE)
+            if(NOT DEFINED ${var_name})
+                set(${var_name} "${var_value}" PARENT_SCOPE)
+            endif()
         endif()
     endforeach()
 endfunction()
 
-parse_kconfig(${CMAKE_CURRENT_SOURCE_DIR}/configs/.config)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/configs/.config)
+    parse_kconfig(${CMAKE_CURRENT_SOURCE_DIR}/configs/.config)
+elseif(NOT DEFINED CONFIG_ISA)
+    message(FATAL_ERROR
+        "No configs/.config or manual CONFIG_ISA was provided. "
+        "Run 'make menuconfig' or use 'make -f build.mk CONFIG_ISA=riscv64'."
+    )
+endif()
+
+if(NOT DEFINED CONFIG_ISA OR NOT DEFINED CONFIG_BASE_ISA OR NOT DEFINED CONFIG_CC)
+    message(FATAL_ERROR "Incomplete KXemu configuration")
+endif()
+
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include/config)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/scripts/autoconf.h.in
+    ${CMAKE_BINARY_DIR}/include/config/autoconf.h
+    @ONLY
+)
 
 if(CONFIG_DEBUG)
     set(CMAKE_BUILD_TYPE Debug)
