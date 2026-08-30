@@ -12,15 +12,20 @@ using namespace kxemu::cpu;
 // into privilege mode x, xPIE is set to the value of xIE; xIE is set to 0; and xPP is set to y.
 void RVCore::enter_trap(TrapCode cause, word_t value) {
     bool deleg;
-#ifdef KXEMU_ISA64
-    deleg = *this->medeleg & (1 << cause);
-#else
-    if (cause >= 32) {
-        deleg = *this->medelegh & (1 << (cause - 32));
+
+    if (unlikely(this->privMode == PrivMode::MACHINE)) {
+        deleg = false;
     } else {
+#ifdef KXEMU_ISA64
         deleg = *this->medeleg & (1 << cause);
-    }
+#else
+        if (cause >= 32) {
+            deleg = *this->medelegh & (1 << (cause - 32));
+        } else {
+            deleg = *this->medeleg & (1 << cause);
+        }
 #endif
+    }
 
     CSRAddr epcAddr, causeAddr, tvalAddr, vecAddr, tinstAddr;
     csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
