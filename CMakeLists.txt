@@ -21,8 +21,6 @@ endif()
 
 include(${PROJECT_SOURCE_DIR}/scripts/filelist.cmake)
 
-find_package(Readline MODULE REQUIRED)
-message(STATUS "Found Readline")
 find_package(LLVM CONFIG REQUIRED)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
@@ -35,14 +33,13 @@ if(NOT CONFIG_TARGET_SHARE)
         PRIVATE
         ${PROJECT_BINARY_DIR}/include
         ${PROJECT_SOURCE_DIR}/include
-        ${Readline_INCLUDE_DIRS}
         ${LLVM_INCLUDE_DIRS}
     )
     target_link_libraries(${KXEMU_TARGET}
         PRIVATE
         gdbstub
         LLVM
-        ${Readline_LIBRARY}
+        readline
     )
 else()
     add_library(${KXEMU_TARGET} SHARED ${EMU_SRCS})
@@ -57,7 +54,7 @@ include(${PROJECT_SOURCE_DIR}/scripts/isa/${CONFIG_BASE_ISA}.cmake)
 
 add_custom_target(clean-all
     COMMENT "CLEAN ALL"
-    DEPENDS clean clean-gdbstub clean-softfloat
+    DEPENDS clean clean-gdbstub clean-softfloat clean-readline
 )
 
 add_custom_target(run

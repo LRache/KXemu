@@ -1,5 +1,13 @@
 # 编译和运行
 
+## 构建依赖
+
+- Git 子模块：clone 时使用 `git clone --recurse-submodules`，或手动执行
+  `git submodule update --init`（KDB 依赖的 readline 以子模块方式 vendored
+  在 `utils/readline`，无需安装 `libreadline-dev`）。
+- Linux：需要 `libncurses-dev`（readline 链接所需 termcap 函数在 ncurses 中）。
+- macOS：无需额外安装，Xcode Command Line Tools 自带 ncurses。
+
 KXemu 支持两种配置方式。两条路径最终都会把同一组 `CONFIG_*` 参数交给
 根目录的 `build.mk`，并由 CMake 在构建目录生成对应的配置头文件。
 
