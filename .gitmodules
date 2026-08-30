@@ -3,7 +3,7 @@
 	url = https://github.com/RinHizakura/mini-gdbstub.git
 [submodule "utils/LA-disassembler"]
 	path = utils/LA-disassembler
-	url = git@github.com:LRache/LA-disassembler.git
+	url = https://github.com/LRache/LA-disassembler.git
 [submodule "tests/riscv/xv6-riscv/xv6-riscv"]
 	path = tests/riscv/xv6-riscv/xv6-riscv
 	url = https://github.com/mit-pdos/xv6-riscv.git
@@ -19,3 +19,6 @@
 [submodule "tests/riscv/os/linux5.15/opensbi"]
 	path = tests/riscv/os/linux5.15/opensbi
 	url = https://github.com/riscv-software-src/opensbi.git
+[submodule "utils/readline"]
+	path = utils/readline
+	url = https://git.savannah.gnu.org/git/readline.git
