@@ -1,3 +1,7 @@
 qemu-virt-riscv64.dts
 qemu-virt-riscv64.dtb
 kxemu-virt-riscv64.dtb
+initramfs/busybox-*.tar.*
+initramfs/busybox-*/
+initramfs/initramfs/
+initramfs/initramfs.cpio.gz
