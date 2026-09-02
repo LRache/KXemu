@@ -208,12 +208,13 @@ private:
     union {
         double f64;
         struct {
-            uint32_t high;
-            float f32;
+            float f32;    // low 32 bits
+            uint32_t high; // high 32 bits, filled with 1s for NaN boxing
         };
     } fpr[32];
     unsigned int frm;
     void update_fcsr();
+    void raise_fflags(word_t flags);
 
     // Experimental ICache
     #ifdef CONFIG_ENABLE_ICACHE

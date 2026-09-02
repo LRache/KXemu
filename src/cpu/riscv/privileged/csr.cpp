@@ -12,6 +12,9 @@ void RVCore::init_csr() {
     this->csr.set_write_callbacks(CSRAddr::SATP    , std::bind(&RVCore::update_vm_translate, this));
     this->csr.set_write_callbacks(CSRAddr::MSTATUS , std::bind(&RVCore::update_mstatus     , this));
     this->csr.set_write_callbacks(CSRAddr::SSTATUS , std::bind(&RVCore::update_mstatus     , this));
+    this->csr.set_write_callbacks(CSRAddr::FFLAGS  , std::bind(&RVCore::update_fcsr        , this));
+    this->csr.set_write_callbacks(CSRAddr::FRM     , std::bind(&RVCore::update_fcsr        , this));
+    this->csr.set_write_callbacks(CSRAddr::FCSR    , std::bind(&RVCore::update_fcsr        , this));
 }
 
 word_t RVCore::read_csr(unsigned int addr, bool &valid) {

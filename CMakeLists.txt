@@ -52,6 +52,14 @@ endif()
 
 include(${PROJECT_SOURCE_DIR}/scripts/isa/${CONFIG_BASE_ISA}.cmake)
 
+if(CONFIG_FPU_SOFT)
+    if(CONFIG_BASE_ISA STREQUAL "riscv")
+        target_link_libraries(${KXEMU_TARGET} PRIVATE softfloat)
+    else()
+        message(STATUS "CONFIG_FPU_SOFT has no effect on ${CONFIG_BASE_ISA}: no floating-point support")
+    endif()
+endif()
+
 add_custom_target(clean-all
     COMMENT "CLEAN ALL"
     DEPENDS clean clean-gdbstub clean-softfloat clean-readline

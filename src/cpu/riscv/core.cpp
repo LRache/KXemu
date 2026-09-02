@@ -43,6 +43,7 @@ void RVCore::reset(word_t entry) {
     this->privMode = PrivMode::MACHINE;
     
     this->csr.reset();
+    this->update_fcsr();
 
     std::memset(this->gpr, 0, sizeof(this->gpr));
     this->gpr[10] = this->coreID;
