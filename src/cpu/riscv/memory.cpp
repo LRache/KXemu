@@ -222,10 +222,10 @@ word_t RVCore::vaddr_translate(word_t vaddr, bool &valid) {
     }
 }
 
-std::optional<word_t> RVCore::pm_read_check_optional(word_t paddr, unsigned int len) {
+std::optional<mem_value_t> RVCore::pm_read_check_optional(word_t paddr, unsigned int len) {
     bool valid;
-    word_t data = this->bus->read(paddr, len, valid);
-    return valid ? std::optional<word_t>(data) : std::nullopt;
+    mem_value_t data = this->bus->read(paddr, len, valid);
+    return valid ? std::optional<mem_value_t>(data) : std::nullopt;
 }
 
 void RVCore::pm_fetch(word_t paddr) {
@@ -236,9 +236,9 @@ void RVCore::pm_fetch(word_t paddr) {
     }
 }
 
-word_t RVCore::pm_read(word_t paddr, unsigned int len) {
+mem_value_t RVCore::pm_read(word_t paddr, unsigned int len) {
     bool valid;
-    word_t data = this->bus->read(paddr, len, valid);
+    mem_value_t data = this->bus->read(paddr, len, valid);
     if (unlikely(!valid)) {
         WARN("pm_read failed, paddr=" FMT_WORD ", len=%d", paddr, len);
         throw TrapException(TrapCode::LOAD_ACCESS_FAULT, paddr);
@@ -246,21 +246,21 @@ word_t RVCore::pm_read(word_t paddr, unsigned int len) {
     return data;
 }
 
-void RVCore::pm_write(word_t paddr, word_t data, unsigned int len) {
+void RVCore::pm_write(word_t paddr, mem_value_t data, unsigned int len) {
     if (unlikely(!this->bus->write(paddr, data, len))) {
-        WARN("pm_write failed, paddr=" FMT_WORD ", data=" FMT_WORD ", len=%d", paddr, data, len);
+        WARN("pm_write failed, paddr=" FMT_WORD ", data=" FMT_WORD64 ", len=%d", paddr, data, len);
         throw TrapException(TrapCode::STORE_ACCESS_FAULT, paddr);
     }
 }
 
-word_t RVCore::pm_read_check(word_t paddr, unsigned int len) {
+mem_value_t RVCore::pm_read_check(word_t paddr, unsigned int len) {
     if (unlikely(!this->pmp_check_r(paddr, len))) {
         throw TrapException(TrapCode::LOAD_ACCESS_FAULT, paddr);
     }
     return this->pm_read(paddr, len);
 }
 
-void RVCore::pm_write_check(word_t paddr, word_t data, unsigned int len) {
+void RVCore::pm_write_check(word_t paddr, mem_value_t data, unsigned int len) {
     if (unlikely(!this->pmp_check_w(paddr, len))) {
         throw TrapException(TrapCode::STORE_ACCESS_FAULT, paddr);
     }
@@ -302,7 +302,7 @@ void RVCore::vm_fetch() {
     }
 }
 
-word_t RVCore::vm_read(word_t vaddr, unsigned int len) {
+mem_value_t RVCore::vm_read(word_t vaddr, unsigned int len) {
     word_t paddr = this->vaddr_translate_core(vaddr, MemType::LOAD)
     .or_else([&](VMFault fault) -> VMResult {
         switch (fault) {
@@ -320,7 +320,7 @@ word_t RVCore::vm_read(word_t vaddr, unsigned int len) {
     return this->pm_read_check(paddr, len);
 }
 
-void RVCore::vm_write(word_t vaddr, word_t data, unsigned int len) {
+void RVCore::vm_write(word_t vaddr, mem_value_t data, unsigned int len) {
     word_t paddr = this->vaddr_translate_core(vaddr, MemType::STORE)
     .or_else([&](VMFault fault) -> VMResult {
         switch (fault) {
@@ -346,7 +346,7 @@ void RVCore::memory_fetch() {
     }
 }
 
-word_t RVCore::memory_load(word_t addr, unsigned int len) {
+mem_value_t RVCore::memory_load(word_t addr, unsigned int len) {
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
         return this->pm_read(addr, len);
     } else {
@@ -354,7 +354,7 @@ word_t RVCore::memory_load(word_t addr, unsigned int len) {
     }
 }
 
-void RVCore::memory_store(word_t addr, word_t data, unsigned int len) {
+void RVCore::memory_store(word_t addr, mem_value_t data, unsigned int len) {
     if (unlikely(this->privMode == PrivMode::MACHINE)) {
         this->pm_write(addr, data, len);
     } else {

@@ -6,6 +6,8 @@
 #include <cstdint>
 
 namespace kxemu::cpu {
+    using mem_value_t = uint64_t;
+
 #ifdef KXEMU_ISA64
     using  word_t = uint64_t;
     using sword_t =  int64_t;

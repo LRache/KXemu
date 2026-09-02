@@ -62,23 +62,23 @@ private:
     std::mutex *deviceMtx;
     void update_device();
 
-    std::optional<word_t> pm_read_check_optional(word_t paddr, unsigned int len);
+    std::optional<mem_value_t> pm_read_check_optional(word_t paddr, unsigned int len);
 
-    void   memory_fetch();
-    word_t memory_load (word_t addr, unsigned int len);
-    void   memory_store(word_t addr, word_t data, unsigned int len);
+    void        memory_fetch();
+    mem_value_t memory_load (word_t addr, unsigned int len);
+    void        memory_store(word_t addr, mem_value_t data, unsigned int len);
 
-    void   pm_fetch(word_t paddr);
-    word_t pm_read(word_t paddr, unsigned int len);
-    void   pm_write(word_t paddr, word_t data, unsigned int len);
+    void        pm_fetch(word_t paddr);
+    mem_value_t pm_read(word_t paddr, unsigned int len);
+    void        pm_write(word_t paddr, mem_value_t data, unsigned int len);
     
-    word_t pm_read_check (word_t paddr, unsigned int len); // With PMP check
-    void   pm_write_check(word_t paddr, word_t data, unsigned int len);
+    mem_value_t pm_read_check (word_t paddr, unsigned int len); // With PMP check
+    void        pm_write_check(word_t paddr, mem_value_t data, unsigned int len);
 
     // Virtual address translation
-    void   vm_fetch();
-    word_t vm_read (word_t vaddr, unsigned int len);
-    void   vm_write(word_t vaddr, word_t data, unsigned int len);
+    void        vm_fetch();
+    mem_value_t vm_read (word_t vaddr, unsigned int len);
+    void        vm_write(word_t vaddr, mem_value_t data, unsigned int len);
 
     enum class VMFault {
         PAGE_FAULT,
