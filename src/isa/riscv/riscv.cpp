@@ -2,7 +2,7 @@
 #include "isa/isa.hpp"
 #include "cpu/riscv/cpu.hpp"
 
-#include <elf.h>
+#include "elf.h"
 
 using namespace kxemu;
 

@@ -3,7 +3,7 @@
 #include "config/config.h"
 #include "cpu/loongarch/cpu.h"
 
-#include <elf.h>
+#include "elf.h"
 
 using namespace kxemu;
 

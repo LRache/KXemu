@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <elf.h>
+#include "elf.h"
 #include <fstream>
 #include <ios>
 #include <iostream>
