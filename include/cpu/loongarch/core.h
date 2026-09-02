@@ -2,7 +2,7 @@
 #define __KXEMU_CPU_LOONGARCH_CORE_H__
 
 #include "cpu/core.h"
-#include "cpu/word.h"
+#include "cpu/word.hpp"
 #include "device/bus.h"
 #include <cstdint>
 
@@ -24,9 +24,9 @@ private:
 
     // Memory
     device::Bus *bus;
-    bool   memory_fetch();
-    bool   memory_store(word_t addr, word_t data, int len);
-    word_t memory_load (word_t addr, int len, bool &success);
+    bool        memory_fetch();
+    bool        memory_store(word_t addr, mem_value_t data, int len);
+    mem_value_t memory_load (word_t addr, int len, bool &success);
 
     // Excute
     word_t pc;

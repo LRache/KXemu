@@ -1,5 +1,5 @@
 #include "cpu/loongarch/core.h"
-#include "cpu/word.h"
+#include "cpu/word.hpp"
 
 using namespace kxemu::cpu;
 
@@ -14,10 +14,10 @@ bool LACore::memory_fetch() {
     return valid;
 }
 
-bool LACore::memory_store(word_t addr, word_t data, int len) {
+bool LACore::memory_store(word_t addr, mem_value_t data, int len) {
     return this->bus->write(addr, data, len);
 }
 
-word_t LACore::memory_load(word_t addr, int len, bool &success) {
+mem_value_t LACore::memory_load(word_t addr, int len, bool &success) {
     return this->bus->read(addr, len, success);
 }
