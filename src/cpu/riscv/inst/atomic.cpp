@@ -93,12 +93,11 @@ void RVCore::do_amo_inst(const DecodeInfo &decodeInfo) {
 
     word_t paddr = this->amo_vaddr_translate_and_set_trap(SRC1, LEN);
 
-    this->bus->do_atomic(paddr, SRC2, LEN, amo).and_then([&](word_t oldValue) -> std::optional<word_t> {
-        DEST = (sword_t)(sunit_t)oldValue;
-        return oldValue;
-    }).or_else([&]() -> std::optional<word_t> {
+    auto oldValue = this->bus->do_atomic(paddr, SRC2, LEN, amo);
+    if (unlikely(!oldValue)) {
         throw TrapException(TrapCode::AMO_ACCESS_FAULT, paddr);
-    });
+    }
+    DEST = (sword_t)(sunit_t)*oldValue;
 }
 
 void RVCore::do_lr_w(const DecodeInfo &decodeInfo) {
