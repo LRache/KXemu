@@ -6,13 +6,20 @@
 using namespace kxemu::cpu;
 
 void LACore::step() {
+    if (this->stopping.load(std::memory_order_acquire)) {
+        if (this->state == RUNNING) this->state = IDLE;
+        return;
+    }
     this->execute();
 }
 
 void LACore::run(const word_t *breakpoints, unsigned int n) {
     this->state = RUNNING;
-    while (this->state == RUNNING) {
+    while (this->state == RUNNING && !this->stopping.load(std::memory_order_acquire)) {
         this->execute();
+    }
+    if (this->state == RUNNING && this->stopping.load(std::memory_order_acquire)) {
+        this->state = IDLE;
     }
 }
 

@@ -4,6 +4,7 @@
 #include "cpu/core.h"
 #include "cpu/word.hpp"
 #include "device/bus.h"
+#include <atomic>
 #include <cstdint>
 
 namespace kxemu::cpu {
@@ -16,7 +17,9 @@ private:
         ERROR,
         BREAKPOINT,
         HALT,
-    } state;
+    };
+    std::atomic<state_t> state{IDLE};
+    std::atomic<bool> stopping{false};
     word_t haltPC;
     word_t haltCode;
 
@@ -51,6 +54,12 @@ public:
     void reset(word_t entry) override;
     void step() override;
     void run(const word_t *breakpoints = nullptr, unsigned int n = 0) override;
+
+    /// Request stop from another thread; the execution loop observes it between
+    /// instructions. This Core currently has no blocking instruction waits.
+    void request_stop() override {
+        stopping.store(true, std::memory_order_release);
+    }
 
     word_t get_pc() override;
     void   set_pc(word_t pc) override;

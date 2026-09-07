@@ -3,7 +3,7 @@
 #include "cpu/riscv/def.hpp"
 #include "log.h"
 
-#include <thread>
+#include <chrono>
 #include <utility>
 
 using namespace kxemu::cpu;
@@ -96,8 +96,22 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
-    while (!*this->mip) {
-        std::this_thread::yield();
+#ifndef CONFIG_WFI_AS_NOP
+    this->update_device();
+    this->synchronize_interrupts();
+
+    while ((*this->mip & *this->mie) == 0) {
+        // UART/PLIC still require polling until their event-driven migration.
+        auto result = this->wait_for_interrupt(std::chrono::milliseconds(1));
+        if (result == WaitResult::Stopped) {
+            this->state = IDLE;
+            return;
+        }
+
         this->update_device();
+        this->synchronize_interrupts();
     }
+
+    this->scan_interrupt();
+#endif
 }

@@ -38,11 +38,19 @@ void RVCore::init(unsigned int coreID, device::Bus *bus, device::AClint *alint, 
 }
 
 void RVCore::reset(word_t entry) {
+    {
+        std::lock_guard lock(this->interruptMtx);
+        this->interruptLevels = 0;
+        this->changedInterrupts = 0;
+        this->wakePending = false;
+        this->stopping.store(false, std::memory_order_release);
+    }
     this->pc = entry;
     this->state = RUNNING;
     this->privMode = PrivMode::MACHINE;
     
     this->csr.reset();
+    this->update_mstatus();
     this->update_fcsr();
 
     std::memset(this->gpr, 0, sizeof(this->gpr));

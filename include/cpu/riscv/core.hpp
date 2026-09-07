@@ -12,7 +12,11 @@
 #include "cpu/riscv/config.hpp"
 #include "device/bus.hpp"
 
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <expected>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -30,7 +34,8 @@ private:
         ERROR,
         BREAKPOINT,
         HALT,
-    } state;
+    };
+    std::atomic<state_t> state{IDLE};
 
     word_t haltCode;
     word_t haltPC;
@@ -155,8 +160,49 @@ private:
     void enter_trap(TrapCode code, word_t value = 0);
     
     // Interrupt
+    // Multiple producers publish IRQ levels; only this hart consumes them.
+    // All fields except stopping are protected by interruptMtx.
+    std::mutex interruptMtx;
+    std::condition_variable interruptReady;
+    word_t interruptLevels = 0;
+    word_t changedInterrupts = 0;
+    bool wakePending = false;
+    std::atomic<bool> stopping{false};
+
+    enum class WaitResult {
+        Notified, // A notification does not imply WFI or trap eligibility.
+        Timeout,  // Allow legacy devices to be polled.
+        Stopped,  // Persists until reset().
+    };
+    struct InterruptSnapshot {
+        word_t changed; // Mask of IRQ bits to apply to mip.
+        word_t levels;  // Level bitmap: 1 means asserted, 0 means deasserted.
+    };
+
+    /// Publish the selected IRQ levels and notify the hart without touching mip.
+    /// Updates coalesce to the latest level; a zero mask does nothing.
+    void set_interrupts(word_t mask, bool asserted);
     void   set_interrupt(InterruptCode code);
     void clear_interrupt(InterruptCode code);
+
+    /// Consume pending updates and the wake notification with interruptMtx held.
+    /// Only the owning hart may consume; recorded levels and stopping are retained.
+    InterruptSnapshot consume_interrupts();
+
+    /// Apply only mask-selected bits to mip on the owning hart, outside interruptMtx.
+    /// levels is an IRQ level bitmap, not interrupt priority.
+    void apply_interrupts(word_t mask, word_t levels) noexcept;
+
+    /// Consume and apply a snapshot without waiting for a new notification.
+    /// Updates arriving after capture remain pending for the next synchronization.
+    void synchronize_interrupts();
+
+    /// Wait for a notification, stop request or timeout on the owning hart.
+    /// All results return after applying the captured IRQ updates to mip.
+    /// The default waits indefinitely; zero/negative durations only check current state.
+    /// WFI and trap eligibility are checked separately by the execution path.
+    WaitResult wait_for_interrupt(
+        std::chrono::nanoseconds timeout = std::chrono::nanoseconds::max());
     bool scan_interrupt();
     void interrupt_m(InterruptCode code);
     void interrupt_s(InterruptCode code);
@@ -250,10 +296,25 @@ public:
 
     void init(unsigned int coreID, device::Bus *bus, device::AClint *aclint, device::PLIC *plic);
     
+    /// Reset CPU and IRQ/wait state only after the hart and all producers are quiescent.
     void reset(word_t entry) override;
     void step() override;
     void run(const word_t *breakpoints = nullptr, unsigned int n = 0) override;
     void set_device_mtx(std::mutex *mtx);
+
+    /// Notify the hart to recheck state without modifying IRQ levels.
+    /// May be called by any producer; notifications persist until consumed and coalesce.
+    /// IRQ injection must use the set/clear interrupt methods, not wake() alone.
+    void wake();
+
+    /// Request stop and wake the hart. May be repeated; does not join its host thread.
+    /// All producers and the hart must finish accessing this Core before destruction.
+    void request_stop() override;
+
+    /// Query the persistent stop flag from any thread without consuming updates.
+    bool stop_requested() const {
+        return stopping.load(std::memory_order_acquire);
+    }
 
     void set_debug_mode(bool debug) {
         this->debugMode = debug;

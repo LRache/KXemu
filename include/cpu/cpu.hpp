@@ -21,6 +21,18 @@ public:
     virtual void reset(word_t pc) = 0;
     virtual void step() = 0;
     virtual void run(bool blocked=false, const word_t *breakpoints=nullptr, unsigned int n=0) = 0;
+
+    /// Request stop on every core without waiting for execution to finish.
+    /// May be called while the CPU is running, but not concurrently with init,
+    /// reset or destruction. Use join() for CPU-owned threads; join externally
+    /// owned execution threads in their caller. Reset clears the stop requests.
+    virtual void request_stop() {
+        const unsigned int count = core_count();
+        for (unsigned int i = 0; i < count; ++i) {
+            get_core(i)->request_stop();
+        }
+    }
+
     virtual void join() = 0;
     virtual bool is_running() = 0;
 

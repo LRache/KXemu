@@ -17,6 +17,10 @@ RVCore::do_inst_t RVCore::decode_and_exec_c(DecodeInfo &decodeInfo) {
 }
 
 void RVCore::step() {
+    if (this->stop_requested()) {
+        if (this->state == RUNNING) this->state = IDLE;
+        return;
+    }
     if (unlikely(this->state == BREAKPOINT)) {
         this->state = RUNNING;
     }
@@ -62,14 +66,14 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
     unsigned int i = 0;
     this->state = RUNNING;
     if (n == 0) {
-        while (this->state == RUNNING) {            
+        while (this->state == RUNNING && !this->stop_requested()) {
             this->run_step(i);
         }
     } else {
-        if (this->state == RUNNING) {
+        if (this->state == RUNNING && !this->stop_requested()) {
             this->run_step(i);
         }
-        while (this->state == RUNNING) {
+        while (this->state == RUNNING && !this->stop_requested()) {
             if (breakpoints.find(this->pc) != breakpoints.end()) {
                 this->haltCode = 0;
                 this->haltPC = this->pc;
@@ -79,6 +83,9 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
 
             this->run_step(i);
         }
+    }
+    if (this->state == RUNNING && this->stop_requested()) {
+        this->state = IDLE;
     }
 }
 

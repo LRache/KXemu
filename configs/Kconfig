@@ -75,6 +75,15 @@ config HALT_WHEN_BREAK
 config HALT_WHEN_INVALID
   bool "Halt when touched an invalid instruction"
 
+config WFI_AS_NOP
+  bool "Execute RISC-V WFI as NOP"
+  depends on ISA_riscv32 || ISA_riscv64
+  default n
+  help
+    Skip WFI interrupt waiting and continue to the next instruction.
+    Useful for differential testing or externally scheduled execution.
+    Normal interrupt checks outside WFI are unchanged.
+
 endmenu
 
 choice

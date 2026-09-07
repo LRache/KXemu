@@ -15,6 +15,7 @@ void LACore::init(unsigned int coreID, device::Bus *bus, int flags) {
 }
 
 void LACore::reset(word_t entry) {
+    this->stopping.store(false, std::memory_order_release);
     this->state = IDLE;
     this->pc = entry;
     std::memset(this->gpr, 0x1a, sizeof(this->gpr));

@@ -71,6 +71,7 @@ void RVCPU::join() {
         coreThread[i].join();
     }
     delete []coreThread;
+    coreThread = nullptr;
     aclint.stop_timer();
 }
 
@@ -90,5 +91,7 @@ RVCore *RVCPU::get_core(unsigned int coreID) {
 }
 
 RVCPU::~RVCPU() {
+    this->request_stop();
+    this->join();
     delete []cores;
 }

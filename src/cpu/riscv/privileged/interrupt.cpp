@@ -16,16 +16,83 @@ void RVCore::update_stimecmp() {
     this->clear_timer_interrupt_s();
 }
 
+void RVCore::set_interrupts(word_t mask, bool asserted) {
+    if (mask == 0) return;
+    {
+        std::lock_guard lock(this->interruptMtx);
+        this->interruptLevels = asserted ? this->interruptLevels | mask
+                                        : this->interruptLevels & ~mask;
+        this->changedInterrupts |= mask;
+        this->wakePending = true;
+    }
+    this->interruptReady.notify_one();
+}
+
 void RVCore::set_interrupt(InterruptCode code) {
-    csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
-    mip.set_pending(code);
-    this->csr.set_csr_value(CSRAddr::MIP, mip);
+    this->set_interrupts(word_t{1} << code, true);
 }
 
 void RVCore::clear_interrupt(InterruptCode code) {
-    csr::MIP mip = this->csr.get_csr_value(CSRAddr::MIP);
-    mip.clear_pending(code);
-    this->csr.set_csr_value(CSRAddr::MIP, mip);
+    this->set_interrupts(word_t{1} << code, false);
+}
+
+void RVCore::wake() {
+    {
+        std::lock_guard lock(this->interruptMtx);
+        this->wakePending = true;
+    }
+    this->interruptReady.notify_one();
+}
+
+void RVCore::request_stop() {
+    {
+        std::lock_guard lock(this->interruptMtx);
+        this->stopping.store(true, std::memory_order_release);
+    }
+    this->interruptReady.notify_one();
+}
+
+RVCore::InterruptSnapshot RVCore::consume_interrupts() {
+    InterruptSnapshot snapshot{this->changedInterrupts, this->interruptLevels};
+    this->changedInterrupts = 0;
+    this->wakePending = false;
+    return snapshot;
+}
+
+void RVCore::apply_interrupts(word_t mask, word_t levels) noexcept {
+    const word_t pending = this->csr.get_csr_value(CSRAddr::MIP);
+    this->csr.set_csr_value(CSRAddr::MIP, (pending & ~mask) | (levels & mask));
+}
+
+void RVCore::synchronize_interrupts() {
+    InterruptSnapshot snapshot;
+    {
+        std::lock_guard lock(this->interruptMtx);
+        snapshot = this->consume_interrupts();
+    }
+    this->apply_interrupts(snapshot.changed, snapshot.levels);
+}
+
+RVCore::WaitResult RVCore::wait_for_interrupt(std::chrono::nanoseconds timeout) {
+    InterruptSnapshot snapshot;
+    WaitResult result;
+    {
+        std::unique_lock lock(this->interruptMtx);
+        auto pending = [this] { return this->wakePending || this->stop_requested(); };
+        bool notified = true;
+
+        if (timeout == std::chrono::nanoseconds::max()) {
+            this->interruptReady.wait(lock, pending);
+        } else {
+            notified = this->interruptReady.wait_for(lock, timeout, pending);
+        }
+
+        result = this->stop_requested() ? WaitResult::Stopped
+               : notified ? WaitResult::Notified : WaitResult::Timeout;
+        snapshot = this->consume_interrupts();
+    }
+    this->apply_interrupts(snapshot.changed, snapshot.levels);
+    return result;
 }
 
 void RVCore::set_timer_interrupt_m() {
@@ -136,6 +203,7 @@ static constexpr InterruptCode INTER_BITS_S[] = {
 };
 
 bool RVCore::scan_interrupt() {
+    this->synchronize_interrupts();
     // There is no interrput pending.
     if (likely(*this->mip == 0)) return false;
 

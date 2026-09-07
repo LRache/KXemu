@@ -50,6 +50,9 @@ else()
     )
 endif()
 
+find_package(Threads REQUIRED)
+target_link_libraries(${KXEMU_TARGET} PRIVATE Threads::Threads)
+
 include(${PROJECT_SOURCE_DIR}/scripts/isa/${CONFIG_BASE_ISA}.cmake)
 
 if(CONFIG_FPU_SOFT)

@@ -19,6 +19,11 @@ public:
     virtual void step() = 0;
 
     virtual void run(const word_t *breakpoints = nullptr, unsigned int n = 0) = 0;
+
+    /// Request execution to stop and wake any instruction wait. Thread-safe and
+    /// non-blocking with respect to execution completion; does not join the caller's
+    /// execution thread. The request remains pending until reset().
+    virtual void request_stop() = 0;
     
     virtual word_t get_pc() = 0;
     virtual void   set_pc(word_t pc) = 0;
