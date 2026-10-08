@@ -17,37 +17,24 @@ void RVCore::enter_trap(TrapCode cause, word_t value) {
         deleg = false;
     } else {
 #ifdef KXEMU_ISA64
-        deleg = *this->medeleg & (1 << cause);
+        deleg = this->csr.medeleg & (1 << cause);
 #else
         if (cause >= 32) {
-            deleg = *this->medelegh & (1 << (cause - 32));
+            deleg = this->csr.medelegh & (1 << (cause - 32));
         } else {
-            deleg = *this->medeleg & (1 << cause);
+            deleg = this->csr.medeleg & (1 << cause);
         }
 #endif
     }
 
-    CSRAddr epcAddr, causeAddr, tvalAddr, vecAddr, tinstAddr;
-    csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
+    csr::MStatus mstatus = this->csr.mstatus;
     if (deleg) {
-        epcAddr   = CSRAddr::SEPC;
-        causeAddr = CSRAddr::SCAUSE;
-        tvalAddr  = CSRAddr::STVAL;
-        vecAddr   = CSRAddr::STVEC;
-        tinstAddr = CSRAddr::STINST;
-
         mstatus.set_spp(this->privMode != PrivMode::USER);
         mstatus.set_spie(mstatus.sie());  
         mstatus.set_sie(false);
 
         this->set_priv_mode(PrivMode::SUPERVISOR);
     } else {
-        epcAddr   = CSRAddr::MEPC;
-        causeAddr = CSRAddr::MCAUSE;
-        tvalAddr  = CSRAddr::MTVAL;
-        vecAddr   = CSRAddr::MTVEC;
-        tinstAddr = CSRAddr::MTINST;
-
         mstatus.set_mpp(this->privMode);
         mstatus.set_mpie(mstatus.mie());
         mstatus.set_mie(false);
@@ -55,13 +42,19 @@ void RVCore::enter_trap(TrapCode cause, word_t value) {
         this->set_priv_mode(PrivMode::MACHINE);
     }
 
-    this->csr.set_csr_value(epcAddr, this->pc);
-    this->csr.set_csr_value(causeAddr, cause);
-    this->csr.set_csr_value(tvalAddr, value);
-    this->csr.set_csr_value(tinstAddr, this->inst);
-    this->csr.set_csr_value(CSRAddr::MSTATUS, mstatus);
+    // Trap CSRs of the target privilege mode.
+    word_t &epc    = deleg ? this->csr.sepc   : this->csr.mepc;
+    word_t &tcause = deleg ? this->csr.scause : this->csr.mcause;
+    word_t &tval   = deleg ? this->csr.stval  : this->csr.mtval;
+    word_t &tinst  = deleg ? this->csr.stinst : this->csr.mtinst;
+    const csr::TrapVec vec = deleg ? this->csr.stvec : this->csr.mtvec;
 
-    csr::TrapVec vec = this->csr.get_csr_value(vecAddr);
+    epc    = this->pc;
+    tcause = cause;
+    tval   = value;
+    tinst  = this->inst;
+    this->csr.mstatus = mstatus;
+
     if (vec.mode() == csr::TrapVec::VECTORED) {
         this->npc = vec.vec() + (cause << 2);
     } else {

@@ -50,7 +50,7 @@ static void set_fpu_rounding_mode(unsigned int rm) {
 }
 
 #define SET_FPU \
-    unsigned int rm = this->frm; \
+    unsigned int rm = this->csr.fcsr.frm(); \
     if (rm == csr::FCSR::DYN) { \
         rm = decodeInfo.flag; \
         if (unlikely(rm == 5 || rm == 6)) { \

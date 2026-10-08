@@ -71,7 +71,7 @@ static float64_t to_sf64(uint64_t u) {
 }
 
 #define SET_SOFT_RM \
-    unsigned int rm = this->frm; \
+    unsigned int rm = this->csr.fcsr.frm(); \
     if (rm == csr::FCSR::DYN) { \
         rm = decodeInfo.flag; \
         if (unlikely(rm == 5 || rm == 6)) { \

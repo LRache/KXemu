@@ -16,15 +16,8 @@
 
 using namespace kxemu::cpu;
 
-void RVCore::update_fcsr() {
-    csr::FCSR fcsr = this->csr.get_csr_value(CSRAddr::FCSR);
-    this->frm = fcsr.frm();
-}
-
 void RVCore::raise_fflags(word_t flags) {
-    csr::FCSR fcsr = this->csr.get_csr_value(CSRAddr::FCSR);
-    fcsr.set_fflags(fcsr.fflags() | flags);
-    this->csr.set_csr_value(CSRAddr::FCSR, fcsr);
+    this->csr.fcsr.set_fflags(this->csr.fcsr.fflags() | flags);
 }
 
 #ifndef CONFIG_FPU_NONE

@@ -14,14 +14,14 @@ namespace kxemu::cpu::csr {
     public:
         CSRField() : value(0) {}
         CSRField(word_t value) : value(value) {}
-        operator word_t() { return this->value; }
+        operator word_t() const { return this->value; }
     };
 
     class PMPCfgItem {
     private:
         uint8_t value;
     public:
-        PMPCfgItem() = delete;
+        PMPCfgItem() : value(0) {}
         PMPCfgItem(uint8_t value) : value(value) {}
 
         enum A {
@@ -152,7 +152,7 @@ namespace kxemu::cpu::csr {
         #endif
         );
 
-        word_t sstatus() { return this->value & SSTATUS_MASK; }
+        word_t sstatus() const { return this->value & SSTATUS_MASK; }
         void set_sstatus(word_t sstatus) {
             this->value &= ~SSTATUS_MASK;
             this->value |= sstatus & SSTATUS_MASK;
@@ -260,8 +260,8 @@ namespace kxemu::cpu::csr {
             VECTORED = 1,
         };
 
-        word_t vec()  { return this->value & ~0x3; }
-        word_t mode() { return this->value &  0x1; }
+        word_t vec()  const { return this->value & ~0x3; }
+        word_t mode() const { return this->value &  0x1; }
     };
 
     class MCause : public CSRField {
@@ -305,35 +305,33 @@ namespace kxemu::cpu::csr {
         };
         #endif
     public:
-        Satp(word_t value) {
-            this->value = value;
+        Satp(word_t value) : CSRField(value) {}
+
+        // MODE validity is implementation-specific; Bare's remaining fields are
+        // not rejected here because the architecture leaves their effect unspecified.
+        bool valid() const {
             #ifdef KXEMU_ISA64
-            // Check if the mode is valid
-            bool flag = true;
-            for (unsigned int i = 0; i < sizeof(validMode) / sizeof(Mode); i++) {
-                if (this->mode() == validMode[i]) {
-                    flag = false;
-                    break;
-                }
+            for (const auto mode : validMode) {
+                if (this->mode() == mode) return true;
             }
-            if (flag) {
-                // Set mode to Bare
-                this->set_mode(Mode::BARE);
-            }
+            return false;
+            #else
+            // Both encodings of the one-bit MODE field are supported.
+            return true;
             #endif
         }
 
         #ifdef KXEMU_ISA64
-        word_t ppn()  { return this->value & ((1ULL << 44) - 1); }
-        word_t asid() { return (this->value >> 44) & 0x1ff; }
-        word_t mode() { return (this->value >> 60) & 0xf; }
+        word_t ppn()  const { return this->value & ((1ULL << 44) - 1); }
+        word_t asid() const { return (this->value >> 44) & 0xffff; }
+        word_t mode() const { return (this->value >> 60) & 0xf; }
 
-        void set_asid(word_t asid) { this->value = (this->value & ~(0x1ffULL << 44)) | ((asid & 0x1ff) << 44); }
+        void set_asid(word_t asid) { this->value = (this->value & ~(0xffffULL << 44)) | ((asid & 0xffff) << 44); }
         void set_mode(word_t mode) { this->value = (this->value & ~(0xfULL << 60)) | ((mode & 0xf) << 60); }
         #else
-        word_t ppn()  { return this->value & ((1ULL << 22) - 1); }
-        word_t asid() { return (this->value >> 22) & 0x1ff; }
-        word_t mode() { return (this->value >> 31) & 0x1; }
+        word_t ppn()  const { return this->value & ((1ULL << 22) - 1); }
+        word_t asid() const { return (this->value >> 22) & 0x1ff; }
+        word_t mode() const { return (this->value >> 31) & 0x1; }
         
         void set_asid(word_t asid) { this->value = (this->value & ~(0x1ff << 22)) | ((asid & 0x1ff) << 22); }
         void set_mode(word_t mode) { this->value = (this->value & ~0x80000000) | ((mode & 0x1) << 31); }
@@ -353,11 +351,17 @@ namespace kxemu::cpu::csr {
             DYN = 7, // Dynamic Rounding Mode
         };
 
-        word_t fflags() { return this->value & 0x1f; }
-        word_t frm()   { return (this->value >> 5) & 0x7; }
+        static constexpr word_t FFLAGS_MASK = 0x1f;
+        static constexpr word_t FRM_MASK    = 0x7;
+        static constexpr unsigned int FRM_SHIFT = 5;
+        static constexpr word_t MASK = FFLAGS_MASK | (FRM_MASK << FRM_SHIFT);
 
-        void set_fflags(word_t fflags) { this->value = (this->value & ~0x1f) | (fflags & 0x1f);}
-        void set_frm   (word_t frm   ) { this->value = (this->value & ~(0x7 << 5)) | ((frm & 0x7) << 5); }
+        word_t fflags() const { return this->value & FFLAGS_MASK; }
+        word_t frm()    const { return (this->value >> FRM_SHIFT) & FRM_MASK; }
+
+        void set_fcsr  (word_t fcsr  ) { this->value = fcsr & MASK; }
+        void set_fflags(word_t fflags) { this->value = (this->value & ~FFLAGS_MASK) | (fflags & FFLAGS_MASK); }
+        void set_frm   (word_t frm   ) { this->value = (this->value & ~(FRM_MASK << FRM_SHIFT)) | ((frm & FRM_MASK) << FRM_SHIFT); }
     };
 
     static inline unsigned int csr_privilege_level(unsigned int csrAddr) {

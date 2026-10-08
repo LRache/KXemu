@@ -11,17 +11,7 @@
 
 using namespace kxemu::cpu;
 
-RVCore::RVCore() {    
-    this->medeleg = this->csr.get_csr_ptr_readonly(CSRAddr::MEDELEG);
-    this->mideleg = this->csr.get_csr_ptr_readonly(CSRAddr::MIDELEG);
-    this->mie     = this->csr.get_csr_ptr_readonly(CSRAddr::MIE);
-    this->mip     = this->csr.get_csr_ptr(CSRAddr::MIP);
-
-    // RV32 only
-#ifdef KXEMU_ISA32
-    this->medelegh= this->csr.get_csr_ptr_readonly(CSRAddr::MEDELEGH);
-#endif
-
+RVCore::RVCore() {
     this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
 
     this->deviceMtx = nullptr;
@@ -39,9 +29,7 @@ void RVCore::init(unsigned int coreID, device::Bus *bus, device::AClint *alint, 
 
 void RVCore::reset(word_t entry) {
     {
-        std::lock_guard lock(this->interruptMtx);
-        this->interruptLevels = 0;
-        this->changedInterrupts = 0;
+        const auto lock = this->csr.lock_pending();
         this->wakePending = false;
         this->stopping.store(false, std::memory_order_release);
     }
@@ -50,8 +38,6 @@ void RVCore::reset(word_t entry) {
     this->privMode = PrivMode::MACHINE;
     
     this->csr.reset();
-    this->update_mstatus();
-    this->update_fcsr();
 
     std::memset(this->gpr, 0, sizeof(this->gpr));
     this->gpr[10] = this->coreID;
@@ -113,6 +99,33 @@ static inline const char *gprNames[] = {
     "x24", "x25", "x26", "x27", "x28", "x29", "x30", "x31"
 };
 
+static constexpr struct {
+    const char *name;
+    unsigned int addr;
+} csrNames[] = {
+    {"mstatus" , CSRAddr::MSTATUS }, {"misa"    , CSRAddr::MISA    },
+    {"medeleg" , CSRAddr::MEDELEG }, {"mideleg" , CSRAddr::MIDELEG },
+    {"mie"     , CSRAddr::MIE     }, {"mtvec"   , CSRAddr::MTVEC   },
+    {"mcnten"  , CSRAddr::MCNTEN  }, {"mscratch", CSRAddr::MSCRATCH},
+    {"mepc"    , CSRAddr::MEPC    }, {"mcause"  , CSRAddr::MCAUSE  },
+    {"mtval"   , CSRAddr::MTVAL   }, {"mip"     , CSRAddr::MIP     },
+    {"mtinst"  , CSRAddr::MTINST  }, {"mtval2"  , CSRAddr::MTVAL2  },
+    {"pmpcfg0" , CSRAddr::PMPCFG0 },
+    {"sstatus" , CSRAddr::SSTATUS }, {"sie"     , CSRAddr::SIE     },
+    {"stvec"   , CSRAddr::STVEC   }, {"scnten"  , CSRAddr::SCNTEN  },
+    {"sscratch", CSRAddr::SSCRATCH}, {"sepc"    , CSRAddr::SEPC    },
+    {"scause"  , CSRAddr::SCAUSE  }, {"stval"   , CSRAddr::STVAL   },
+    {"sip"     , CSRAddr::SIP     }, {"stimecmp", CSRAddr::STIMECMP},
+    {"satp"    , CSRAddr::SATP    },
+};
+
+static std::optional<unsigned int> csr_addr_by_name(const std::string &name) {
+    for (const auto &entry : csrNames) {
+        if (name == entry.name) return entry.addr;
+    }
+    return std::nullopt;
+}
+
 std::optional<word_t> RVCore::get_register(const std::string &name) {
     for (unsigned int i = 0; i < 32; i++) {
         if (name == gprNames[i]) {
@@ -132,68 +145,8 @@ std::optional<word_t> RVCore::get_register(const std::string &name) {
         return this->privMode;
     }
     
-    if (name == "mstatus") {
-        return this->csr.get_csr_value(CSRAddr::MSTATUS);
-    } else if (name == "misa") {
-        return this->csr.get_csr_value(CSRAddr::MISA);
-    } else if (name == "medeleg") {
-        return this->csr.get_csr_value(CSRAddr::MEDELEG);
-    } else if (name == "mideleg") {
-        return this->csr.get_csr_value(CSRAddr::MIDELEG);
-    } else if (name == "mie") {
-        return this->csr.get_csr_value(CSRAddr::MIE);
-    } else if (name == "mtvec") {
-        return this->csr.get_csr_value(CSRAddr::MTVEC);
-    } else if (name == "mcnten") {
-        return this->csr.get_csr_value(CSRAddr::MCNTEN);
-    }
-    
-    if (name == "mscratch") {
-        return this->csr.get_csr_value(CSRAddr::MSCRATCH);
-    } else if (name == "mepc") {
-        return this->csr.get_csr_value(CSRAddr::MEPC);
-    } else if (name == "mcause") {
-        return this->csr.get_csr_value(CSRAddr::MCAUSE);
-    } else if (name == "mtval") {
-        return this->csr.get_csr_value(CSRAddr::MTVAL);
-    } else if (name == "mip") {
-        return this->csr.get_csr_value(CSRAddr::MIP);
-    } else if (name == "mtinst") {
-        return this->csr.get_csr_value(CSRAddr::MTINST);
-    } else if (name == "mtval2") {
-        return this->csr.get_csr_value(CSRAddr::MTVAL2);
-    }
-
-    if (name == "pmpcfg0") {
-        return this->csr.get_csr_value(CSRAddr::PMPCFG0);
-    }
-
-    if (name == "sstatus") {
-        return this->csr.get_csr_value(CSRAddr::SSTATUS);
-    } else if (name == "sie") {
-        return this->csr.get_csr_value(CSRAddr::SIE);
-    } else if (name == "stvec") {
-        return this->csr.get_csr_value(CSRAddr::STVEC);
-    } else if (name == "scnten") {
-        return this->csr.get_csr_value(CSRAddr::SCNTEN);
-    }
-    
-    if (name == "sscratch") {
-        return this->csr.get_csr_value(CSRAddr::SSCRATCH);
-    } else if (name == "sepc") {
-        return this->csr.get_csr_value(CSRAddr::SEPC);
-    } else if (name == "scause") {
-        return this->csr.get_csr_value(CSRAddr::SCAUSE);
-    } else if (name == "stval") {
-        return this->csr.get_csr_value(CSRAddr::STVAL);
-    } else if (name == "sip") {
-        return this->csr.get_csr_value(CSRAddr::SIP);
-    } else if (name == "stimecmp") {
-        return this->csr.get_csr_value(CSRAddr::STIMECMP);
-    }
-    
-    if (name == "satp") {
-        return this->csr.get_csr_value(CSRAddr::SATP);
+    if (const auto addr = csr_addr_by_name(name)) {
+        return this->csr.debug_read_csr(*addr);
     }
 
     return std::nullopt;
@@ -217,82 +170,12 @@ bool RVCore::set_register(const std::string &name, word_t value) {
     if (name == "pc") {
         this->pc = value;
         return true;
-    } else if (name == "mstatus") {
-        this->csr.set_csr_value(CSRAddr::MSTATUS, value);
-        return true;
-    } else if (name == "misa") {
-        this->csr.set_csr_value(CSRAddr::MISA, value);
-        return true;
-    } else if (name == "medeleg") {
-        this->csr.set_csr_value(CSRAddr::MEDELEG, value);
-        return true;
-    } else if (name == "mideleg") {
-        this->csr.set_csr_value(CSRAddr::MIDELEG, value);
-        return true;
-    } else if (name == "mie") {
-        this->csr.set_csr_value(CSRAddr::MIE, value);
-        return true;
-    } else if (name == "mtvec") {
-        this->csr.set_csr_value(CSRAddr::MTVEC, value);
-        return true;
-    } else if (name == "mcnten") {
-        this->csr.set_csr_value(CSRAddr::MCNTEN, value);
-        return true;
-    } else if (name == "mscratch") {
-        this->csr.set_csr_value(CSRAddr::MSCRATCH, value);
-        return true;
-    } else if (name == "mepc") {
-        this->csr.set_csr_value(CSRAddr::MEPC, value);
-        return true;
-    } else if (name == "mcause") {
-        this->csr.set_csr_value(CSRAddr::MCAUSE, value);
-        return true;
-    } else if (name == "mtval") {
-        this->csr.set_csr_value(CSRAddr::MTVAL, value);
-        return true;
-    } else if (name == "mip") {
-        this->csr.set_csr_value(CSRAddr::MIP, value);
-        return true;
-    } else if (name == "mtinst") {
-        this->csr.set_csr_value(CSRAddr::MTINST, value);
-        return true;
-    } else if (name == "mtval2") {
-        this->csr.set_csr_value(CSRAddr::MTVAL2, value);
-        return true;
-    } 
-    
-    if (name == "sstatus") {
-        this->csr.set_csr_value(CSRAddr::SSTATUS, value);
-        return true;
-    } else if (name == "sie") {
-        this->csr.set_csr_value(CSRAddr::SIE, value);
-        return true;
-    } else if (name == "stvec") {
-        this->csr.set_csr_value(CSRAddr::STVEC, value);
-        return true;
-    } else if (name == "scnten") {
-        this->csr.set_csr_value(CSRAddr::SCNTEN, value);
-        return true;
-    } else if (name == "sscratch") {
-        this->csr.set_csr_value(CSRAddr::SSCRATCH, value);
-        return true;
-    } else if (name == "sepc") {
-        this->csr.set_csr_value(CSRAddr::SEPC, value);
-        return true;
-    } else if (name == "scause") {
-        this->csr.set_csr_value(CSRAddr::SCAUSE, value);
-        return true;
-    } else if (name == "stval") {
-        this->csr.set_csr_value(CSRAddr::STVAL, value);
-        return true;
-    } else if (name == "sip") {
-        this->csr.set_csr_value(CSRAddr::SIP, value);
-        return true;
-    } else if (name == "stimecmp") {
-        this->csr.set_csr_value(CSRAddr::STIMECMP, value);
-        return true;
-    } else if (name == "satp") {
-        this->csr.set_csr_value(CSRAddr::SATP, value);
+    }
+
+    if (const auto addr = csr_addr_by_name(name)) {
+        const auto effect = this->csr.debug_write_csr(*addr, value);
+        if (!effect.has_value()) return false;
+        this->apply_csr_effect(*effect);
         return true;
     }
 

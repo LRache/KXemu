@@ -1,97 +1,43 @@
 #include "cpu/riscv/core.hpp"
 #include "cpu/riscv/def.hpp"
 #include "cpu/word.hpp"
+#include "log.h"
 
 #include "./local-decoder.h"
 
-#define REQUIRE_WRITABLE do {if (csr_read_only(CSR)) {do_invalid_inst(); return;}} while(0);
-#define CHECK_SUCCESS do{if (!s) {do_invalid_inst(); return;}} while(0);
-
 using namespace kxemu::cpu;
 
-void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {    
-    REQUIRE_WRITABLE;
-    
-    bool s;
-    word_t value = 0;
-    if (!rd_is_x0) {
-        value = this->read_csr(CSR, s);
-        CHECK_SUCCESS;
+void RVCore::execute_csr(const DecodeInfo &decodeInfo, word_t operand, RVCSR::ModifyOp op, bool readOld) {
+    const auto result = this->modify_csr(CSR, operand, op, readOld);
+    if (!result.valid) {
+        // Guests commonly probe CSRs, so this is a debug trace rather than a warning.
+        DEBUG("Illegal access to CSR 0x%03x (op %d) at pc " FMT_WORD, CSR, static_cast<int>(op), this->pc);
+        do_invalid_inst();
+        return;
     }
+    if (!rd_is_x0) DEST = result.oldValue;
+}
 
-    s = this->write_csr(CSR, SRC1);
-    CHECK_SUCCESS;
-
-    DEST = value;
+void RVCore::do_csrrw(const DecodeInfo &decodeInfo) {
+    this->execute_csr(decodeInfo, SRC1, RVCSR::ModifyOp::Write, !rd_is_x0);
 }
 
 void RVCore::do_csrrs(const DecodeInfo &decodeInfo) {
-    bool s;
-    word_t value = this->read_csr(CSR, s);
-    CHECK_SUCCESS;
-
-    if (!rs1_is_x0) {
-        REQUIRE_WRITABLE;
-        s = this->write_csr(CSR, value | SRC1);
-        CHECK_SUCCESS;
-    }
-    
-    DEST = value;
+    this->execute_csr(decodeInfo, SRC1, rs1_is_x0 ? RVCSR::ModifyOp::Read : RVCSR::ModifyOp::Set);
 }
 
 void RVCore::do_csrrc(const DecodeInfo &decodeInfo) {
-    bool s;
-    
-    word_t value = this->read_csr(CSR, s);
-    CHECK_SUCCESS;
-    
-    if (!rs1_is_x0) {
-        REQUIRE_WRITABLE;
-        s = this->write_csr(CSR, value & (~SRC1));
-        CHECK_SUCCESS;
-    }
-
-    DEST = value;
+    this->execute_csr(decodeInfo, SRC1, rs1_is_x0 ? RVCSR::ModifyOp::Read : RVCSR::ModifyOp::Clear);
 }
 
-void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {  
-    REQUIRE_WRITABLE;
-    
-    bool s;
-    if (!rd_is_x0) {
-        word_t value = this->read_csr(CSR, s);
-        CHECK_SUCCESS;
-        DEST = value;
-    }
-
-    s = this->write_csr(CSR, IMM);
-    CHECK_SUCCESS;
+void RVCore::do_csrrwi(const DecodeInfo &decodeInfo) {
+    this->execute_csr(decodeInfo, IMM, RVCSR::ModifyOp::Write, !rd_is_x0);
 }
 
 void RVCore::do_csrrsi(const DecodeInfo &decodeInfo) {
-    bool s;
-    word_t value = this->read_csr(CSR, s);
-    CHECK_SUCCESS;
-
-    if (IMM != 0) {
-        REQUIRE_WRITABLE;
-        s = this->write_csr(CSR, value | IMM);
-        CHECK_SUCCESS;
-    }
-
-    DEST = value;
+    this->execute_csr(decodeInfo, IMM, IMM == 0 ? RVCSR::ModifyOp::Read : RVCSR::ModifyOp::Set);
 }
 
 void RVCore::do_csrrci(const DecodeInfo &decodeInfo) {
-    bool s;
-    word_t value = this->read_csr(CSR, s);
-    CHECK_SUCCESS;
-
-    if (IMM != 0) {
-        REQUIRE_WRITABLE;
-        s = this->write_csr(CSR, value & (~IMM));
-        CHECK_SUCCESS;
-    }
-
-    DEST = value;
+    this->execute_csr(decodeInfo, IMM, IMM == 0 ? RVCSR::ModifyOp::Read : RVCSR::ModifyOp::Clear);
 }

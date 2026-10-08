@@ -7,22 +7,15 @@
 using namespace kxemu::cpu;
 
 void RVCore::update_stimecmp() {
-    uint64_t stimecmp = this->csr.read_csr(CSRAddr::STIMECMP);
-#ifdef KXEMU_ISA32
-    stimecmp &= 0xffffffff;
-    stimecmp |= (uint64_t)this->csr.read_csr(CSRAddr::STIMECMPH) << 32;
-#endif
-    this->aclint->register_stimer(this->coreID, stimecmp);
+    this->aclint->register_stimer(this->coreID, this->csr.stimecmp_value());
     this->clear_timer_interrupt_s();
 }
 
 void RVCore::set_interrupts(word_t mask, bool asserted) {
     if (mask == 0) return;
     {
-        std::lock_guard lock(this->interruptMtx);
-        this->interruptLevels = asserted ? this->interruptLevels | mask
-                                        : this->interruptLevels & ~mask;
-        this->changedInterrupts |= mask;
+        const auto lock = this->csr.lock_pending();
+        this->csr.update_pending(lock, mask, asserted);
         this->wakePending = true;
     }
     this->interruptReady.notify_one();
@@ -38,7 +31,7 @@ void RVCore::clear_interrupt(InterruptCode code) {
 
 void RVCore::wake() {
     {
-        std::lock_guard lock(this->interruptMtx);
+        const auto lock = this->csr.lock_pending();
         this->wakePending = true;
     }
     this->interruptReady.notify_one();
@@ -46,38 +39,16 @@ void RVCore::wake() {
 
 void RVCore::request_stop() {
     {
-        std::lock_guard lock(this->interruptMtx);
+        const auto lock = this->csr.lock_pending();
         this->stopping.store(true, std::memory_order_release);
     }
     this->interruptReady.notify_one();
 }
 
-RVCore::InterruptSnapshot RVCore::consume_interrupts() {
-    InterruptSnapshot snapshot{this->changedInterrupts, this->interruptLevels};
-    this->changedInterrupts = 0;
-    this->wakePending = false;
-    return snapshot;
-}
-
-void RVCore::apply_interrupts(word_t mask, word_t levels) noexcept {
-    const word_t pending = this->csr.get_csr_value(CSRAddr::MIP);
-    this->csr.set_csr_value(CSRAddr::MIP, (pending & ~mask) | (levels & mask));
-}
-
-void RVCore::synchronize_interrupts() {
-    InterruptSnapshot snapshot;
-    {
-        std::lock_guard lock(this->interruptMtx);
-        snapshot = this->consume_interrupts();
-    }
-    this->apply_interrupts(snapshot.changed, snapshot.levels);
-}
-
 RVCore::WaitResult RVCore::wait_for_interrupt(std::chrono::nanoseconds timeout) {
-    InterruptSnapshot snapshot;
     WaitResult result;
     {
-        std::unique_lock lock(this->interruptMtx);
+        auto lock = this->csr.lock_pending();
         auto pending = [this] { return this->wakePending || this->stop_requested(); };
         bool notified = true;
 
@@ -89,9 +60,8 @@ RVCore::WaitResult RVCore::wait_for_interrupt(std::chrono::nanoseconds timeout) 
 
         result = this->stop_requested() ? WaitResult::Stopped
                : notified ? WaitResult::Notified : WaitResult::Timeout;
-        snapshot = this->consume_interrupts();
+        this->wakePending = false;
     }
-    this->apply_interrupts(snapshot.changed, snapshot.levels);
     return result;
 }
 
@@ -144,19 +114,19 @@ void RVCore::clear_external_interrupt_s() {
 }
 
 void RVCore::interrupt_m(InterruptCode code) {
-    this->csr.set_csr_value(CSRAddr::MEPC, this->npc);
-    this->csr.set_csr_value(CSRAddr::MTVAL, 0);
-    this->csr.set_csr_value(CSRAddr::MCAUSE, csr::MCause(code));
+    this->csr.mepc = this->npc;
+    this->csr.mtval = 0;
+    this->csr.mcause = csr::MCause(code);
 
-    csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
+    csr::MStatus mstatus = this->csr.mstatus;
     mstatus.set_mpp(this->privMode);
     mstatus.set_mpie(mstatus.mie());
     mstatus.set_mie(false);
-    this->csr.set_csr_value(CSRAddr::MSTATUS, mstatus);
+    this->csr.mstatus = mstatus;
 
     this->set_priv_mode(PrivMode::MACHINE);
 
-    csr::TrapVec mtvec = this->csr.get_csr_value(CSRAddr::MTVEC);
+    csr::TrapVec mtvec = this->csr.mtvec;
     if (mtvec.mode() == csr::TrapVec::VECTORED) {
         this->npc = (mtvec.vec()) + (code << 2);
     } else {
@@ -165,19 +135,19 @@ void RVCore::interrupt_m(InterruptCode code) {
 }
 
 void RVCore::interrupt_s(InterruptCode code) {
-    this->csr.write_csr(CSRAddr::SEPC, this->npc);
-    this->csr.write_csr(CSRAddr::SCAUSE, csr::MCause(code));
-    this->csr.write_csr(CSRAddr::STVAL, 0);
+    this->csr.sepc = this->npc;
+    this->csr.scause = csr::MCause(code);
+    this->csr.stval = 0;
 
-    csr::MStatus mstatus = this->csr.read_csr(CSRAddr::MSTATUS);
+    csr::MStatus mstatus = this->csr.mstatus;
     mstatus.set_spp(this->privMode != PrivMode::USER);
     mstatus.set_spie(mstatus.sie());
     mstatus.set_sie(false);
-    this->write_csr(CSRAddr::MSTATUS, mstatus);
+    this->csr.mstatus = mstatus;
 
     this->set_priv_mode(PrivMode::SUPERVISOR);
 
-    csr::TrapVec stvec = this->csr.get_csr_value(CSRAddr::STVEC);
+    csr::TrapVec stvec = this->csr.stvec;
     if (stvec.mode() == csr::TrapVec::VECTORED) {
         this->npc = stvec.vec() + (code << 2);
     } else {
@@ -203,9 +173,9 @@ static constexpr InterruptCode INTER_BITS_S[] = {
 };
 
 bool RVCore::scan_interrupt() {
-    this->synchronize_interrupts();
-    // There is no interrput pending.
-    if (likely(*this->mip == 0)) return false;
+    // The hint avoids taking the pending CSR lock when there is no interrupt.
+    if (likely(!this->csr.has_pending_interrupt())) return false;
+    const word_t pendingSnapshot = this->csr.read_mip();
 
     // Machine Level Interrupt
     // An interrupt `i` will trap to M-mode (causing the privilege mode to change to M-mode) if all of the
@@ -215,8 +185,8 @@ bool RVCore::scan_interrupt() {
     // (b) bit `i` is set in both mip and mie;
     // (c) if register mideleg exists, bit `i` is not set in mideleg
     // -- from The RISC-V Instruction Set Manual: Volume II 3.1.9  Page 42
-    if (this->privMode < PrivMode::MACHINE || this->mstatus.mie) {
-        word_t pending = *this->mip & *this->mie & ~*this->mideleg;
+    if (this->privMode < PrivMode::MACHINE || this->csr.mstatus.mie()) {
+        word_t pending = pendingSnapshot & this->csr.mie & ~this->csr.mideleg;
         if (pending) {
             for (auto const &bit : INTER_BITS_M) {
                 if (pending & (1 << bit)) {
@@ -233,8 +203,8 @@ bool RVCore::scan_interrupt() {
     //     or the current privilege mode has less privilege than S-mode; 
     // (b) bit `i` is set in both sip and sie; and
     // -- from The RISC-V Instruction Set Manual: Volume II 12.1.3  Page 119
-    if (this->privMode < PrivMode::SUPERVISOR || (this->privMode ==  PrivMode::SUPERVISOR && this->mstatus.sie)) {
-        word_t pending = *this->mip & *this->mie & *this->mideleg;
+    if (this->privMode < PrivMode::SUPERVISOR || (this->privMode ==  PrivMode::SUPERVISOR && this->csr.mstatus.sie())) {
+        word_t pending = pendingSnapshot & this->csr.mie & this->csr.mideleg;
         if (pending) {
             for (auto const &bit : INTER_BITS_S) {
                 if (pending & (1 << bit)) {

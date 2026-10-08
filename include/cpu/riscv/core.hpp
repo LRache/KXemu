@@ -160,12 +160,9 @@ private:
     void enter_trap(TrapCode code, word_t value = 0);
     
     // Interrupt
-    // Multiple producers publish IRQ levels; only this hart consumes them.
-    // All fields except stopping are protected by interruptMtx.
-    std::mutex interruptMtx;
+    // Producers update mip directly. wakePending is guarded by csr.pendingMtx
+    // (see RVCSR::lock_pending) so a level change and its wake are published together.
     std::condition_variable interruptReady;
-    word_t interruptLevels = 0;
-    word_t changedInterrupts = 0;
     bool wakePending = false;
     std::atomic<bool> stopping{false};
 
@@ -174,31 +171,12 @@ private:
         Timeout,  // Allow legacy devices to be polled.
         Stopped,  // Persists until reset().
     };
-    struct InterruptSnapshot {
-        word_t changed; // Mask of IRQ bits to apply to mip.
-        word_t levels;  // Level bitmap: 1 means asserted, 0 means deasserted.
-    };
-
-    /// Publish the selected IRQ levels and notify the hart without touching mip.
-    /// Updates coalesce to the latest level; a zero mask does nothing.
+    /// Update IRQ levels under the pending CSR lock, then notify the hart.
     void set_interrupts(word_t mask, bool asserted);
     void   set_interrupt(InterruptCode code);
     void clear_interrupt(InterruptCode code);
 
-    /// Consume pending updates and the wake notification with interruptMtx held.
-    /// Only the owning hart may consume; recorded levels and stopping are retained.
-    InterruptSnapshot consume_interrupts();
-
-    /// Apply only mask-selected bits to mip on the owning hart, outside interruptMtx.
-    /// levels is an IRQ level bitmap, not interrupt priority.
-    void apply_interrupts(word_t mask, word_t levels) noexcept;
-
-    /// Consume and apply a snapshot without waiting for a new notification.
-    /// Updates arriving after capture remain pending for the next synchronization.
-    void synchronize_interrupts();
-
     /// Wait for a notification, stop request or timeout on the owning hart.
-    /// All results return after applying the captured IRQ updates to mip.
     /// The default waits indefinitely; zero/negative durations only check current state.
     /// WFI and trap eligibility are checked separately by the execution path.
     WaitResult wait_for_interrupt(
@@ -216,22 +194,11 @@ private:
     RVCSR csr;
     unsigned int &privMode = csr.privMode; // Priviledge mode
     void init_csr();
-    word_t  read_csr(unsigned int addr, bool &valid);
-    bool   write_csr(unsigned int addr, word_t value);
+    RVCSR::ModifyResult modify_csr(unsigned int addr, word_t operand, RVCSR::ModifyOp op, bool readOld = true);
+    void apply_csr_effect(RVCSR::WriteEffect effect);
+    // Shared body of the Zicsr instructions; raises illegal instruction on failure.
+    void execute_csr(const DecodeInfo &decodeInfo, word_t operand, RVCSR::ModifyOp op, bool readOld = true);
     
-    void update_mstatus();
-    struct {
-        bool mie;  
-        bool sie;
-        bool sum;
-    } mstatus;
-
-    const word_t *mie;
-    const word_t *mip;
-    const word_t *medeleg;
-    const word_t *medelegh;
-    const word_t *mideleg;
-
     std::mutex csrMtx;
 
     void set_priv_mode(int mode);
@@ -258,8 +225,6 @@ private:
             uint32_t high; // high 32 bits, filled with 1s for NaN boxing
         };
     } fpr[32];
-    unsigned int frm;
-    void update_fcsr();
     void raise_fflags(word_t flags);
 
     // Experimental ICache

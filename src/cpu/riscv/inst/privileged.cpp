@@ -30,7 +30,7 @@ void RVCore::do_ecall(const DecodeInfo &) {
 // changed to y; xPIE is set to 1; and xPP is set to the least-privileged supported mode (U if U-mode is
 // implemented, else M). If y!=M, xRET also sets MPRV=0.
 void RVCore::do_mret(const DecodeInfo &) {
-    csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
+    csr::MStatus mstatus = this->csr.mstatus;
     
     // change to previous privilege mode
     this->set_priv_mode(mstatus.mpp());
@@ -44,12 +44,12 @@ void RVCore::do_mret(const DecodeInfo &) {
     // set mstatus.MPP to the lowest privilege mode
     mstatus.set_mpp(PrivMode::USER);
 
-    this->csr.set_csr_value(CSRAddr::MSTATUS, mstatus);
-    this->npc = this->csr.get_csr_value(CSRAddr::MEPC);
+    this->csr.mstatus = mstatus;
+    this->npc = this->csr.mepc;
 }
 
 void RVCore::do_sret(const DecodeInfo &) {    
-    csr::MStatus mstatus = this->csr.get_csr_value(CSRAddr::MSTATUS);
+    csr::MStatus mstatus = this->csr.mstatus;
 
     // change to previous privilege mode
     this->set_priv_mode(mstatus.spp() ? PrivMode::SUPERVISOR : PrivMode::USER);
@@ -66,8 +66,8 @@ void RVCore::do_sret(const DecodeInfo &) {
     // set mstatus.MPRV to 0
     mstatus.set_mprv(0);
 
-    this->csr.set_csr_value(CSRAddr::MSTATUS, mstatus);
-    this->npc = this->csr.get_csr_value(CSRAddr::SEPC);
+    this->csr.mstatus = mstatus;
+    this->npc = this->csr.sepc;
 }
 
 void RVCore::do_invalid_inst() {
@@ -98,9 +98,8 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 void RVCore::do_wfi(const DecodeInfo &) {
 #ifndef CONFIG_WFI_AS_NOP
     this->update_device();
-    this->synchronize_interrupts();
 
-    while ((*this->mip & *this->mie) == 0) {
+    while ((this->csr.read_mip() & this->csr.mie) == 0) {
         // UART/PLIC still require polling until their event-driven migration.
         auto result = this->wait_for_interrupt(std::chrono::milliseconds(1));
         if (result == WaitResult::Stopped) {
@@ -109,7 +108,6 @@ void RVCore::do_wfi(const DecodeInfo &) {
         }
 
         this->update_device();
-        this->synchronize_interrupts();
     }
 
     this->scan_interrupt();

@@ -66,7 +66,7 @@ RVCore::VMResult RVCore::vaddr_translate_bare(word_t addr, MemType type) {
 template<unsigned int LEVELS, unsigned int PTESIZE, unsigned int VPNBITS>
 RVCore::VMResult RVCore::vaddr_translate_sv(addr_t vaddr, MemType type) noexcept {
     // Whether the page which has the U bit set in the PTE is accessible by the current privilege mode
-    bool uPageAccessible = this->privMode == PrivMode::USER || this->mstatus.sum;
+    bool uPageAccessible = this->privMode == PrivMode::USER || this->csr.mstatus.sum();
 
     word_t base = this->pageTableBase;
     for (int i = LEVELS - 1; i >= 0; i--) {
@@ -193,7 +193,7 @@ RVCore::VMResult RVCore::vaddr_translate_core(addr_t vaddr, MemType type) noexce
     auto b = this->tlb_hit(vaddr);
     if (b.has_value()) {  
         TLBBlock *block = b.value();
-        bool u = block->flag.u() ? this->privMode == PrivMode::USER || this->mstatus.sum : this->privMode == PrivMode::SUPERVISOR;
+        bool u = block->flag.u() ? this->privMode == PrivMode::USER || this->csr.mstatus.sum() : this->privMode == PrivMode::SUPERVISOR;
         if (likely((block->flag & type) == type && (u))) {
             block->flag.set_a();
             if (type & STORE) {
@@ -363,7 +363,7 @@ void RVCore::memory_store(word_t addr, mem_value_t data, unsigned int len) {
 }
 
 void RVCore::update_vm_translate() {
-    csr::Satp satp = this->csr.get_csr_value(CSRAddr::SATP);
+    csr::Satp satp = this->csr.satp;
     
     this->pageTableBase = satp.ppn() * PGSIZE;
 
