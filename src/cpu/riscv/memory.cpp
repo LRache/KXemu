@@ -103,7 +103,7 @@ RVCore::VMResult RVCore::vaddr_translate_sv(addr_t vaddr, MemType type) noexcept
             // If i>0 and pte.ppn[i-1:0] ≠ 0, this is a misaligned superpage; 
             // stop and raise a page-fault exception
             if (i > 0) {
-                word_t ppn_lower = pte.ppn() & ((1 << (VPNBITS * i)) - 1);
+                word_t ppn_lower = pte.ppn() & ((word_t{1} << (VPNBITS * i)) - 1);
                 if (ppn_lower != 0) {
                     return std::unexpected(VMFault::PAGE_FAULT);
                 }
@@ -129,7 +129,7 @@ RVCore::VMResult RVCore::vaddr_translate_sv(addr_t vaddr, MemType type) noexcept
             word_t mask = PGSIZE - 1;
             
             // If i>0, then pa.ppn[i-1:0] = va.vpn[i-1:0]
-            mask |= ((1 << (VPNBITS * i)) - 1) << PGBITS; // Mask for superpage ppn
+            mask |= ((word_t{1} << (VPNBITS * i)) - 1) << PGBITS; // Mask for superpage ppn
 
             word_t paddr = (((word_t)pte << 2) & ~mask) | (vaddr & mask);
 

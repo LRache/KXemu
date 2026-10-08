@@ -189,7 +189,7 @@ bool RVCore::scan_interrupt() {
         word_t pending = pendingSnapshot & this->csr.mie & ~this->csr.mideleg;
         if (pending) {
             for (auto const &bit : INTER_BITS_M) {
-                if (pending & (1 << bit)) {
+                if (pending & (word_t{1} << bit)) {
                     interrupt_m(bit);
                     return true;
                 }
@@ -207,7 +207,7 @@ bool RVCore::scan_interrupt() {
         word_t pending = pendingSnapshot & this->csr.mie & this->csr.mideleg;
         if (pending) {
             for (auto const &bit : INTER_BITS_S) {
-                if (pending & (1 << bit)) {
+                if (pending & (word_t{1} << bit)) {
                     interrupt_s(bit);
                     return true;
                 }

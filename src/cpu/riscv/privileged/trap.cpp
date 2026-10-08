@@ -17,12 +17,12 @@ void RVCore::enter_trap(TrapCode cause, word_t value) {
         deleg = false;
     } else {
 #ifdef KXEMU_ISA64
-        deleg = this->csr.medeleg & (1 << cause);
+        deleg = this->csr.medeleg & (word_t{1} << cause);
 #else
         if (cause >= 32) {
-            deleg = this->csr.medelegh & (1 << (cause - 32));
+            deleg = this->csr.medelegh & (word_t{1} << (cause - 32));
         } else {
-            deleg = this->csr.medeleg & (1 << cause);
+            deleg = this->csr.medeleg & (word_t{1} << cause);
         }
 #endif
     }
