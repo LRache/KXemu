@@ -55,6 +55,12 @@ target_link_libraries(${KXEMU_TARGET} PRIVATE Threads::Threads)
 
 include(${PROJECT_SOURCE_DIR}/scripts/isa/${CONFIG_BASE_ISA}.cmake)
 
+option(KXEMU_BUILD_CORE_TESTS "Build host RISC-V interrupt and WFI tests" OFF)
+if(KXEMU_BUILD_CORE_TESTS)
+    enable_testing()
+    add_subdirectory(tests/host/core-interrupts)
+endif()
+
 if(CONFIG_FPU_SOFT)
     if(CONFIG_BASE_ISA STREQUAL "riscv")
         target_link_libraries(${KXEMU_TARGET} PRIVATE softfloat)
