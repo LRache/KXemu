@@ -7,8 +7,8 @@
 using namespace kxemu::cpu;
 
 void RVCore::update_stimecmp() {
-    this->aclint->register_stimer(this->coreID, this->csr.stimecmp_value());
     this->clear_timer_interrupt_s();
+    this->aclint->register_stimer(this->coreID, this->csr.stimecmp_value());
 }
 
 void RVCore::set_interrupts(word_t mask, bool asserted) {

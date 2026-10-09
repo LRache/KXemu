@@ -1,6 +1,7 @@
 #include "utils/task-timer.hpp"
 #include <chrono>
 #include <thread>
+#include <utility>
 
 using namespace kxemu::utils;
 
@@ -11,12 +12,7 @@ TaskTimer::TaskTimer() {
 }
 
 TaskTimer::~TaskTimer() {
-    if (this->running) {
-        this->running = false;
-        this->cv.notify_all();
-        this->timerThread->join();
-        delete this->timerThread;
-    }
+    this->stop_timer();
 }
 
 void TaskTimer::timer_thread() {
@@ -30,24 +26,29 @@ void TaskTimer::timer_thread() {
         auto &next = this->tasks.top();
         
         if (this->removedTasks.find(next.id) != this->removedTasks.end()) {
-            this->tasks.pop();
             this->removedTasks.erase(next.id);
+            this->tasks.pop();
             continue;
         }
         
         auto now = std::chrono::high_resolution_clock::now();
         if (next.timepoint <= now) {
-            lock.unlock();
-            next.task();
-            lock.lock();
+            // Own the callback before unlocking: producers may reorder or grow the heap.
+            Task task = std::move(const_cast<Task &>(this->tasks.top()));
             this->tasks.pop();
+            lock.unlock();
+            task.task();
+            lock.lock();
+            this->removedTasks.erase(task.id);
         } else {
-            this->cv.wait_until(lock, next.timepoint);
+            const auto deadline = next.timepoint;
+            this->cv.wait_until(lock, deadline);
         }
     }
 }
 
 void TaskTimer::start_timer() {
+    std::lock_guard<std::mutex> lock(this->mtx);
     if (this->running) {
         return;
     }
@@ -56,16 +57,18 @@ void TaskTimer::start_timer() {
 }
 
 void TaskTimer::stop_timer() {
-    if (!this->running) {
-        return;
+    {
+        std::lock_guard<std::mutex> lock(this->mtx);
+        if (!this->running) {
+            return;
+        }
+        this->running = false;
     }
-
-    this->running = false;
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     this->cv.notify_all();
     
     this->timerThread->join();
     delete this->timerThread;
+    this->timerThread = nullptr;
 }
 
 unsigned int TaskTimer::add_task(uint64_t delay, task_t task) {
