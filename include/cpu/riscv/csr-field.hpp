@@ -323,6 +323,7 @@ namespace kxemu::cpu::csr {
         };
         #endif
     public:
+        Satp() : CSRField(0) {}
         Satp(word_t value) : CSRField(value) {}
 
         // MODE validity is implementation-specific; Bare's remaining fields are

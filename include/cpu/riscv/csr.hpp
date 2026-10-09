@@ -32,31 +32,46 @@ struct RVCSRState {
     // Read-only machine information.
     word_t mvendorid = KXEMU_VENDORID;
     word_t marchid = KXEMU_ARCHID;
-    word_t mimpid = 0, mhartid = 0, mcfgptr = 0;
+    word_t mimpid = 0;
+    word_t mhartid = 0;
+    word_t mcfgptr = 0;
 
     // Writable configuration and scratch state.
     word_t misa = csr::MISA();
-    word_t mcnten = 0, scnten = 0;
-    word_t menvcfg = 0, mseccfg = 0;
-    word_t mscratch = 0, sscratch = 0;
-    csr::Satp satp{word_t{0}}; // Guest writes validate MODE and mask ASID.
+    word_t mcnten = 0;
+    word_t scnten = 0;
+    word_t menvcfg = 0;
+    word_t mseccfg = 0;
+    word_t mscratch = 0;
+    word_t sscratch = 0;
+    
+    csr::Satp satp; // Guest writes validate MODE and mask ASID.
     word_t stimecmp = 0;
     // CYCLE is currently a placeholder; TIME reads obtain the current time.
     word_t cycle = 0;
 #ifdef KXEMU_ISA32
-    word_t mstatush = 0, menvcfgh = 0, mseccfgh = 0;
-    word_t stimecmph = 0, cycleh = 0;
+    word_t mstatush = 0;
+    word_t menvcfgh = 0;
+    word_t mseccfgh = 0;
+    word_t stimecmph = 0;
+    word_t cycleh = 0;
 #endif
 
     // Trap CSRs are read and written together on exception/interrupt entry.
-    word_t mtvec = 0, stvec = 0;
-    word_t mepc = 0, sepc = 0;
-    word_t mcause = 0, scause = 0;
-    word_t mtval = 0, stval = 0;
-    word_t mtinst = 0, stinst = 0, mtval2 = 0;
+    word_t mtvec = 0;
+    word_t stvec = 0;
+    word_t mepc = 0;
+    word_t sepc = 0;
+    word_t mcause = 0;
+    word_t scause = 0;
+    word_t mtval = 0;
+    word_t stval = 0;
+    word_t mtinst = 0;
+    word_t stinst = 0;
+    word_t mtval2 = 0;
 
     // FFLAGS and FRM are views of FCSR.
-    csr::FCSR fcsr{word_t{0}};
+    csr::FCSR fcsr;
 
     // Each pmpcfg CSR is a packed view of four (RV32) or eight (RV64) items.
     csr::PMPCfgItem pmpcfg[64] = {};
