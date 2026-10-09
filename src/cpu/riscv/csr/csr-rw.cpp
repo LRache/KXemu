@@ -147,7 +147,13 @@ RVCSR::WriteResult RVCSR::write_csr(unsigned int addr, word_t value, WriteMode m
     WriteEffect effect = WriteEffect::None;
     switch (addr) {
         // Machine trap setup and handling
-        case CSRAddr::MSTATUS:   this->mstatus  = csr::MStatus(value); break;
+        case CSRAddr::MSTATUS:
+            if (guest) {
+                this->mstatus.set_mstatus(value);
+            } else {
+                this->mstatus = csr::MStatus(value);
+            }
+            break;
         case CSRAddr::MISA:      this->misa     = value; break;
         case CSRAddr::MEDELEG:   this->medeleg  = value; break;
         case CSRAddr::MIDELEG:   this->mideleg  = value; break;

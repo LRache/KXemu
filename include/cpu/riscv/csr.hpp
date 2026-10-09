@@ -22,7 +22,7 @@ struct RVCSRState {
     // mip is guarded by RVCSR::pendingMtx; the rest is owned by the hart thread.
     word_t mip = 0;
     word_t mie = 0;
-    csr::MStatus mstatus{word_t{0x1800}};
+    csr::MStatus mstatus;
     word_t mideleg = 0;
     word_t medeleg = 0;
 #ifdef KXEMU_ISA32

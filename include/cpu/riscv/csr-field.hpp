@@ -117,7 +117,20 @@ namespace kxemu::cpu::csr {
     class MStatus : public CSRField {
     public:
         using CSRField::CSRField;
-        
+
+        // SXL/UXL are hardwired to the native XLEN; the spec only fixes MIE,
+        // MPRV and MBE at reset, and the other fields reset to zero like Spike/QEMU.
+    #ifdef KXEMU_ISA64
+        static constexpr word_t XL_MASK  = (3ULL << 32) | (3ULL << 34); // UXL | SXL
+        static constexpr word_t XL_VALUE = (2ULL << 32) | (2ULL << 34);
+    #else
+        static constexpr word_t XL_MASK  = 0;
+        static constexpr word_t XL_VALUE = 0;
+    #endif
+        static constexpr word_t RESET_VALUE = XL_VALUE;
+
+        MStatus() : CSRField(RESET_VALUE) {}
+
         bool   sie()  const { return this->value & (1 << 1); }
         bool   mie()  const { return this->value & (1 << 3); }
         bool   spie() const { return this->value & (1 << 5); }
@@ -152,10 +165,15 @@ namespace kxemu::cpu::csr {
         #endif
         );
 
+        void set_mstatus(word_t mstatus) {
+            this->value = (mstatus & ~XL_MASK) | (this->value & XL_MASK);
+        }
+
         word_t sstatus() const { return this->value & SSTATUS_MASK; }
         void set_sstatus(word_t sstatus) {
-            this->value &= ~SSTATUS_MASK;
-            this->value |= sstatus & SSTATUS_MASK;
+            constexpr word_t WRITE_MASK = SSTATUS_MASK & ~XL_MASK;
+            this->value &= ~WRITE_MASK;
+            this->value |= sstatus & WRITE_MASK;
         }
     };
 
