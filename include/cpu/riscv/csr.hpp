@@ -46,14 +46,15 @@ struct RVCSRState {
     word_t sscratch = 0;
     
     csr::Satp satp; // Guest writes validate MODE and mask ASID.
-    word_t stimecmp = 0;
+    // Reset to all-ones so enabling Sstc before the first write does not fire STIP.
+    word_t stimecmp = ~word_t{0};
     // CYCLE is currently a placeholder; TIME reads obtain the current time.
     word_t cycle = 0;
 #ifdef KXEMU_ISA32
     word_t mstatush = 0;
     word_t menvcfgh = 0;
     word_t mseccfgh = 0;
-    word_t stimecmph = 0;
+    word_t stimecmph = ~word_t{0};
     word_t cycleh = 0;
 #endif
 
@@ -82,7 +83,8 @@ struct RVCSRState {
 // them from everyone except RVCSR and its friends.
 class RVCSR : private RVCSRState {
 public:
-    enum class WriteEffect { None, VmTranslate, STimer };
+    // Interrupt: the write may make a pending interrupt deliverable.
+    enum class WriteEffect { None, VmTranslate, STimer, Interrupt };
     enum class ModifyOp { Read, Write, Set, Clear };
     struct ModifyResult {
         bool valid;
@@ -144,21 +146,25 @@ private:
     void write_pmpcfg (unsigned int addr, word_t value);
     void write_pmpaddr(unsigned int addr, word_t value);
 
-    std::function<uint64_t()> get_uptime;
+    std::function<uint64_t()> get_mtime; // In mtime ticks
     bool time_readable() const;
+    // Guest-only access checks beyond read-only and existence; debug access skips them.
+    bool guest_accessible(unsigned int addr) const;
     std::optional<word_t> read_time() const;
 #ifdef KXEMU_ISA32
     std::optional<word_t> read_timeh() const;
 #endif
 
 public:
-    unsigned int privMode;
+    unsigned int privMode = PrivMode::MACHINE; // Harts reset into M-mode.
 
-    void init(unsigned int hartId, std::function<uint64_t()> get_uptime);
+    void init(unsigned int hartId, std::function<uint64_t()> get_mtime);
     void reset();
 
     bool has_pending_interrupt() const;
     uint64_t stimecmp_value() const;
+    // Sstc: stimecmp drives STIP only while menvcfg.STCE is set.
+    bool stce_enabled() const;
 
     // Guest CSR operation: MIP/SIP hold pendingMtx across the entire RMW;
     // other state is owned by the hart thread. The core applies returned effects.

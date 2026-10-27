@@ -2,14 +2,21 @@
 #include "log.h"
 #include "word.h"
 
-#include <cerrno>
+#include <asio/as_tuple.hpp>
+#include <asio/awaitable.hpp>
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
+#include <asio/io_context.hpp>
+#include <asio/ip/tcp.hpp>
+#include <asio/posix/stream_descriptor.hpp>
+#include <asio/post.hpp>
+#include <asio/use_awaitable.hpp>
+#include <asio/write.hpp>
+
 #include <cstdint>
-#include <cstdio>
 #include <iostream>
 #include <mutex>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
+#include <string>
 #include <unistd.h>
 
 #define LSR_RX_READY (1 << 0)
@@ -19,25 +26,55 @@
 
 using namespace kxemu::device;
 
-static int open_socket_client(const std::string &ip, int port) {
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        WARN("Failed to create socket.");
-        return -1;
+struct Uart16650::FdIO {
+    // Input and output descriptors; each has its own fd, also for a full-duplex one.
+    asio::posix::stream_descriptor in;
+    asio::posix::stream_descriptor out;
+
+    explicit FdIO(asio::io_context &context) : in(context), out(context) {}
+
+    asio::awaitable<void> recv_loop(Uart16650 &uart);
+    // Thread-safe; the write itself runs asynchronously on the loop.
+    void send_byte(uint8_t c);
+
+private:
+    static constexpr std::size_t SEND_QUEUE_MAX = 1 << 20;
+
+    // Send state, touched only on the loop thread.
+    std::string sendQueue;  // Bytes waiting for the next write
+    std::string sendBuffer; // Bytes of the write in progress
+    bool sending = false;
+    bool sendFailed = false;
+    void start_send();
+};
+
+// IIR interrupt identification, highest priority first.
+static constexpr uint8_t IIR_NONE    = 0b0001;
+static constexpr uint8_t IIR_RDA     = 0b0100; // Received data available
+static constexpr uint8_t IIR_TIMEOUT = 0b1100; // Character timeout
+static constexpr uint8_t IIR_THRE    = 0b0010; // Transmitter holding register empty
+static constexpr uint8_t IIR_FIFO    = 0b11000000;
+
+static constexpr uint8_t IER_RDA  = 1 << 0;
+static constexpr uint8_t IER_THRE = 1 << 1;
+
+uint8_t Uart16650::iir_locked() const {
+    if ((ier & IER_RDA) && !queue.empty()) {
+        // Data below the trigger level is reported at once as a character timeout.
+        return IIR_FIFO | (queue.size() >= recvFIFOTriggerByteCount ? IIR_RDA : IIR_TIMEOUT);
     }
-    struct sockaddr_in serv_addr;
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(port);
-    if (inet_pton(AF_INET, ip.c_str(), &serv_addr.sin_addr) <= 0) {
-        WARN("Invalid address.");
-        return -1;
+    if ((ier & IER_THRE) && threPending) {
+        return IIR_FIFO | IIR_THRE;
     }
-    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        WARN("Connect failed.");
-        perror("Connect failed");
-        return -1;
+    return IIR_FIFO | IIR_NONE;
+}
+
+void Uart16650::update_irq_locked() {
+    const bool level = (iir_locked() & IIR_NONE) == 0;
+    if (level != irqLevel) {
+        irqLevel = level;
+        this->set_irq_level(level);
     }
-    return sockfd;
 }
 
 word_t Uart16650::read(word_t offset, word_t size, bool &valid) {
@@ -48,6 +85,7 @@ word_t Uart16650::read(word_t offset, word_t size, bool &valid) {
     }
 
     valid = true;
+    std::lock_guard<std::mutex> lock(mtx);
     if (offset == 0) {
         if (lcr & 0x80) { // Divisor Latch Access Bit is set
             // LSB: Lower 8 bits of the divisor latch
@@ -57,20 +95,13 @@ word_t Uart16650::read(word_t offset, word_t size, bool &valid) {
             if (queue.empty()) {
                 return -1;
             }
-
-            queueMtx.lock();
             uint8_t c = queue.front();
             queue.pop();
             if (queue.empty()) {
                 lsr &= ~LSR_RX_READY;
             }
-            queueMtx.unlock();
-            
-            // Clear Receiver Data Available Interrupt
-            if (ier & 0x01 && (iir & 0b00111111) == 0b10) {
-                iir = 0b11000000; // Clear Interrupt
-            }
-            
+            // Draining the FIFO clears the received data interrupt.
+            update_irq_locked();
             return c;
         }
     } else if (offset == 1) {
@@ -83,6 +114,12 @@ word_t Uart16650::read(word_t offset, word_t size, bool &valid) {
         }
     } else if (offset == 2) {
         // IIR: Interrupt Identification Register
+        uint8_t iir = iir_locked();
+        if ((iir & 0x0f) == IIR_THRE) {
+            // Reading IIR acknowledges a THR empty interrupt.
+            threPending = false;
+            update_irq_locked();
+        }
         return iir;
     } else if (offset == 3) {
         // LCR: Line Control Register
@@ -105,6 +142,7 @@ bool Uart16650::write(word_t offset, word_t data, word_t size) {
         WARN("uart write size " FMT_VARU64 " not supported.", size);
         return false;
     }
+    std::lock_guard<std::mutex> lock(mtx);
     if (offset == 0) {
         if (lcr & 0x80) { // Divisor Latch Access Bit is set
             // LSB: Lower 8 bits of the divisor latch
@@ -113,6 +151,9 @@ bool Uart16650::write(word_t offset, word_t data, word_t size) {
         } else {
             // THR: Transmitter Holding Register
             send_byte(data);
+            // Transmission completes at once, so THR is empty again.
+            threPending = true;
+            update_irq_locked();
             return true;
         }
     } else if (offset == 1) {
@@ -122,19 +163,22 @@ bool Uart16650::write(word_t offset, word_t data, word_t size) {
             return true;
         } else {
             // IER: Interrupt Enable Register
+            // Enabling the THR empty interrupt while THR is empty raises it.
+            if ((data & IER_THRE) && !(ier & IER_THRE) && (lsr & LSR_TX_READY)) {
+                threPending = true;
+            }
             ier = data;
+            update_irq_locked();
             return true;
         }
     } else if (offset == 2) {
         // FCR: FIFO Control Register
         if (data & (1 << 1)) {
             // Clear Receive FIFO
-            queueMtx.lock();
             while (!queue.empty()) {
                 queue.pop();
             }
             lsr &= ~LSR_RX_READY;
-            queueMtx.unlock();
         }
 
         switch ((data & 0b11000000) >> 6) {
@@ -144,6 +188,7 @@ bool Uart16650::write(word_t offset, word_t data, word_t size) {
             case 0b11: recvFIFOTriggerByteCount = 14; break;
         }
 
+        update_irq_locked();
         return true;
     } else if (offset == 3) {
         // LCR: Line Control Register
@@ -158,56 +203,42 @@ bool Uart16650::write(word_t offset, word_t data, word_t size) {
     }
 }
 
-void Uart16650::update() {
-    if (mode != Mode::SOCKET) return;
+asio::awaitable<void> Uart16650::FdIO::recv_loop(Uart16650 &uart) {
+    uint8_t buffer[64];
+    while (true) {
+        auto [ec, n] = co_await this->in.async_read_some(
+            asio::buffer(buffer), asio::as_tuple(asio::use_awaitable));
+        if (ec) {
+            // operation_aborted: the fd was closed with the UART.
+            if (ec != asio::error::operation_aborted) {
+                WARN("uart input closed, stop receiving: %s", ec.message().c_str());
+            }
+            co_return;
+        }
 
-    static struct timeval timeout = {};
-    static fd_set read_fds;
-    FD_ZERO(&read_fds);
-    FD_SET(recvSocket, &read_fds);
-
-    int r = select(recvSocket + 1, &read_fds, NULL, NULL, &timeout);
-    if (r == -1) {
-        WARN("Failed to select socket.");
-        return;
-    }
-    if (r == 0) {
-        return;
-    }
-
-    char buffer[64];
-    ssize_t n = ::read(recvSocket, buffer, sizeof(buffer));
-    if (n <= 0) {
-        WARN("Failed to receive data from socket.");
-        mode = Mode::NONE;
-        return;
-    }
-
-    for (int i = 0; i < n; i++) {
-        recv_byte(buffer[i]);
+        std::lock_guard<std::mutex> lock(uart.mtx);
+        for (std::size_t i = 0; i < n; i++) {
+            uart.recv_byte_locked(buffer[i]);
+        }
+        uart.update_irq_locked();
     }
 }
 
-bool Uart16650::interrupt_pending() {
-    return this->interrput;
-}
-
-void Uart16650::clear_interrupt() {
-    this->interrput = false;
+void Uart16650::start_receive() {
+    asio::co_spawn(fds->in.get_executor(), fds->recv_loop(*this), asio::detached);
 }
 
 bool Uart16650::putch(uint8_t data) {
-    std::lock_guard<std::mutex> lock(queueMtx);
-    if (queue.size() >= BUFFER_SIZE) {
+    std::lock_guard<std::mutex> lock(mtx);
+    if (!recv_byte_locked(data)) {
         return false;
     }
-    queue.push(data);
-    lsr |= LSR_RX_READY;
+    update_irq_locked();
     return true;
 }
 
 void Uart16650::set_output_stream(std::ostream &os) {
-    if (mode == Mode::SOCKET) {
+    if (mode == Mode::FD) {
         PANIC("Cannot change to use stream.");
     } 
     mode = Mode::STREAM;
@@ -216,41 +247,82 @@ void Uart16650::set_output_stream(std::ostream &os) {
     lsr |= LSR_TX_READY;
 }
 
-bool Uart16650::open_socket(const std::string &ip, int port) {
+bool Uart16650::open_socket(utils::IOLoop &loop, const std::string &ip, int port) {
     if (mode != Mode::NONE) {
         PANIC("Cannot change to use socket.");
         return false;
     }
-    recvSocket = open_socket_client(ip, port);
-    sendSocket = open_socket_client(ip, port + 1);
-    if ((sendSocket < 0)) {
-        WARN("Failed to open socket.");
+
+    asio::error_code ec;
+    const auto address = asio::ip::make_address(ip, ec);
+    if (ec) {
+        WARN("Invalid address %s: %s", ip.c_str(), ec.message().c_str());
         return false;
     }
-    mode = Mode::SOCKET;
+    asio::ip::tcp::socket socket(loop.context());
+    socket.connect({address, static_cast<asio::ip::port_type>(port)}, ec);
+    if (ec) {
+        WARN("Failed to connect %s:%d: %s", ip.c_str(), port, ec.message().c_str());
+        return false;
+    }
+
+    const int fd = socket.release(ec);
+    if (ec) {
+        WARN("Failed to release socket %s:%d: %s", ip.c_str(), port, ec.message().c_str());
+        return false;
+    }
+    // A TCP socket is full duplex, so the same fd carries input and output.
+    return set_fds(loop, fd, fd);
+}
+
+bool Uart16650::set_fds(utils::IOLoop &loop, int readFd, int writeFd) {
+    if (mode != Mode::NONE) {
+        PANIC("Cannot change to use fds.");
+    }
+
+    auto io = std::make_unique<FdIO>(loop.context());
+
+    // A full-duplex fd serves both directions. Give output its own duplicate, so that
+    // each descriptor registers with the loop and closes on its own.
+    const int outFd = (writeFd == readFd && readFd >= 0) ? dup(readFd) : writeFd;
+
+    // Ownership passes even on failure: an adopted fd closes with io, any other here.
+    auto adopt = [](asio::posix::stream_descriptor &desc, int fd) {
+        if (fd < 0) return false;
+        asio::error_code ec;
+        desc.assign(fd, ec);
+        if (ec) {
+            close(fd);
+            return false;
+        }
+        return true;
+    };
+    // Adopt both before checking, so that neither fd is left unowned.
+    const bool inAdopted = adopt(io->in, readFd);
+    const bool outAdopted = adopt(io->out, outFd);
+    if (!inAdopted || !outAdopted) {
+        WARN("Failed to adopt uart fds.");
+        return false;
+    }
+
+    fds = std::move(io);
+    mode = Mode::FD;
     lsr |= LSR_TX_READY;
+    start_receive();
     return true;
 }
 
-void Uart16650::recv_byte(uint8_t c) {
-    std::lock_guard<std::mutex> lock(queueMtx);
+bool Uart16650::recv_byte_locked(uint8_t c) {
     if (queue.size() >= BUFFER_SIZE) {
         WARN("uart buffer is full, drop data.");
-        return;
+        return false;
     }
     queue.push(c);
     lsr |= LSR_RX_READY;
-
-    if (queue.size() >= this->recvFIFOTriggerByteCount) {
-        if (ier & 0x01) {
-            iir = 0b10 | 0b11000000; // Interrupt Pending
-            this->interrput = true;
-        }
-    }
+    return true;
 }
 
 void Uart16650::send_byte(uint8_t c) {
-    std::lock_guard<std::mutex> lock(senderMtx);
     if (mode == Mode::STREAM) {
         if (stream == nullptr) {
             WARN("uart stream is not set, output to stdout.");
@@ -260,19 +332,48 @@ void Uart16650::send_byte(uint8_t c) {
             *stream << c;
             stream->flush();
         } 
-    } else if (mode == Mode::SOCKET) {
-        ssize_t n = send(sendSocket, &c, 1, 0);
-        if (n <= 0) {
-            WARN("Failed to send data to socket.");
-        }
+    } else if (mode == Mode::FD) {
+        fds->send_byte(c);
     }
+}
+
+void Uart16650::FdIO::send_byte(uint8_t c) {
+    // Hand the byte to the loop: the hart holds the UART mutex here, so it must not
+    // block on a peer that stops reading. Posts run in order, so bytes keep theirs.
+    asio::post(this->out.get_executor(), [this, c] {
+        if (this->sendFailed) return;
+        if (this->sendQueue.size() >= SEND_QUEUE_MAX) {
+            WARN("uart send queue is full, drop data.");
+            return;
+        }
+        this->sendQueue.push_back(char(c));
+        if (!this->sending) this->start_send();
+    });
+}
+
+void Uart16650::FdIO::start_send() {
+    this->sending = true;
+    this->sendBuffer = std::move(this->sendQueue);
+    this->sendQueue.clear();
+    asio::async_write(this->out, asio::buffer(this->sendBuffer),
+                      [this](const asio::error_code &ec, std::size_t) {
+        this->sending = false;
+        if (ec) {
+            // operation_aborted: the fd was closed with the UART.
+            if (ec != asio::error::operation_aborted) {
+                WARN("uart output closed, stop sending: %s", ec.message().c_str());
+            }
+            this->sendFailed = true;
+            this->sendQueue.clear();
+            return;
+        }
+        if (!this->sendQueue.empty()) this->start_send();
+    });
 }
 
 const char *Uart16650::get_type_name() const {
     return "uart16650";
 }
 
-Uart16650::~Uart16650() {
-    close(recvSocket);
-    close(sendSocket);
-}
+Uart16650::Uart16650() = default;
+Uart16650::~Uart16650() = default;

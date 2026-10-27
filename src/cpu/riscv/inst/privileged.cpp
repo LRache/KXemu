@@ -11,6 +11,8 @@ using namespace kxemu::cpu;
 void RVCore::set_priv_mode(int mode) {
     this->privMode = mode;
     this->update_vm_translate();
+    // Every privilege change (xRET, traps) also rewrites the mstatus interrupt enables.
+    this->recheck_interrupts();
 }
 
 void RVCore::do_ecall(const DecodeInfo &) {
@@ -96,18 +98,15 @@ void RVCore::do_ebreak(const DecodeInfo &) {
 }
 
 void RVCore::do_wfi(const DecodeInfo &) {
-#ifndef CONFIG_WFI_AS_NOP
-    this->update_device();
-
+// Difftest harts never wait: WFI may legally return at once.
+#if !defined(CONFIG_WFI_AS_NOP) && !defined(CONFIG_DIFFTEST)
+    // Every producer (timers, the PLIC, the framework) publishes mip and notifies
+    // the hart, so sleep without a timeout until something is enabled in mie.
     while ((this->csr.read_mip() & this->csr.mie) == 0) {
-        // UART/PLIC still require polling until their event-driven migration.
-        auto result = this->wait_for_interrupt(std::chrono::milliseconds(1));
-        if (result == WaitResult::Stopped) {
+        if (this->wait_for_interrupt() == WaitResult::Stopped) {
             this->state = IDLE;
             return;
         }
-
-        this->update_device();
     }
 
     this->scan_interrupt();

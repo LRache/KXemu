@@ -129,11 +129,11 @@ namespace kxemu::cpu {
         return (addr & 0b110000000000) == 0b110000000000;
     }
 
-    static inline word_t realtime_to_mtime(word_t uptime) {
+    static inline uint64_t realtime_to_mtime(uint64_t uptime) {
         return uptime / 100;
     }
 
-    static inline word_t mtime_to_realtime(word_t mtime) {
+    static inline uint64_t mtime_to_realtime(uint64_t mtime) {
         return mtime * 100;
     }
 

@@ -51,7 +51,7 @@ else()
 endif()
 
 find_package(Threads REQUIRED)
-target_link_libraries(${KXEMU_TARGET} PRIVATE Threads::Threads)
+target_link_libraries(${KXEMU_TARGET} PRIVATE Threads::Threads asio)
 
 include(${PROJECT_SOURCE_DIR}/scripts/isa/${CONFIG_BASE_ISA}.cmake)
 

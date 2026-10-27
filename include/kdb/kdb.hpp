@@ -39,6 +39,11 @@ namespace kxemu::kdb {
     namespace device {
         void init();
         void add(kxemu::device::MMIODev *dev);
+        // Runs device I/O coroutines between init() and deinit().
+        utils::IOLoop &io_loop();
+        // Stop device I/O and wait for asynchronous device work, after which no
+        // device touches the cores. Call it before deleting the CPU.
+        void stop();
         void deinit();
     }
 

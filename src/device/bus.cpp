@@ -151,6 +151,7 @@ bool Bus::add_mmio_map(unsigned int id, word_t start, word_t length, MMIODev *de
     m->dev = dev;
     m->id = id;
     mmioMaps.push_back(m);
+    dev->attach_irq(this, id);
     dev->connect_to_bus(this);
     return true;
 }
@@ -199,9 +200,35 @@ bool Bus::write(word_t addr, word_t data, word_t length) {
     return false;
 }
 
-void Bus::update() {
-    for (auto &m : mmioMaps) {
-        m->dev->update();
+void Bus::set_interrupt_controller(InterruptController *intc) {
+    // Under irqMtx, so that no level change slips between the switch and the replay.
+    std::lock_guard<std::mutex> lock(this->irqMtx);
+    this->intc.store(intc, std::memory_order_release);
+    if (intc == nullptr) return;
+    const uint64_t levels = this->irqLevels;
+    for (unsigned int irq = 1; irq < 64; irq++) {
+        if (levels & (uint64_t{1} << irq)) intc->set_irq(irq, true);
+    }
+}
+
+void Bus::set_irq(unsigned int irq, bool level) {
+    if (irq == 0 || irq >= 64) return;
+    const uint64_t bit = uint64_t{1} << irq;
+    // Record and forward together, so the controller sees levels in record order.
+    std::lock_guard<std::mutex> lock(this->irqMtx);
+    if (level) {
+        this->irqLevels |= bit;
+    } else {
+        this->irqLevels &= ~bit;
+    }
+    if (auto *intc = this->intc.load(std::memory_order_relaxed)) {
+        intc->set_irq(irq, level);
+    }
+}
+
+void MMIODev::set_irq_level(bool level) {
+    if (this->irqBus != nullptr) {
+        this->irqBus->set_irq(this->irq, level);
     }
 }
 

@@ -21,6 +21,7 @@ KXEMU_CONFIG_VARS := \
 	CONFIG_HALT_WHEN_BREAK \
 	CONFIG_HALT_WHEN_INVALID \
 	CONFIG_WFI_AS_NOP \
+	CONFIG_DIFFTEST \
 	CONFIG_ENGINE_INTERPRETER \
 	CONFIG_ENGINE \
 	CONFIG_MODE_SYSTEM \
@@ -76,6 +77,7 @@ CONFIG_ENGINE ?= interpreter
 CONFIG_MODE_SYSTEM ?= y
 CONFIG_TARGET_SHARE ?= n
 CONFIG_TARGET_NATIVE_ELF ?= $(if $(filter y,$(CONFIG_TARGET_SHARE)),n,y)
+CONFIG_DIFFTEST ?= $(if $(filter y,$(CONFIG_TARGET_SHARE)),$(if $(filter riscv,$(CONFIG_BASE_ISA)),y,n),n)
 
 kxemu-selected-cc := $(if $(filter y,$(CONFIG_CC_GPP)),g++,$(if $(filter y,$(CONFIG_CC_CLANGPP)),clang++))
 CONFIG_CC ?= $(if $(kxemu-selected-cc),$(kxemu-selected-cc),clang++)

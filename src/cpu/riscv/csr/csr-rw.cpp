@@ -30,6 +30,14 @@ bool RVCSR::has_pending_interrupt() const {
     return this->pendingHint.load(std::memory_order_relaxed);
 }
 
+bool RVCSR::stce_enabled() const {
+#ifdef KXEMU_ISA32
+    return csr::MEnvConfigH(this->menvcfgh).stce();
+#else
+    return csr::MEnvConfig(this->menvcfg).stce();
+#endif
+}
+
 uint64_t RVCSR::stimecmp_value() const {
     uint64_t value = this->stimecmp;
 #ifdef KXEMU_ISA32
@@ -153,11 +161,12 @@ RVCSR::WriteResult RVCSR::write_csr(unsigned int addr, word_t value, WriteMode m
             } else {
                 this->mstatus = csr::MStatus(value);
             }
+            effect = WriteEffect::Interrupt;
             break;
         case CSRAddr::MISA:      this->misa     = value; break;
         case CSRAddr::MEDELEG:   this->medeleg  = value; break;
-        case CSRAddr::MIDELEG:   this->mideleg  = value; break;
-        case CSRAddr::MIE:       this->mie      = guest ? word_t(csr::MIE(value)) : value; break;
+        case CSRAddr::MIDELEG:   this->mideleg  = value; effect = WriteEffect::Interrupt; break;
+        case CSRAddr::MIE:       this->mie      = guest ? word_t(csr::MIE(value)) : value; effect = WriteEffect::Interrupt; break;
         case CSRAddr::MTVEC:     this->mtvec    = value; break;
         case CSRAddr::MCNTEN:    this->mcnten   = value; break;
         case CSRAddr::MSCRATCH:  this->mscratch = value; break;
@@ -169,27 +178,29 @@ RVCSR::WriteResult RVCSR::write_csr(unsigned int addr, word_t value, WriteMode m
         case CSRAddr::MIP: {
             csr::MIP pending(this->mip);
             if (guest) {
-                pending.set_mip(value);
+                pending.set_mip(value, this->stce_enabled());
             } else {
                 pending = value;
             }
             this->set_pending(lock, pending);
+            effect = WriteEffect::Interrupt;
         } break;
-        case CSRAddr::MENVCFG:   this->menvcfg  = value; break;
+        case CSRAddr::MENVCFG:   this->menvcfg  = value; effect = WriteEffect::STimer; break;
         case CSRAddr::MSECCFG:   this->mseccfg  = value; break;
 #ifdef KXEMU_ISA32
         case CSRAddr::MSTATUSH:  this->mstatush = value; break;
         case CSRAddr::MEDELEGH:  this->medelegh = value; break;
-        case CSRAddr::MENVCFGH:  this->menvcfgh = value; break;
+        case CSRAddr::MENVCFGH:  this->menvcfgh = value; effect = WriteEffect::STimer; break;
         case CSRAddr::MSECCFGH:  this->mseccfgh = value; break;
 #endif
 
         // Supervisor
-        case CSRAddr::SSTATUS:   this->mstatus.set_sstatus(value); break;
+        case CSRAddr::SSTATUS:   this->mstatus.set_sstatus(value); effect = WriteEffect::Interrupt; break;
         case CSRAddr::SIE: {
             csr::MIE enabled = this->mie;
             enabled.set_sie(value);
             this->mie = enabled;
+            effect = WriteEffect::Interrupt;
         } break;
         case CSRAddr::STVEC:     this->stvec    = value; break;
         case CSRAddr::SCNTEN:    this->scnten   = value; break;
@@ -202,6 +213,7 @@ RVCSR::WriteResult RVCSR::write_csr(unsigned int addr, word_t value, WriteMode m
             csr::MIP pending(this->mip);
             pending.set_sip(value);
             this->set_pending(lock, pending);
+            effect = WriteEffect::Interrupt;
         } break;
         case CSRAddr::STIMECMP:  this->stimecmp = value; effect = WriteEffect::STimer; break;
 #ifdef KXEMU_ISA32
@@ -242,6 +254,7 @@ RVCSR::ModifyResult RVCSR::modify_csr(unsigned int addr, word_t operand, ModifyO
     const bool needWrite = op != ModifyOp::Read;
     // Reject before reading, so that a rejected write has no read effects.
     if (needWrite && csr_read_only(addr)) return invalid;
+    if (!this->guest_accessible(addr)) return invalid;
 
     // MIP/SIP keep the lock across the whole read-modify-write.
     const auto lock = this->lock_for(addr);
@@ -298,21 +311,31 @@ void RVCSR::write_pmpaddr(unsigned int addr, word_t value) {
     this->reload_pmpcfg();
 }
 
+bool RVCSR::guest_accessible(unsigned int addr) const {
+    // csr[9:8] encodes the lowest privilege level that may access the CSR.
+    if (this->privMode < ((addr >> 8) & 0x3)) return false;
+
+    switch (addr) {
+        case CSRAddr::STIMECMP:
+#ifdef KXEMU_ISA32
+        case CSRAddr::STIMECMPH:
+#endif
+            // Sstc: below M-mode, stimecmp needs both menvcfg.STCE and mcounteren.TM.
+            return this->privMode == PrivMode::MACHINE ||
+                   (this->stce_enabled() && csr::MCounteren(this->mcnten).tm());
+        default:
+            return true;
+    }
+}
+
 bool RVCSR::time_readable() const {
-    // M-mode can always read TIME; only lower modes need counter/extension checks.
+    // M-mode can always read TIME. Lower modes need mcounteren.TM, and U-mode also
+    // scounteren.TM. menvcfg.STCE only gates stimecmp, not TIME.
     if (this->privMode == PrivMode::MACHINE) return true;
 
     const csr::MCounteren mcnten = this->mcnten;
     switch (this->privMode) {
-        case PrivMode::SUPERVISOR: {
-#ifdef KXEMU_ISA32
-            const csr::MEnvConfigH menvcfgh = this->menvcfgh;
-            return mcnten.tm() && menvcfgh.stce();
-#else
-            const csr::MEnvConfig menvcfg = this->menvcfg;
-            return mcnten.tm() && menvcfg.stce();
-#endif
-        }
+        case PrivMode::SUPERVISOR: return mcnten.tm();
         case PrivMode::USER: {
             const csr::MCounteren scnten = this->scnten;
             return mcnten.tm() && scnten.tm();
@@ -326,7 +349,7 @@ std::optional<word_t> RVCSR::read_time() const {
         return std::nullopt;
     }
 
-    uint64_t mtime = realtime_to_mtime(this->get_uptime());
+    uint64_t mtime = this->get_mtime();
     return mtime;
 }
 
@@ -336,7 +359,7 @@ std::optional<word_t> RVCSR::read_timeh() const {
         return std::nullopt;
     }
 
-    uint64_t mtime = realtime_to_mtime(this->get_uptime());
+    uint64_t mtime = this->get_mtime();
     return mtime >> 32;
 }
 #endif

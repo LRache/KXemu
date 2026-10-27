@@ -3,6 +3,7 @@
 
 #include "device/bus.hpp"
 #include "device/def.hpp"
+#include <condition_variable>
 #include <cstdint>
 #include <mutex>
 #include <vector>
@@ -87,21 +88,39 @@ protected:
     };
     VirtQueue *virtQueues;
 
+    // A descriptor chain, resolved to host pointers into guest memory.
     struct Buffer {
-        word_t addr;
-        word_t len;
-        bool write;
+        uint8_t *ptr;
+        uint32_t len;
+        bool write; // Device-writable
+    };
+    struct Request {
+        unsigned int queueIndex;
+        uint16_t head; // Index of the first descriptor, returned in the used ring
+        std::vector<Buffer> buffers;
     };
 
-    virtual bool virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t &len) = 0;
+    // Called on the hart with mtx held. The device may finish the request later
+    // on any thread, and must then call virtio_complete() exactly once.
+    virtual void virtio_submit(Request &&req) = 0;
+    // Thread-safe. len is the number of bytes written into the chain.
+    void virtio_complete(const Request &req, uint32_t len);
+    void virtio_complete_locked(const Request &req, uint32_t len);
 
-    void virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned int descIndex);
+    // InterruptStatus bits; the IRQ line is asserted while any is set.
+    static constexpr uint32_t VIRTIO_INT_USED_BUFFER = 1 << 0;
+    uint32_t interruptStatus = 0;
+    void ack_interrupt(word_t data);
 
-    bool interrupt = false;
-    bool interrupt_pending() override;
-    void clear_interrupt() override;
-
+    // Guards the registers, the queues and the used rings. The IRQ is driven with
+    // it held, so the order is VirtIO, then the interrupt controller.
     std::mutex mtx;
+    // Requests submitted and not yet completed, guarded by mtx.
+    unsigned int inflight = 0;
+    // A device reset is waiting for in-flight requests; guarded by mtx.
+    bool resetting = false;
+    std::condition_variable idle;
+    void wait_idle(std::unique_lock<std::mutex> &lock);
 
 public:
     VirtIO(uint32_t deviceID, unsigned int featuresNumMax, unsigned int queueCount);
@@ -111,6 +130,8 @@ public:
     word_t read(word_t offset, word_t size, bool &valid) override;
     bool write(word_t offset, word_t data, word_t size) override;
     void connect_to_bus(Bus *bus) override;
+    // Wait for in-flight requests; they may still raise the IRQ until then.
+    void quiesce() override;
 };
 
 } // namespace kxemu::device

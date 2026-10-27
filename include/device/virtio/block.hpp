@@ -3,31 +3,38 @@
 
 #include "device/def.hpp"
 #include "device/virtio/virtio.hpp"
+
 #include <cstdint>
-#include <fstream>
-#include <mutex>
+#include <memory>
+#include <string>
+
+namespace asio {
+class thread_pool;
+}
 
 namespace kxemu::device {
 
+// Requests are parsed on the hart that writes QueueNotify and served on a
+// thread pool with preadv/pwritev straight into guest memory. They may complete
+// out of order; each completion updates the used ring and raises the IRQ.
 class VirtIOBlock : public VirtIO {
 private:
-    bool virtio_handle_req(const std::vector<Buffer> &buffer, uint32_t &len) override;
+    void virtio_submit(Request &&req) override;
+    bool get_device_features_bit(unsigned int bit) override;
 
-    bool blk_read (uint32_t sector, uint32_t len, word_t bufferAddr, uint8_t *status);
-    bool blk_write(uint32_t sector, uint32_t len, word_t bufferAddr, uint8_t *status);
+    // Runs on the pool. Returns the virtio-blk status and the bytes written to data.
+    uint8_t serve(uint32_t type, uint64_t sector, std::vector<Buffer> &data, uint32_t &written);
 
-    std::fstream fstream;
-    std::size_t imgSize;
-    std::mutex streamMtx;
+    int fd = -1;
+    uint64_t imgSize = 0;
+    std::unique_ptr<asio::thread_pool> pool;
 
-    struct BufferHead {
-        uint32_t type;
-        uint32_t reserved;
-        uint64_t sector;
-    };
+    struct Config {
+        uint64_t capacity; // In 512-byte sectors
+    } config;
 
 public:
-    VirtIOBlock();
+    explicit VirtIOBlock(unsigned int threads = 4);
     ~VirtIOBlock();
 
     bool open_raw_img(const std::string &filepath);

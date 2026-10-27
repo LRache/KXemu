@@ -1,6 +1,6 @@
 #include "cpu/riscv/core.hpp"
-#include "cpu/riscv/aclint.hpp"
 #include "cpu/word.hpp"
+#include "debug.h"
 #include "device/bus.hpp"
 #include "log.h"
 #include "word.h"
@@ -13,18 +13,27 @@ using namespace kxemu::cpu;
 
 RVCore::RVCore() {
     this->vaddr_translate_func = &RVCore::vaddr_translate_bare;
-
-    this->deviceMtx = nullptr;
 }
 
-void RVCore::init(unsigned int coreID, device::Bus *bus, device::AClint *alint, device::PLIC *plic) {
+void RVCore::init(unsigned int coreID, device::Bus *bus, PlatformTimer *timer) {
     this->coreID = coreID;
     this->bus = bus;
-    this->aclint = alint;
-    this->plic = plic;
+    this->set_platform_timer(timer);
     this->state = IDLE;
 
     this->init_csr();
+}
+
+void RVCore::set_platform_timer(PlatformTimer *timer) {
+    this->timer = timer;
+    // Also detaches the comparator from the previous timer when timer is null.
+    this->stimer.init(timer, [this](bool asserted) {
+        if (asserted) {
+            this->set_timer_interrupt_s();
+        } else {
+            this->clear_timer_interrupt_s();
+        }
+    });
 }
 
 void RVCore::reset(word_t entry) {
@@ -33,11 +42,12 @@ void RVCore::reset(word_t entry) {
         this->wakePending = false;
         this->stopping.store(false, std::memory_order_release);
     }
+    this->interruptPending.store(false, std::memory_order_relaxed);
     this->pc = entry;
     this->state = RUNNING;
-    this->privMode = PrivMode::MACHINE;
     
-    this->csr.reset();
+    this->csr.reset(); // Also resets privMode to M-mode.
+    this->stimer.reset();
 
     std::memset(this->gpr, 0, sizeof(this->gpr));
     this->gpr[10] = this->coreID;
@@ -48,8 +58,8 @@ void RVCore::reset(word_t entry) {
     this->tlb_fence();
 }
 
-uint64_t RVCore::get_uptime() {
-    return this->aclint->get_uptime();
+uint64_t RVCore::get_mtime() {
+    return this->timer == nullptr ? 0 : this->timer->mtime();
 }
 
 bool RVCore::is_error() {
@@ -110,7 +120,10 @@ static constexpr struct {
     {"mepc"    , CSRAddr::MEPC    }, {"mcause"  , CSRAddr::MCAUSE  },
     {"mtval"   , CSRAddr::MTVAL   }, {"mip"     , CSRAddr::MIP     },
     {"mtinst"  , CSRAddr::MTINST  }, {"mtval2"  , CSRAddr::MTVAL2  },
-    {"pmpcfg0" , CSRAddr::PMPCFG0 },
+    {"pmpcfg0" , CSRAddr::PMPCFG0 }, {"menvcfg" , CSRAddr::MENVCFG },
+#ifdef KXEMU_ISA32
+    {"menvcfgh", CSRAddr::MENVCFGH},
+#endif
     {"sstatus" , CSRAddr::SSTATUS }, {"sie"     , CSRAddr::SIE     },
     {"stvec"   , CSRAddr::STVEC   }, {"scnten"  , CSRAddr::SCNTEN  },
     {"sscratch", CSRAddr::SSCRATCH}, {"sepc"    , CSRAddr::SEPC    },

@@ -5,7 +5,7 @@
 using namespace kxemu::cpu;
 
 void RVCore::init_csr() {
-    this->csr.init(this->coreID, [this] { return this->get_uptime(); });
+    this->csr.init(this->coreID, [this] { return this->get_mtime(); });
 }
 
 RVCSR::ModifyResult RVCore::modify_csr(unsigned int addr, word_t operand, RVCSR::ModifyOp op, bool readOld) {
@@ -19,5 +19,6 @@ void RVCore::apply_csr_effect(RVCSR::WriteEffect effect) {
         case RVCSR::WriteEffect::None: break;
         case RVCSR::WriteEffect::VmTranslate: this->update_vm_translate(); break;
         case RVCSR::WriteEffect::STimer: this->update_stimecmp(); break;
+        case RVCSR::WriteEffect::Interrupt: this->recheck_interrupts(); break;
     }
 }

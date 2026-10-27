@@ -2,7 +2,6 @@
 #include "cpu/riscv/aclint.hpp"
 #include "cpu/riscv/def.hpp"
 #include "device/def.hpp"
-#include "utils/utils.hpp"
 #include "log.h"
 #include "debug.h"
 
@@ -19,48 +18,44 @@ static inline constexpr AddrSpace SSWI     = {0xc000, 0x4000};
 AClint::AClint() {
     this->coreCount = 0;
     this->coreObjects = nullptr;
+    this->timer = nullptr;
 }
 
 AClint::~AClint() {
     delete[] this->coreObjects;
 }
 
-void AClint::init(RVCore *cores, unsigned int coreCount) {
+void AClint::init(std::span<RVCore *const> cores, kxemu::cpu::PlatformTimer *timer) {
     Assert(this->coreObjects == nullptr, "CLINT is already initialized.");
-    this->coreCount = coreCount;
-    this->coreObjects = new CoreObject[coreCount];
-    for (unsigned int i = 0; i < coreCount; i++) {
-        this->coreObjects[i].core = &cores[i];
-        this->coreObjects[i].mtimecmp = -1;
-        this->coreObjects[i].mtimerID = -1;
-        this->coreObjects[i].stimerID = -1;
-        this->coreObjects[i].msip = false;
-        this->coreObjects[i].ssip = false;
-        this->coreObjects[i].mtip = false;
-        this->coreObjects[i].stip = false;
+    this->coreCount = cores.size();
+    this->timer = timer;
+    this->coreObjects = new CoreObject[this->coreCount];
+    for (unsigned int i = 0; i < this->coreCount; i++) {
+        CoreObject &coreObj = this->coreObjects[i];
+        coreObj.core = cores[i];
+        coreObj.msip = false;
+        coreObj.ssip = false;
+        coreObj.mtimer.init(timer, [core = coreObj.core](bool asserted) {
+            if (asserted) {
+                core->set_timer_interrupt_m();
+            } else {
+                core->clear_timer_interrupt_m();
+            }
+        });
     }
 }
 
 void AClint::reset() {
+    std::lock_guard<std::mutex> lock(this->mtx);
     for (unsigned int i = 0; i < this->coreCount; i++) {
-        this->coreObjects[i].mtimecmp = -1;
-        if (this->coreObjects[i].mtimerID != (unsigned int)-1) {
-            this->taskTimer.remove_task(this->coreObjects[i].mtimerID);
-            this->coreObjects[i].mtimerID = -1;
-        }
-        if (this->coreObjects[i].stimerID != (unsigned int)-1) {
-            this->taskTimer.remove_task(this->coreObjects[i].stimerID);
-            this->coreObjects[i].stimerID = -1;
-        }
+        this->coreObjects[i].mtimer.reset();
         this->coreObjects[i].msip = false;
         this->coreObjects[i].ssip = false;
-        this->coreObjects[i].mtip = false;
-        this->coreObjects[i].stip = false;
     }
-    this->timerRunning = false;
 }
 
 word_t AClint::read(word_t addr, word_t size, bool &valid) {
+    std::lock_guard<std::mutex> lock(this->mtx);
     if (MSWI.in_range(addr)) {
         // MSWI only supports 32-bit reads
         if (size != 4) {
@@ -120,7 +115,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
         }
         
         valid = true;
-        return this->coreObjects[coreID].mtimecmp;
+        return this->coreObjects[coreID].mtimer.value();
         #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %lu for MTIMECMP", size);
@@ -128,35 +123,37 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
             return -1;
         }
 
-        word_t offset = addr & 0b11;
+        const uint64_t mtimecmp = this->coreObjects[coreID].mtimer.value();
         valid = true;
-        if (offset == 0) {
-            return this->coreObjects[coreID].mtimecmp & 0xffffffffUL;
+        if ((addr & 0b100) == 0) {
+            return mtimecmp & 0xffffffffULL;
         } else {
-            return this->coreObjects[coreID].mtimecmp >> 32;
+            return mtimecmp >> 32;
         }
         #endif
     } else if (MTIME.in_range(addr)) {
         #ifdef KXEMU_ISA64
         if (size != 8 || (addr & 0x7) != 0) {
             WARN("Unaligned access to MTIME. size=%lu, addr=" FMT_WORD64, size, addr);
+            valid = false;
             return -1;
         }
 
         valid = true;
-        return cpu::realtime_to_mtime(this->get_uptime());
+        return this->timer->mtime();
         
         #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %lu for MTIME", size);
+            valid = false;
             return -1;
         }
         
         valid = true;
         word_t offset = addr - MTIME.BASE;
-        word_t mtime = cpu::realtime_to_mtime(this->get_uptime());
+        const uint64_t mtime = this->timer->mtime();
         if (offset == 0) {
-            return mtime & 0xffffffffUL;
+            return mtime & 0xffffffffULL;
         } else {
             return mtime >> 32;
         }
@@ -169,6 +166,7 @@ word_t AClint::read(word_t addr, word_t size, bool &valid) {
 }
 
 bool AClint::write(word_t addr, word_t value, word_t size) {
+    std::lock_guard<std::mutex> lock(this->mtx);
     if (MSWI.in_range(addr)) {
         // MSWI only supports 32-bit writes
         if (size != 4) {
@@ -242,22 +240,20 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
             return false;
         }
         
-        this->coreObjects[coreID].mtimecmp = value;
-        this->update_core_mtimecmp(coreID);
+        this->coreObjects[coreID].mtimer.set(value);
     #else
         if (size != 4 || (addr & 0x3) != 0) {
             WARN("Invalid size %lu for MTIMECMP", size);
             return false;
         }
-        word_t offset = addr & 0b100;
-        if (offset == 0) {
-            this->coreObjects[coreID].mtimecmp &= ~0xffffffffUL;
-            this->coreObjects[coreID].mtimecmp |= value;
+        // Each half write takes effect, as the comparator is level-triggered.
+        uint64_t mtimecmp = this->coreObjects[coreID].mtimer.value();
+        if ((addr & 0b100) == 0) {
+            mtimecmp = (mtimecmp & ~0xffffffffULL) | uint32_t(value);
         } else {
-            this->coreObjects[coreID].mtimecmp &= 0xffffffffUL;
-            this->coreObjects[coreID].mtimecmp |= (uint64_t)value << 32;
-            this->update_core_mtimecmp(coreID);
+            mtimecmp = (mtimecmp & 0xffffffffULL) | (uint64_t(value) << 32);
         }
+        this->coreObjects[coreID].mtimer.set(mtimecmp);
         #endif
     } else if (MTIME.in_range(addr)) {
         return false;
@@ -267,101 +263,6 @@ bool AClint::write(word_t addr, word_t value, word_t size) {
     }
     
     return true;
-}
-
-void AClint::update() {
-    std::lock_guard<std::mutex> lock(this->mtx);
-    for (unsigned int i = 0; i < this->coreCount; i++) {
-        CoreObject &coreObj = this->coreObjects[i];
-        if (coreObj.mtip) {
-            coreObj.core->set_timer_interrupt_m();
-            coreObj.mtip = false;
-        }
-        if (coreObj.stip) {
-            coreObj.core->set_timer_interrupt_s();
-            coreObj.stip = false;
-        }
-    }
-}
-
-void AClint::start_timer() {
-    if (this->timerRunning) {
-        PANIC("Timer is already running.");
-        return ;
-    }
-    this->timerRunning = true;
-    this->bootTime = utils::get_current_time();
-    this->taskTimer.start_timer();
-}
-
-void AClint::stop_timer() {
-    if (!this->timerRunning) {
-        PANIC("Timer is not running.");
-        return ;
-    }
-    this->timerRunning = false;
-    this->taskTimer.stop_timer();
-}
-
-uint64_t AClint::get_uptime() {
-    if (!this->timerRunning) {
-        return 0;
-    }
-    uint64_t uptime = utils::get_current_time() - this->bootTime;
-    return uptime;
-}
-
-void AClint::register_stimer(unsigned int coreID, uint64_t stimecmp) {
-    if (coreID >= this->coreCount) {
-        PANIC("Invalid core ID %d", coreID);
-        return ;
-    }
-
-    CoreObject *coreObj = &this->coreObjects[coreID];
-    
-    if (coreObj->stimerID != (unsigned int)-1) {
-        this->taskTimer.remove_task(coreObj->stimerID);
-    }
-
-    uint64_t uptimecmp = cpu::mtime_to_realtime(stimecmp);
-    uint64_t uptime = this->get_uptime();
-    if (uptimecmp <= uptime) {
-        // If the stimecmp is already passed, we can just set the interrupt immediately
-        coreObj->stip = true;
-        coreObj->stimerID = -1;
-        return ;
-    }
-    uint64_t delay = uptimecmp - uptime;
-    this->coreObjects[coreID].stimerID = this->taskTimer.add_task(delay, [this, coreObj]() {
-        std::lock_guard<std::mutex> lock(this->mtx);
-        coreObj->stip = true;
-        coreObj->stimerID = -1;
-    });
-}
-
-void AClint::update_core_mtimecmp(unsigned int coreID) {
-    if (coreID >= this->coreCount) {
-        PANIC("Invalid core ID %d", coreID);
-        return ;
-    }
-
-    CoreObject *coreObj = &this->coreObjects[coreID];
-
-    if (coreObj->mtimerID != (unsigned int)-1) {
-        this->taskTimer.remove_task(coreObj->mtimerID);
-    }
-
-    coreObj->core->clear_timer_interrupt_m();
-
-    uint64_t mtimecmp = coreObj->mtimecmp;
-    uint64_t uptimecmp = cpu::mtime_to_realtime(mtimecmp);
-    uint64_t uptime = this->get_uptime();
-    uint64_t delay = uptimecmp - uptime;
-    coreObj->mtimerID = this->taskTimer.add_task(delay, [this, coreObj]() {
-        std::lock_guard<std::mutex> lock(this->mtx);
-        coreObj->mtip = true;
-        coreObj->mtimerID = -1;
-    });
 }
 
 const char *AClint::get_type_name() const {

@@ -2,8 +2,10 @@
 #define __KXEMU_DEVICE_UART_HPP__
 
 #include "device/mmio.hpp"
+#include "utils/io-loop.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <ostream>
 #include <queue>
 #include <mutex>
@@ -16,37 +18,49 @@ class Uart16650: public MMIODev {
 public:
     word_t read(word_t offset, word_t size, bool &valid) override;
     bool  write(word_t offset, word_t data, word_t size) override;
-    void update() override;
-    bool interrupt_pending() override;
-    void clear_interrupt() override;
     
     const char *get_type_name() const override;
 
     bool putch(uint8_t data);
     void set_output_stream(std::ostream &os);    // send data to stream
-    bool open_socket(const std::string &ip, int port); // open socket to send and receive data
+    // Connect to ip:port, which carries both input and output, and run I/O on loop.
+    // Stop the loop before destroying the UART, and destroy the UART before the loop.
+    bool open_socket(utils::IOLoop &loop, const std::string &ip, int port);
+    // Receive from readFd and send to writeFd on loop: pipes, ttys, sockets and the
+    // like. Pass the same fd twice for a full-duplex one such as a socket. The UART
+    // owns and closes them, also when this fails.
+    bool set_fds(utils::IOLoop &loop, int readFd, int writeFd);
 
     enum Mode {
         NONE,
         STREAM,
-        SOCKET,
+        FD,
     };
     
+    Uart16650();
     ~Uart16650();
 
 private:
     int mode = Mode::NONE;
     std::ostream *stream = nullptr;
     
-    int sendSocket = -1;
-    int recvSocket = -1;
+    // Asio descriptors; both receive and send run on the I/O loop.
+    struct FdIO;
+    std::unique_ptr<FdIO> fds;
+    void start_receive();
 
-    std::mutex queueMtx;
+    // Guards the registers, the FIFO and the IRQ level. The IRQ is driven with it
+    // held so that level changes reach the interrupt controller in order.
+    std::mutex mtx;
     std::queue<uint8_t> queue; // FIFO buffer
-    void recv_byte(uint8_t c);
-    
-    std::mutex senderMtx;
+    bool recv_byte_locked(uint8_t c);
+
     void send_byte(uint8_t c);
+
+    bool threPending = false; // THR empty interrupt, cleared by IIR read or THR write
+    bool irqLevel = false;
+    uint8_t iir_locked() const;
+    void update_irq_locked();
 
     // Divisor Latch Register
     // [0-7] RW - Divisor Latch
@@ -61,11 +75,10 @@ private:
     // [4-7] RW - Reserved
     uint8_t ier = 0b00000000; // reset value
 
-    // Interrupt Identification Register
+    // Interrupt Identification Register, derived from the state by iir_locked()
     // [0-3] R - Interrupt Identification
     // [4-5] R - 0
     // [6-7] R - 1
-    uint8_t iir = 0b11000001; // reset value
 
     // FIFO Control Register
     // [0] W - Ignored
@@ -102,9 +115,8 @@ private:
     // [1] R - Delta Data Set Ready
     // [2] R - Trailing Edge Ring Indicator
     // [3] R - Delta Data Carrier Detect
-    uint8_t msr;
+    uint8_t msr = 0;
 
-    bool interrput;
     unsigned int recvFIFOTriggerByteCount = 1;
 };
 

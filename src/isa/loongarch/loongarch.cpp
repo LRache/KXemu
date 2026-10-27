@@ -33,6 +33,10 @@ cpu::CPU<isa::word_t> *isa::new_cpu() {
     return new cpu::LACPU();
 }
 
+void isa::init_platform(cpu::CPU<isa::word_t> *, device::Bus *) {}
+void isa::reset_platform() {}
+void isa::deinit_platform() {}
+
 unsigned int isa::get_gpr_count() {
     return 32;
 }

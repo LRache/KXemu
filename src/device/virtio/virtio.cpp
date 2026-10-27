@@ -5,6 +5,7 @@
 #include "word.h"
 #include "debug.h"
 
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -34,6 +35,10 @@ VirtIO::~VirtIO() {
 
 void VirtIO::reset() {
     this->state = IDLE;
+    if (this->interruptStatus != 0) {
+        this->interruptStatus = 0;
+        this->set_irq_level(false);
+    }
     for (unsigned int i = 0; i < this->queueCount; i++) {
         this->virtQueues[i].lastAvailIndex = 0;
     }
@@ -76,9 +81,12 @@ void VirtIO::write_status(word_t data) {
 }
 
 void VirtIO::notify_queue(uint32_t queueIdx) {
-    if (queueIdx > this->queueCount) return ;
+    if (queueIdx >= this->queueCount) return ;
+    // A notification racing with a device reset is dropped with the reset.
+    if (this->resetting) return;
 
     VirtQueue &queue = this->virtQueues[queueIdx];
+    if (queue.queueNum == 0) return;
     
     // struct virtq_avail {
     //     #define VIRTQ_AVAIL_F_NO_INTERRUPT 1
@@ -105,42 +113,53 @@ void VirtIO::notify_queue(uint32_t queueIdx) {
 
     while (queue.lastAvailIndex != availIndex) {
         uint16_t current = queue.lastAvailIndex % queue.queueNum;
+        queue.lastAvailIndex++;
         
-        uint16_t descIdx = ring[current];
-        VirtQueueDescriptor *descriptor = &descriptors[descIdx];
-        
-        if (descriptor->flags & VIRTQ_DESC_F_INDIRECT) {
-            NOT_IMPLEMENTED();
-        }
-        
-        std::vector<Buffer> buffer;
-        while (true) {
-            buffer.push_back({
-                descriptor->addr, 
-                descriptor->len, 
-                (descriptor->flags & VIRTQ_DESC_F_WRITE) != 0,
-            });
-            
-            if (!(descriptor->flags & VIRTQ_DESC_F_NEXT)) {
+        Request req{queueIdx, ring[current], {}};
+        bool valid = req.head < queue.queueNum;
+        uint16_t descIdx = req.head;
+        // A chain longer than the queue must contain a loop.
+        for (unsigned int i = 0; valid; i++) {
+            const VirtQueueDescriptor &descriptor = descriptors[descIdx];
+            if (i >= queue.queueNum || (descriptor.flags & VIRTQ_DESC_F_INDIRECT)) {
+                valid = false;
                 break;
             }
-            
-            descriptor = &descriptors[descriptor->next];
+            uint8_t *ptr = (uint8_t *)this->bus->get_ptr(descriptor.addr, descriptor.len);
+            if (ptr == nullptr && descriptor.len != 0) {
+                valid = false;
+                break;
+            }
+            req.buffers.push_back({ptr, descriptor.len, (descriptor.flags & VIRTQ_DESC_F_WRITE) != 0});
+            if (!(descriptor.flags & VIRTQ_DESC_F_NEXT)) {
+                break;
+            }
+            descIdx = descriptor.next;
+            valid = descIdx < queue.queueNum;
         }
 
-        uint32_t len;
-        if (this->virtio_handle_req(buffer, len)) {
-            virtio_handle_done(len, queueIdx, descIdx);
-        } else {
-            WARN("Occured an error");
+        if (!valid) {
+            WARN("VirtIO: invalid descriptor chain, head=%u", (unsigned)req.head);
+            // Return the chain unused so that the driver does not wait forever.
+            this->virtio_complete_locked(req, 0);
+            continue;
         }
-
-        queue.lastAvailIndex++;
+        this->inflight++;
+        this->virtio_submit(std::move(req));
     }
 }
 
-void VirtIO::virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned int descIndex) {
-    const VirtQueue &queue = this->virtQueues[queueIndex];
+void VirtIO::virtio_complete(const Request &req, uint32_t len) {
+    std::lock_guard<std::mutex> lock(this->mtx);
+    this->virtio_complete_locked(req, len);
+    this->inflight--;
+    if (this->inflight == 0) {
+        this->idle.notify_all();
+    }
+}
+
+void VirtIO::virtio_complete_locked(const Request &req, uint32_t len) {
+    const VirtQueue &queue = this->virtQueues[req.queueIndex];
     
     // struct virtq_used {
     //     #define VIRTQ_USED_F_NO_NOTIFY 1
@@ -158,18 +177,33 @@ void VirtIO::virtio_handle_done(uint32_t len, unsigned int queueIndex, unsigned 
     // };
     
     char *used = (char *)this->bus->get_ptr(queue.p_used, 6 + sizeof(VirtqUsedElem) * queue.queueNum);
+    if (used == nullptr) {
+        WARN("Failed to get struct virtq_used");
+        return;
+    }
     bool noNotify = (*(uint16_t *)used) & VIRTQ_USED_F_NO_NOTIFY;
     
-    uint16_t usedIndex = *(uint16_t *)(used + 2) % queue.queueNum;
+    std::atomic_ref<uint16_t> usedIdx(*(uint16_t *)(used + 2));
+    const uint16_t idx = usedIdx.load(std::memory_order_relaxed);
     VirtqUsedElem *ring = (VirtqUsedElem *)(used + 4);
-    ring[usedIndex].id  = descIndex;
-    ring[usedIndex].len = len;
-    
-    ((uint16_t *)(used + 2))[0] ++; // Increase the used->idx
+    ring[idx % queue.queueNum].id  = req.head;
+    ring[idx % queue.queueNum].len = len;
+    // Publish the data and the element before a polling driver can see the index.
+    usedIdx.store(idx + 1, std::memory_order_release);
 
     if (!noNotify) {
-        this->interrupt = true;
+        this->interruptStatus |= VIRTIO_INT_USED_BUFFER;
+        this->set_irq_level(true);
     }
+}
+
+void VirtIO::wait_idle(std::unique_lock<std::mutex> &lock) {
+    this->idle.wait(lock, [this] { return this->inflight == 0; });
+}
+
+void VirtIO::quiesce() {
+    std::unique_lock<std::mutex> lock(this->mtx);
+    this->wait_idle(lock);
 }
 
 uint32_t VirtIO::read_device_features() {
@@ -216,6 +250,7 @@ void VirtIO::write_driver_features(uint32_t features) {
 }
 
 word_t VirtIO::read(word_t offset, word_t size, bool &valid) {
+    std::lock_guard<std::mutex> lock(this->mtx);
     // Configuration Map
     if (offset >= 0x100 && offset + size <= 0x100 + this->sizeof_configuration) {
         offset -= 0x100;
@@ -248,7 +283,7 @@ word_t VirtIO::read(word_t offset, word_t size, bool &valid) {
         case 0x34: return this->queueNumMax;
         case 0x44: return this->virtQueues[this->queueSelect].ready;
 
-        case 0x60: return 0; // InterruptStatus field, not support Configuration Change Interrupt yet
+        case 0x60: return this->interruptStatus; // No configuration change interrupt yet
         case 0x70: return this->read_status();
     }
 
@@ -257,6 +292,7 @@ word_t VirtIO::read(word_t offset, word_t size, bool &valid) {
 }
 
 bool VirtIO::write(word_t offset, word_t data, word_t size) {
+    std::unique_lock<std::mutex> lock(this->mtx);
     // Configuration Map
     if (offset >= 0x100 && offset + size <= 0x100 + this->sizeof_configuration) {
         if (this->sizeof_configuration == 0) {
@@ -300,8 +336,18 @@ bool VirtIO::write(word_t offset, word_t data, word_t size) {
 
         case 0x50: this->notify_queue(data); break;
         
-        case 0x64: break; // Interrupt ACK, not implenmted ignore yet
-        case 0x70: this->write_status(data); break;
+        case 0x64: this->ack_interrupt(data); break;
+        case 0x70:
+            if (data == 0) {
+                // Device reset: in-flight requests still write guest memory and
+                // the used ring, so let them finish first. wait_idle() drops mtx,
+                // so hold off notifications from other harts meanwhile.
+                this->resetting = true;
+                this->wait_idle(lock);
+                this->resetting = false;
+            }
+            this->write_status(data);
+            break;
 
         case 0x80: set_lower(this->virtQueues[this->queueSelect].p_desc , data); break;
         case 0x84: set_upper(this->virtQueues[this->queueSelect].p_desc , data); break;
@@ -320,10 +366,10 @@ void VirtIO::connect_to_bus(Bus *bus) {
     this->bus = bus;
 }
 
-bool VirtIO::interrupt_pending() {
-    return this->interrupt;
-}
-
-void VirtIO::clear_interrupt() {
-    this->interrupt = false;
+void VirtIO::ack_interrupt(word_t data) {
+    if (this->interruptStatus == 0) return;
+    this->interruptStatus &= ~data;
+    if (this->interruptStatus == 0) {
+        this->set_irq_level(false);
+    }
 }

@@ -4,6 +4,7 @@
 #include "log.h"
 
 #include <cstring>
+#include <unordered_set>
 
 using namespace kxemu::cpu;
 
@@ -25,11 +26,15 @@ void RVCore::step() {
         this->state = RUNNING;
     }
     if (likely(this->state == RUNNING)) {
-        // Interrupt
-        this->bus->update();
-        this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
-        this->scan_interrupt();
-        
+        // Interrupt. Devices push their IRQs, so there is nothing to poll.
+        // An interrupt is taken before the instruction at pc: the trap returns to pc,
+        // and this step ends at the trap vector without retiring an instruction.
+        this->npc = this->pc;
+        if (this->scan_interrupt()) {
+            this->pc = this->npc;
+            return;
+        }
+
         this->execute();
         this->pc = this->npc;
     } else {
@@ -37,24 +42,19 @@ void RVCore::step() {
     }
 }
 
-void RVCore::set_device_mtx(std::mutex *mtx) {
-    this->deviceMtx = mtx;
-}
-
-void RVCore::run_step(unsigned int &counter) {
-    constexpr unsigned int interruptFreq = 0x1000;
-    
+void RVCore::run_step() {
     this->execute();
 
-    // Interrupt
-    if (unlikely(counter & interruptFreq)) {
-        this->update_device();
-        this->scan_interrupt();
-        counter = 0;
+    // Interrupt. Producers and the hart itself flag a possibly deliverable interrupt,
+    // so it traps before the next instruction: xv6 re-disables right after `intr_on()`.
+    // The plain load keeps the common path free of a read-modify-write.
+    if (unlikely(this->interruptPending.load(std::memory_order_relaxed))) {
+        if (this->interruptPending.exchange(false, std::memory_order_acquire)) {
+            this->scan_interrupt();
+        }
     }
 
     this->pc = this->npc;
-    counter++;
 }
 
 void RVCore::run(const word_t *breakpoints_, unsigned int n) {
@@ -63,15 +63,14 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
         breakpoints.insert(breakpoints_[i]);
     }
 
-    unsigned int i = 0;
     this->state = RUNNING;
     if (n == 0) {
         while (this->state == RUNNING && !this->stop_requested()) {
-            this->run_step(i);
+            this->run_step();
         }
     } else {
         if (this->state == RUNNING && !this->stop_requested()) {
-            this->run_step(i);
+            this->run_step();
         }
         while (this->state == RUNNING && !this->stop_requested()) {
             if (breakpoints.find(this->pc) != breakpoints.end()) {
@@ -81,24 +80,11 @@ void RVCore::run(const word_t *breakpoints_, unsigned int n) {
                 break;
             }
 
-            this->run_step(i);
+            this->run_step();
         }
     }
     if (this->state == RUNNING && this->stop_requested()) {
         this->state = IDLE;
-    }
-}
-
-void RVCore::update_device() {
-    if (unlikely(this->deviceMtx != nullptr)) {
-        if (unlikely(this->deviceMtx->try_lock())) {
-            this->bus->update();
-            this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
-            this->deviceMtx->unlock();
-        }
-    } else {
-        this->bus->update();
-        this->plic->scan_and_set_interrupt(this->coreID, this->privMode);
     }
 }
 

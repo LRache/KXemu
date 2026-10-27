@@ -7,8 +7,14 @@
 using namespace kxemu::cpu;
 
 void RVCore::update_stimecmp() {
-    this->clear_timer_interrupt_s();
-    this->aclint->register_stimer(this->coreID, this->csr.stimecmp_value());
+    // Without a timer stimecmp is only stored; the framework drives STIP.
+    if (this->timer == nullptr) return;
+    if (this->csr.stce_enabled()) {
+        this->stimer.set(this->csr.stimecmp_value());
+    } else {
+        // STIP stays software-writable while Sstc is disabled.
+        this->stimer.disarm();
+    }
 }
 
 void RVCore::set_interrupts(word_t mask, bool asserted) {
@@ -17,6 +23,8 @@ void RVCore::set_interrupts(word_t mask, bool asserted) {
         const auto lock = this->csr.lock_pending();
         this->csr.update_pending(lock, mask, asserted);
         this->wakePending = true;
+        // Release pairs with the acquire in run_step(), so the scan sees the new mip.
+        if (asserted) this->interruptPending.store(true, std::memory_order_release);
     }
     this->interruptReady.notify_one();
 }

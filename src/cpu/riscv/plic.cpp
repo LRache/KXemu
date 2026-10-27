@@ -1,9 +1,7 @@
 #include "cpu/riscv/plic.hpp"
 #include "cpu/riscv/core.hpp"
-#include "cpu/riscv/def.hpp"
-#include "device/bus.hpp"
+#include "debug.h"
 #include "device/def.hpp"
-#include "device/mmio.hpp"
 #include "log.h"
 
 #include <cstdint>
@@ -13,30 +11,93 @@ using namespace kxemu::device;
 static inline constexpr AddrSpace PLIC_PRIORITY = {0x000000, 0x001000};
 static inline constexpr AddrSpace PLIC_PENDING  = {0x001000, 0x000080};
 static inline constexpr AddrSpace PLIC_ENABLE   = {0x002000, 0x1f0000};
-static inline constexpr AddrSpace PLIC_CONTEXT  = {0x200000, 0x100000};
+static inline constexpr AddrSpace PLIC_CONTEXT  = {0x200000, 0x3e00000};
 
-void PLIC::init(cpu::RVCore *cores, unsigned int coreCount) {
-    for (unsigned int i = 0; i < 32; i++) {
-        this->interruptSources[i].priority = 0;
-        this->interruptSources[i].pending = false;
-        for (unsigned int j = 0; j < 32; j++) {
-            this->interruptSources[i].enable[j] = false;
-        }
+PLIC::PLIC() {
+    for (auto &target : this->targetContexts) {
+        target.core = nullptr;
+        target.output = false; // reset() compares against it
     }
+    this->reset();
+}
 
-    for (unsigned int i = 0; i < 32; i++) {
-        this->targetContexts[i].threshold = 0;
-        this->targetContexts[i].claim = 0;
-        this->targetContexts[i].core = nullptr;
+void PLIC::init(std::span<cpu::RVCore *const> cores) {
+    Assert(cores.size() <= CONTEXT_COUNT / 2, "PLIC supports at most 16 harts.");
+    std::lock_guard<std::mutex> lock(this->mtx);
+    for (auto &target : this->targetContexts) {
+        target.core = nullptr;
+        target.output = false;
     }
-
-    for (unsigned int i = 0; i < coreCount; i++) {
-        this->targetContexts[i * 2    ].core = &cores[i];
-        this->targetContexts[i * 2 + 1].core = &cores[i];
+    this->activeContexts = cores.size() * 2;
+    for (unsigned int i = 0; i < cores.size(); i++) {
+        this->targetContexts[i * 2    ].core = cores[i];
+        this->targetContexts[i * 2 + 1].core = cores[i];
     }
 }
 
-void PLIC::reset() {}
+void PLIC::reset() {
+    std::lock_guard<std::mutex> lock(this->mtx);
+    for (auto &p : this->priority) {
+        p = 0;
+    }
+    for (auto &target : this->targetContexts) {
+        target.enable = 0;
+        target.threshold = 0;
+    }
+    this->claimed = 0;
+    this->pending = this->level;
+    this->update_outputs();
+}
+
+unsigned int PLIC::best_source(const TargetContext &target) const {
+    uint32_t candidates = this->pending & target.enable;
+    if (candidates == 0) return 0;
+    uint32_t best = target.threshold;
+    unsigned int source = 0;
+    for (unsigned int i = 1; i < SOURCE_COUNT; i++) {
+        // Ties go to the lowest source ID.
+        if ((candidates & (uint32_t{1} << i)) && this->priority[i] > best) {
+            best = this->priority[i];
+            source = i;
+        }
+    }
+    return source;
+}
+
+void PLIC::set_output(unsigned int contextID, bool output) {
+    TargetContext &target = this->targetContexts[contextID];
+    if (target.output == output || target.core == nullptr) return;
+    target.output = output;
+    if (contextID % 2 == 0) {
+        if (output) target.core->set_external_interrupt_m();
+        else        target.core->clear_external_interrupt_m();
+    } else {
+        if (output) target.core->set_external_interrupt_s();
+        else        target.core->clear_external_interrupt_s();
+    }
+}
+
+void PLIC::update_outputs() {
+    // Contexts without a hart have no output to drive.
+    for (unsigned int i = 0; i < this->activeContexts; i++) {
+        this->set_output(i, this->best_source(this->targetContexts[i]) != 0);
+    }
+}
+
+void PLIC::set_irq(unsigned int irq, bool level) {
+    if (irq == 0 || irq >= SOURCE_COUNT) return;
+    const uint32_t bit = uint32_t{1} << irq;
+    std::lock_guard<std::mutex> lock(this->mtx);
+    if (level) {
+        this->level |= bit;
+        // The gateway forwards no new request until the claimed one completes.
+        if (!(this->claimed & bit)) this->pending |= bit;
+    } else {
+        this->level &= ~bit;
+        this->pending &= ~bit;
+    }
+    this->update_outputs();
+}
 
 word_t PLIC::read(word_t offset, word_t size, bool &valid) {
     if (size != 4) {
@@ -45,48 +106,35 @@ word_t PLIC::read(word_t offset, word_t size, bool &valid) {
     }
 
     valid = true;
+    std::lock_guard<std::mutex> lock(this->mtx);
     if (PLIC_PRIORITY.in_range(offset)) {
         unsigned int source = offset / 4;
-        if (source < 32) {
-            return this->interruptSources[source].priority;
-        } else {
-            return 0;
-        }
+        return source < SOURCE_COUNT ? this->priority[source] : 0;
     } else if (PLIC_PENDING.in_range(offset)) {
-        unsigned int t = (offset - PLIC_PENDING.BASE) / 4;
-        if (t < 4) {
-            uint32_t pending = 0;
-            for (unsigned int i = 0; i < 32; i++) {
-                if (this->interruptSources[t * 8 + i].pending) {
-                    pending |= 1 << i;
-                }
-            }
-            return pending;
-        } else {
-            return 0;
-        }
+        return offset == PLIC_PENDING.BASE ? this->pending : 0;
     } else if (PLIC_ENABLE.in_range(offset)) {
         unsigned int contextID = (offset - PLIC_ENABLE.BASE) / 0x80;
-        if ((offset - PLIC_ENABLE.BASE) % 0x80 == 0) { // Only 32 interrupt sources
-            uint32_t enable = 0;
-            for (unsigned int i = 0; i < 32; i++) {
-                if (this->interruptSources[i].enable[contextID]) {
-                    enable |= 1 << i;
-                }
-            }
-            return enable;
-        } else {
-            return 0;
+        if (contextID < CONTEXT_COUNT && (offset - PLIC_ENABLE.BASE) % 0x80 == 0) {
+            return this->targetContexts[contextID].enable;
         }
+        return 0;
     } else if (PLIC_CONTEXT.in_range(offset)) {
         unsigned int contextID = (offset - PLIC_CONTEXT.BASE) / 0x1000;
-        if (contextID >= 32) {
+        if (contextID >= CONTEXT_COUNT) {
             return 0;
         }
+        TargetContext &target = this->targetContexts[contextID];
         if ((offset - PLIC_CONTEXT.BASE) % 0x1000 == 0) {
-            return this->targetContexts[contextID].threshold;
+            return target.threshold;
         } else if ((offset - PLIC_CONTEXT.BASE) % 0x1000 == 4) {
-            return this->targetContexts[contextID].claim;
+            // Claim
+            unsigned int source = this->best_source(target);
+            if (source != 0) {
+                this->pending &= ~(uint32_t{1} << source);
+                this->claimed |=   uint32_t{1} << source;
+                this->update_outputs();
+            }
+            return source;
         }
         return 0;
     } else {
@@ -101,22 +149,30 @@ bool PLIC::write(word_t offset, word_t data, word_t size) {
         return false;
     }
 
+    std::lock_guard<std::mutex> lock(this->mtx);
     if (PLIC_PRIORITY.in_range(offset)) {
         unsigned int source = offset / 4;
-        if (source < 32) {
-            this->interruptSources[source].priority = data;
+        if (source == 0) {
+            return true;
+        } else if (source < SOURCE_COUNT) {
+            this->priority[source] = data;
+            this->update_outputs();
             return true;
         } else {
             HINT("Source index out of range: index=%u", source);
             return true;
         }
+    } else if (PLIC_PENDING.in_range(offset)) {
+        return true; // Read-only
     } else if (PLIC_ENABLE.in_range(offset)) {
         unsigned int contextID = (offset - PLIC_ENABLE.BASE) / 0x80;
         unsigned int index = (offset - PLIC_ENABLE.BASE) % 0x80;
-        if (index == 0) { // Only 32 interrupt sources
-            for (unsigned int i = 0; i < 32; i++) {
-                this->interruptSources[i].enable[contextID] = (data & (1 << i)) != 0;
-            }
+        if (contextID >= CONTEXT_COUNT) {
+            return true;
+        }
+        if (index == 0) { // Only 32 interrupt sources; source 0 is hardwired to 0.
+            this->targetContexts[contextID].enable = data & ~uint32_t{1};
+            this->update_outputs();
             return true;
         } else {
             HINT("Interrupt enable bits index out of range: index=%u", index);
@@ -124,72 +180,27 @@ bool PLIC::write(word_t offset, word_t data, word_t size) {
         }
     } else if (PLIC_CONTEXT.in_range(offset)) {
         unsigned int contextID = (offset - PLIC_CONTEXT.BASE) / 0x1000;
-        if (contextID >= 32) {
+        if (contextID >= CONTEXT_COUNT) {
             return false;
         }
+        TargetContext &target = this->targetContexts[contextID];
         if ((offset - PLIC_CONTEXT.BASE) % 0x1000 == 0) {
-            this->targetContexts[contextID].threshold = data;
+            target.threshold = data;
+            this->update_outputs();
             return true;
         } else if ((offset - PLIC_CONTEXT.BASE) % 0x1000 == 4) {
-            if (this->targetContexts[contextID].claim == data) {
-                this->targetContexts[contextID].claim = 0;
-                if (contextID % 2 == 0) {
-                    this->targetContexts[contextID].core->clear_external_interrupt_m();
-                } else {
-                    this->targetContexts[contextID].core->clear_external_interrupt_s();
-                }
+            // Complete: ignored for sources not enabled for this context.
+            if (data != 0 && data < SOURCE_COUNT && (target.enable & (uint32_t{1} << data))) {
+                const uint32_t bit = uint32_t{1} << data;
+                this->claimed &= ~bit;
+                // A source still asserting raises a new request.
+                if (this->level & bit) this->pending |= bit;
+                this->update_outputs();
             }
             return true;
         }
         return false;
     } else {
         return false;
-    }
-}
-
-void PLIC::connect_to_bus(Bus *bus) {
-    this->bus = bus;
-}
-
-void PLIC::scan_and_set_interrupt(unsigned int hartid, int privMode) {
-    unsigned int contextID;
-    if (privMode == cpu::PrivMode::MACHINE) {
-        contextID = hartid * 2;
-    } else {
-        contextID = hartid * 2 + 1;
-    }
-    
-    TargetContext &target = this->targetContexts[contextID];
-    if (target.claim != 0) {
-        return;
-    }
-    
-    uint32_t priority = target.threshold;
-    uint32_t claim = 0;
-    MMIODev *sourceDev = nullptr;
-    
-    for (auto &map : this->bus->mmioMaps) {
-        auto &dev = map->dev;
-        if (dev->interrupt_pending()) {
-            auto &source = this->interruptSources[map->id];
-            
-            source.pending = true;
-            sourceDev = dev;
-            
-            if (source.enable[contextID] && source.priority >= priority) {
-                priority = source.priority;
-                claim = map->id;
-            }
-        }
-    }
-
-    if (claim != 0) {
-        target.claim = claim;
-        sourceDev->clear_interrupt();
-        if (privMode == cpu::PrivMode::MACHINE) {
-            target.core->set_external_interrupt_m();
-        } else {
-            target.core->set_external_interrupt_s();
-        }
     }
 }

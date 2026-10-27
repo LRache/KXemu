@@ -1,8 +1,11 @@
 #include "cpu/cpu.hpp"
 #include "isa/isa.hpp"
 #include "cpu/riscv/cpu.hpp"
+#include "cpu/riscv/platform.hpp"
 
 #include "elf.h"
+
+#include <memory>
 
 using namespace kxemu;
 
@@ -48,4 +51,28 @@ void kxemu::isa::init() {
 
 cpu::CPU<isa::word_t> *kxemu::isa::new_cpu() {
     return new cpu::RVCPU();
+}
+
+#ifndef CONFIG_DIFFTEST
+static std::unique_ptr<cpu::RVPlatform> platform;
+#endif
+
+// Difftest builds keep bare harts: the framework drives time and interrupts.
+void kxemu::isa::init_platform(cpu::CPU<isa::word_t> *cpu, device::Bus *bus) {
+#ifndef CONFIG_DIFFTEST
+    platform = std::make_unique<cpu::RVPlatform>();
+    platform->attach(static_cast<cpu::RVCPU *>(cpu), bus);
+#endif
+}
+
+void kxemu::isa::reset_platform() {
+#ifndef CONFIG_DIFFTEST
+    if (platform != nullptr) platform->reset();
+#endif
+}
+
+void kxemu::isa::deinit_platform() {
+#ifndef CONFIG_DIFFTEST
+    platform.reset();
+#endif
 }

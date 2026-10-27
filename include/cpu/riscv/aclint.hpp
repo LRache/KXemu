@@ -1,11 +1,11 @@
 #ifndef __KXEMU_CPU_RISCV_CLINT_HPP__
 #define __KXEMU_CPU_RISCV_CLINT_HPP__
 
+#include "cpu/riscv/platform-timer.hpp"
 #include "device/mmio.hpp"
-#include "utils/task-timer.hpp"
 
-#include <cstdint>
 #include <mutex>
+#include <span>
 
 namespace kxemu::cpu {
     class RVCore;
@@ -22,49 +22,33 @@ namespace kxemu::device {
 // 0xc000 - 0xffff | SSWI     | Supervisor-mode Software Interrupt Device
 class AClint : public device::MMIODev {
 public:
-    struct CoreObject {
-        cpu::RVCore *core;         // Pointer to the core object
-
-        bool msip;
-        bool ssip;
-        bool mtip;
-        bool stip;
-
-        uint64_t mtimecmp;
-        unsigned int mtimerID;
-        unsigned int stimerID;
-
-        unsigned int pendingInterrupts;
-    };
-    CoreObject *coreObjects;
-    std::mutex mtx;
-
     AClint();
     ~AClint();
 
-    void init(cpu::RVCore *cores, unsigned int coreCount);
+    void init(std::span<cpu::RVCore *const> cores, cpu::PlatformTimer *timer);
     void reset() override;
 
     word_t read(word_t addr, word_t size, bool &success) override;
     bool write(word_t addr, word_t value, word_t size) override;
-    void update() override;
-
-    void start_timer();
-    void stop_timer();
-    uint64_t get_uptime();
-    void register_stimer(unsigned int coreID, uint64_t stimecmp);
 
     const char *get_type_name() const override;
 private:
+    struct CoreObject {
+        cpu::RVCore *core; // Pointer to the core object
+
+        bool msip;
+        bool ssip;
+
+        cpu::TimerComparator mtimer; // MTIMECMP, drives MTIP
+    };
+    CoreObject *coreObjects;
     unsigned int coreCount;
+    cpu::PlatformTimer *timer;
 
-    bool timerRunning;
-    uint64_t bootTime;
-
-    utils::TaskTimer taskTimer;
-    void update_core_mtimecmp(unsigned int coreID);
+    // Serializes MMIO accesses, including the split MTIMECMP writes on RV32.
+    std::mutex mtx;
 };
 
-} // namespace kxemu::cpu
+} // namespace kxemu::device
 
 #endif

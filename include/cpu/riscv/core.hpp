@@ -2,10 +2,9 @@
 #define __KXEMU_CPU_RISCV_CORE_HPP__
 
 #include "cpu/core.hpp"
-#include "cpu/riscv/aclint.hpp"
 #include "cpu/riscv/addr.hpp"
 #include "cpu/riscv/def.hpp"
-#include "cpu/riscv/plic.hpp"
+#include "cpu/riscv/platform-timer.hpp"
 #include "cpu/riscv/pte.hpp"
 #include "cpu/word.hpp"
 #include "cpu/riscv/csr.hpp"
@@ -62,10 +61,8 @@ private:
         AMO   = LOAD | STORE,
     };
     device::Bus *bus;
-    device::AClint *aclint;
-    device::PLIC *plic;
-    std::mutex *deviceMtx;
-    void update_device();
+    // Without a timer, time reads zero and stimecmp is only stored.
+    PlatformTimer *timer = nullptr;
 
     std::optional<mem_value_t> pm_read_check_optional(word_t paddr, unsigned int len);
 
@@ -154,7 +151,7 @@ private:
     word_t pc;
     word_t npc;
     void execute();
-    void run_step(unsigned int &counter);
+    void run_step();
 
     // Trap
     void enter_trap(TrapCode code, word_t value = 0);
@@ -165,10 +162,17 @@ private:
     std::condition_variable interruptReady;
     bool wakePending = false;
     std::atomic<bool> stopping{false};
+    // Set when an interrupt may have become deliverable: by a producer raising a
+    // pending bit, or by the hart itself changing enables, delegation or privilege.
+    // run() scans before the next instruction only when this is set.
+    std::atomic<bool> interruptPending{false};
+    // The hart's own trigger: set_priv_mode() and CSR writes with WriteEffect::Interrupt
+    // call it, so new deliverability-changing paths need no flag handling of their own.
+    void recheck_interrupts() { this->interruptPending.store(true, std::memory_order_relaxed); }
 
     enum class WaitResult {
         Notified, // A notification does not imply WFI or trap eligibility.
-        Timeout,  // Allow legacy devices to be polled.
+        Timeout,  // Only with a finite timeout.
         Stopped,  // Persists until reset().
     };
     /// Update IRQ levels under the pending CSR lock, then notify the hart.
@@ -203,7 +207,8 @@ private:
 
     void set_priv_mode(int mode);
 
-    uint64_t get_uptime();
+    uint64_t get_mtime();
+    TimerComparator stimer; // Sstc stimecmp, drives STIP
     void update_stimecmp();
 
     // Atomic extension
@@ -259,13 +264,15 @@ public:
     RVCore();
     ~RVCore();
 
-    void init(unsigned int coreID, device::Bus *bus, device::AClint *aclint, device::PLIC *plic);
+    void init(unsigned int coreID, device::Bus *bus, PlatformTimer *timer = nullptr);
+    /// Attach the time source for the time CSR and Sstc, or nullptr for none.
+    /// Only while the hart is idle and before reset().
+    void set_platform_timer(PlatformTimer *timer);
     
     /// Reset CPU and IRQ/wait state only after the hart and all producers are quiescent.
     void reset(word_t entry) override;
     void step() override;
     void run(const word_t *breakpoints = nullptr, unsigned int n = 0) override;
-    void set_device_mtx(std::mutex *mtx);
 
     /// Notify the hart to recheck state without modifying IRQ levels.
     /// May be called by any producer; notifications persist until consumed and coalesce.

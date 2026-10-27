@@ -1,4 +1,5 @@
 #include "cpu/core.hpp"
+#include "isa/isa.hpp"
 #include "kdb/kdb.hpp"
 #include "macro.h"
 #include "word.h"
@@ -13,11 +14,13 @@ bool kdb::brkTriggered = false;
 
 void kdb::reset_cpu() {
     cpu->reset(kdb::programEntry);
+    isa::reset_platform();
     kdb::returnCode = 0;
 }
 
 void kdb::reset_cpu(word_t entry) {
     cpu->reset(entry);
+    isa::reset_platform();
     kdb::programEntry = entry;
     kdb::returnCode = 0;
 }

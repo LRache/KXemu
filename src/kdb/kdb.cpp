@@ -21,16 +21,19 @@ void kdb::init(unsigned int coreCount) {
 
     isa::init();
     cpu = isa::new_cpu();
-    cpu->init(bus, -1, coreCount);
-    cpu->reset(0x80000000);
-    kdb::programEntry = 0x80000000;
+    cpu->init(bus, 0, coreCount);
+    isa::init_platform(cpu, bus);
+    kdb::reset_cpu(0x80000000);
 
     INFO("Init %s CPU", isa::get_isa_name());
 }
 
 void kdb::deinit() {
+    // Device I/O drives the PLIC, which calls into the cores: stop it first.
+    device::stop();
     delete cpu;
     cpu = nullptr;
+    isa::deinit_platform();
     device::deinit();
     uart::deinit();
 }

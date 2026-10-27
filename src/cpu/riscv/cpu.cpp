@@ -16,22 +16,22 @@ RVCPU::RVCPU() {
 void RVCPU::init(Bus *bus, int flags, unsigned int coreCount) {
     this->cores = new RVCore[coreCount];
     for (unsigned int i = 0; i < coreCount; i++) {
-        this->cores[i].init(i, bus, &aclint, &plic);
+        this->cores[i].init(i, bus, this->timer);
     }
-    
-    this->aclint.init(this->cores, coreCount);
-    this->plic.init(this->cores, coreCount);
-    bus->add_mmio_map(ACLINT.BASE, ACLINT.SIZE, &aclint);
-    bus->add_mmio_map(PLIC.BASE, PLIC.SIZE, &plic);
-    
     this->coreCount = coreCount;
+}
+
+void RVCPU::set_platform_timer(PlatformTimer *timer) {
+    this->timer = timer;
+    for (unsigned int i = 0; i < coreCount; i++) {
+        cores[i].set_platform_timer(timer);
+    }
 }
 
 void RVCPU::reset(word_t pc) {
     for (unsigned int i = 0; i < coreCount; i++) {
         cores[i].reset(pc);
     }
-    aclint.reset();
 }
 
 void RVCPU::step() {
@@ -45,15 +45,13 @@ void RVCPU::core_thread_worker(unsigned int coreID, const word_t *breakpoints, u
 }
 
 void RVCPU::run(bool blocked, const word_t *breakpoints, unsigned int n) {
-    aclint.start_timer();
+    if (timer != nullptr) timer->start();
     if (this->coreCount == 1) {
-        cores[0].set_device_mtx(nullptr);
         cores[0].run(breakpoints, n);
-        aclint.stop_timer();
+        if (timer != nullptr) timer->stop();
     } else {
         this->coreThread = new std::thread[coreCount];
         for (unsigned int i = 0; i < coreCount; i++) {
-            cores[i].set_device_mtx(&deviceMtx);
             coreThread[i] = std::thread(&RVCPU::core_thread_worker, this, i, breakpoints, n);
         }
 
@@ -72,7 +70,7 @@ void RVCPU::join() {
     }
     delete []coreThread;
     coreThread = nullptr;
-    aclint.stop_timer();
+    if (timer != nullptr) timer->stop();
 }
 
 bool RVCPU::is_running() {
@@ -93,5 +91,7 @@ RVCore *RVCPU::get_core(unsigned int coreID) {
 RVCPU::~RVCPU() {
     this->request_stop();
     this->join();
+    // Timer callbacks reference the cores and comparators.
+    if (this->timer != nullptr) this->timer->stop();
     delete []cores;
 }

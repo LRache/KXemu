@@ -84,6 +84,16 @@ config WFI_AS_NOP
     Useful for differential testing or externally scheduled execution.
     Normal interrupt checks outside WFI are unchanged.
 
+config DIFFTEST
+  bool "Bare RISC-V harts for differential testing"
+  depends on ISA_riscv32 || ISA_riscv64
+  default y if TARGET_SHARE
+  help
+    Build harts that never poll devices or an interrupt controller, and
+    whose WFI returns at once. KDB does not attach the built-in ACLINT,
+    PLIC and host timer. The framework injects interrupts through the
+    Core set/clear interrupt methods and may supply its own PlatformTimer.
+
 endmenu
 
 choice

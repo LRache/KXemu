@@ -29,7 +29,7 @@ bool kdb::uart::add(unsigned int id, word_t base, std::ostream &os) {
 
 bool kdb::uart::add(unsigned int id, word_t base, const std::string &ip, int port) {
     Uart16650 *uart = new Uart16650();
-    if (!uart->open_socket(ip, port)) {
+    if (!uart->open_socket(device::io_loop(), ip, port)) {
         delete uart;
         return false;
     }

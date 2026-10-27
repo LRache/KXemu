@@ -221,17 +221,18 @@ namespace kxemu::cpu::csr {
         void set  (InterruptCode code) { this->value |=  (1 << code); }
         void clear(InterruptCode code) { this->value &= ~(1 << code); }
 
-        void set_mip(word_t value) { 
+        void set_mip(word_t value, bool stce) { 
             // Bits in MIP register
             // NAME   | MIP
             // MEIP   | ReadOnly
             // MTIP   | ReadOnly
             // MSIP   | ReadOnly
-            // STIP   | ReadWrite
+            // STIP   | ReadWrite, ReadOnly when menvcfg.STCE=1
             // SSIP   | ReadWrite
             // SEIP   | ReadOnly
             // LCOFIP | ReadOnly
-            this->value = (this->value & ~RW_MASK) | (value & RW_MASK);
+            const word_t mask = stce ? RW_MASK & ~(word_t{1} << InterruptCode::TIMER_S) : RW_MASK;
+            this->value = (this->value & ~mask) | (value & mask);
         }
 
         word_t sip() const { return this->value & INTER_MASK_S; }

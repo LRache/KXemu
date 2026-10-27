@@ -46,7 +46,7 @@ Load commands are used to load files specified in the command-line arguments, su
 
 ### 串口
 
-- `uart add <base> [port]` KXemu可以模拟一个UART16650设备，这条指令可以为CPU添加一个内存映射在`base`处的uart串口，如果指定端口，可以通过TCP套接字连接至串口，向端口`port`写入可以发送数据，同时可以从`port+1`端口接收KXemu的串口输出。如果不指定端口，则串口输出会自动输出至标准输出。在`./utils/uart`目录下有一个示例。KXemu can simulate a UART16650 device. This command maps a UART serial port to the CPU at the base address. If a port is specified, TCP sockets can be used to connect to the serial port, allowing data transmission to port and receiving KXemu's serial output from port+1. If no port is specified, output is directed to standard output. An example is available in the `./utils/uart` directory.
+- `uart add <base> [port]` KXemu可以模拟一个UART16650设备，这条指令可以为CPU添加一个内存映射在`base`处的uart串口，如果指定端口，KXemu会通过一条TCP连接接入`port`端口，在这条连接上写入的数据会发送给串口，KXemu的串口输出也从这条连接上读取。如果不指定端口，则串口输出会自动输出至标准输出。在`./tools/uart`目录下有一个示例，也可以直接使用`socat -,raw,echo=0 TCP-LISTEN:<port>,reuseaddr`。KXemu can simulate a UART16650 device. This command maps a UART serial port to the CPU at the base address. If a port is specified, KXemu connects to `port` over a single TCP connection: data written to it is sent to the serial port, and KXemu's serial output is read from the same connection. If no port is specified, output is directed to standard output. An example is available in the `./tools/uart` directory; `socat -,raw,echo=0 TCP-LISTEN:<port>,reuseaddr` also works.
 
 - `uart puts [str]` 将`str`字符串的内容加入到串口的FIFO中。Adds the content of the str string to the UART's FIFO.
 

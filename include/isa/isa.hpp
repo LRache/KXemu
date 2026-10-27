@@ -3,6 +3,7 @@
 
 #include "config/config.h"
 #include "cpu/cpu.hpp"
+#include "device/bus.hpp"
 
 #include <string>
 #include <cstdint>
@@ -22,6 +23,12 @@ namespace kxemu::isa {
     const char *get_gdb_target_desc();
 
     cpu::CPU<word_t> *new_cpu();
+
+    // Platform devices (timers, interrupt controllers) around an initialized CPU.
+    // Deinit only after the CPU is destroyed and before the bus is.
+    void init_platform(cpu::CPU<word_t> *cpu, device::Bus *bus);
+    void reset_platform();
+    void deinit_platform();
 
     // Register
     unsigned int get_gpr_count();

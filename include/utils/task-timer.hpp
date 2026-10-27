@@ -18,7 +18,7 @@ private:
 
     using task_t = std::function<void()>;
     struct Task {
-        std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::nanoseconds> timepoint;
+        std::chrono::time_point<std::chrono::steady_clock, std::chrono::nanoseconds> timepoint;
         task_t task;
         unsigned int id;
 
@@ -28,7 +28,8 @@ private:
     };
     std::priority_queue<Task> tasks;
     unsigned int counter;
-    std::unordered_set<unsigned int> removedTasks;
+    std::unordered_set<unsigned int> pendingTasks; // Queued, not yet popped
+    std::unordered_set<unsigned int> removedTasks; // Subset of pendingTasks to skip
 
     bool running;
     void timer_thread();

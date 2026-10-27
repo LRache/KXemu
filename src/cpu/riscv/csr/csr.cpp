@@ -11,16 +11,17 @@
 
 using namespace kxemu::cpu;
 
-void RVCSR::init(unsigned int hartId, std::function<uint64_t()> get_uptime) {
+void RVCSR::init(unsigned int hartId, std::function<uint64_t()> get_mtime) {
     this->resetHartId = hartId;
 
-    this->get_uptime = get_uptime;
+    this->get_mtime = get_mtime;
 }
 
 void RVCSR::reset() {
     const auto lock = this->lock_pending();
     static_cast<RVCSRState &>(*this) = RVCSRState{};
     this->mhartid = this->resetHartId;
+    this->privMode = PrivMode::MACHINE;
     this->set_pending(lock, 0); // Refresh pendingHint.
     this->pmpCfgCount = 0;
 }

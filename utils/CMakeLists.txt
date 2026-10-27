@@ -113,3 +113,16 @@ set_target_properties(readline PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${READLINE_INCLUDE}"
   INTERFACE_LINK_LIBRARIES "${READLINE_CURSES_LIBS}"
 )
+
+# Asio (standalone, header-only): device I/O event loop
+include(FetchContent)
+FetchContent_Declare(
+  asio
+  GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+  GIT_TAG        asio-1-30-2
+  GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(asio)
+add_library(asio INTERFACE)
+target_include_directories(asio SYSTEM INTERFACE ${asio_SOURCE_DIR}/asio/include)
+target_compile_definitions(asio INTERFACE ASIO_STANDALONE ASIO_NO_DEPRECATED)

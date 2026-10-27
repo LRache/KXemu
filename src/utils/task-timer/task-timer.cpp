@@ -27,19 +27,20 @@ void TaskTimer::timer_thread() {
         
         if (this->removedTasks.find(next.id) != this->removedTasks.end()) {
             this->removedTasks.erase(next.id);
+            this->pendingTasks.erase(next.id);
             this->tasks.pop();
             continue;
         }
         
-        auto now = std::chrono::high_resolution_clock::now();
+        auto now = std::chrono::steady_clock::now();
         if (next.timepoint <= now) {
             // Own the callback before unlocking: producers may reorder or grow the heap.
             Task task = std::move(const_cast<Task &>(this->tasks.top()));
             this->tasks.pop();
+            this->pendingTasks.erase(task.id);
             lock.unlock();
             task.task();
             lock.lock();
-            this->removedTasks.erase(task.id);
         } else {
             const auto deadline = next.timepoint;
             this->cv.wait_until(lock, deadline);
@@ -73,8 +74,9 @@ void TaskTimer::stop_timer() {
 
 unsigned int TaskTimer::add_task(uint64_t delay, task_t task) {
     std::lock_guard<std::mutex> lock(this->mtx);
-    auto timepoint = std::chrono::high_resolution_clock::now() + std::chrono::nanoseconds(delay);
+    auto timepoint = std::chrono::steady_clock::now() + std::chrono::nanoseconds(delay);
     unsigned int id = this->counter++;
+    this->pendingTasks.insert(id);
     this->tasks.push({timepoint, task, id});
     this->cv.notify_all();
     return id;
@@ -82,6 +84,9 @@ unsigned int TaskTimer::add_task(uint64_t delay, task_t task) {
 
 void TaskTimer::remove_task(unsigned int id) {
     std::lock_guard<std::mutex> lock(this->mtx);
-    this->removedTasks.insert(id);
-    this->cv.notify_all();
+    // Ids that already ran or were removed are ignored, so nothing leaks.
+    if (this->pendingTasks.count(id) != 0) {
+        this->removedTasks.insert(id);
+        this->cv.notify_all();
+    }
 }

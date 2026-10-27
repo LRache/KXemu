@@ -1,15 +1,18 @@
 #include "catch-support.hpp"
 #include "cpu/riscv/cpu.hpp"
 #include "cpu/riscv/def.hpp"
+#include "cpu/riscv/platform.hpp"
 
 #include <catch2/generators/catch_generators.hpp>
 
 #include <chrono>
+#include <ctime>
 #include <atomic>
 #include <barrier>
 #include <future>
 #include <memory>
 #include <thread>
+#include <vector>
 
 using namespace std::chrono_literals;
 using kxemu::cpu::RVCPU;
@@ -47,14 +50,18 @@ constexpr word_t entry = 0x80000000;
 constexpr word_t software = word_t{1} << 3;
 constexpr word_t timer = word_t{1} << 7;
 
+// Declared so the CPU is destroyed before the platform it uses.
 struct Machine {
     Bus bus;
+    kxemu::cpu::RVPlatform platform;
     RVCPU cpu;
 
     Machine() {
         REQUIRE_MSG(bus.add_memory_map(entry, 4096), "RAM map failed");
         cpu.init(&bus, 0, 1);
+        platform.attach(&cpu, &bus);
         cpu.reset(entry);
+        platform.reset();
         REQUIRE_MSG(bus.write(entry, 0x10500073, 4), "WFI write failed");
         REQUIRE_MSG(bus.write(entry + 4, 0x00000013, 4), "NOP write failed");
         auto core = cpu.get_core(0);
@@ -161,11 +168,11 @@ TEST_CASE("remaining csr storage", "[csr]") {
         {CSRAddr::MCNTEN, 0}, {CSRAddr::SCNTEN, 0},
         {CSRAddr::MENVCFG, 0}, {CSRAddr::MSECCFG, 0},
         {CSRAddr::MSCRATCH, 0}, {CSRAddr::SSCRATCH, 0},
-        {CSRAddr::SATP, 0}, {CSRAddr::STIMECMP, 0},
+        {CSRAddr::SATP, 0}, {CSRAddr::STIMECMP, ~word_t{0}},
         {CSRAddr::CYCLE, 0},
 #ifdef KXEMU_ISA32
         {CSRAddr::MSTATUSH, 0}, {CSRAddr::MENVCFGH, 0}, {CSRAddr::MSECCFGH, 0},
-        {CSRAddr::STIMECMPH, 0}, {CSRAddr::CYCLEH, 0},
+        {CSRAddr::STIMECMPH, ~word_t{0}}, {CSRAddr::CYCLEH, 0},
 #endif
     };
     for (const auto &reg : registers) {
@@ -217,14 +224,15 @@ TEST_CASE("remaining csr storage", "[csr]") {
 TEST_CASE("time csr access", "[csr]") {
     using namespace kxemu::cpu;
     RVCSR csr;
-    constexpr uint64_t uptime = 1000000;
+    constexpr uint64_t mtime = 0x123456789abULL;
     unsigned reads = 0;
-    csr.init(0, [&] { ++reads; return uptime; });
+    csr.init(0, [&] { ++reads; return mtime; });
     csr.reset();
     for (auto mode : {PrivMode::MACHINE, PrivMode::SUPERVISOR, PrivMode::USER}) {
-        csr.privMode = mode;
         for (unsigned enables = 0; enables < 8; ++enables) {
             CAPTURE(mode, enables);
+            // The enables are machine CSRs, so program them from M-mode.
+            csr.privMode = PrivMode::MACHINE;
             write_checked_csr(csr, CSRAddr::MCNTEN, enables & 1 ? 2 : 0);
             write_checked_csr(csr, CSRAddr::SCNTEN, enables & 2 ? 2 : 0);
 #ifdef KXEMU_ISA32
@@ -232,21 +240,141 @@ TEST_CASE("time csr access", "[csr]") {
 #else
             write_checked_csr(csr, CSRAddr::MENVCFG, enables & 4 ? word_t{1} << 63 : 0);
 #endif
+            csr.privMode = mode;
+            // menvcfg.STCE (enables & 4) must not affect TIME access.
             const bool allowed = mode == PrivMode::MACHINE ||
-                (enables & 1 && (mode == PrivMode::SUPERVISOR ? enables & 4 : enables & 2));
+                (enables & 1 && (mode == PrivMode::SUPERVISOR || enables & 2));
             const auto previousReads = reads;
             bool valid;
             const auto value = read_csr(csr, CSRAddr::TIME, valid);
             REQUIRE_MSG(valid == allowed, "TIME access permissions changed");
-            REQUIRE_MSG(reads == previousReads + unsigned(allowed), "denied TIME read queried uptime");
-            if (allowed) REQUIRE_MSG(value == word_t(realtime_to_mtime(uptime)), "TIME value changed");
+            REQUIRE_MSG(reads == previousReads + unsigned(allowed), "denied TIME read queried mtime");
+            if (allowed) REQUIRE_MSG(value == word_t(mtime), "TIME value changed");
 #ifdef KXEMU_ISA32
             const auto high = read_csr(csr, CSRAddr::TIMEH, valid);
             REQUIRE_MSG(valid == allowed, "TIMEH access permissions changed");
-            if (allowed) REQUIRE_MSG(high == word_t(uint64_t{realtime_to_mtime(uptime)} >> 32), "TIMEH value changed");
+            if (allowed) REQUIRE_MSG(high == word_t(mtime >> 32), "TIMEH value changed");
 #endif
         }
     }
+}
+
+TEST_CASE("stimecmp csr access", "[csr][timer]") {
+    using namespace kxemu::cpu;
+    RVCSR csr;
+    csr.init(0, [] { return uint64_t{0}; });
+    csr.reset();
+    std::vector<unsigned int> registers = {CSRAddr::STIMECMP};
+#ifdef KXEMU_ISA32
+    registers.push_back(CSRAddr::STIMECMPH);
+#endif
+    for (auto mode : {PrivMode::MACHINE, PrivMode::SUPERVISOR, PrivMode::USER}) {
+        for (unsigned enables = 0; enables < 8; ++enables) {
+            CAPTURE(mode, enables);
+            csr.privMode = PrivMode::MACHINE;
+            write_checked_csr(csr, CSRAddr::MCNTEN, enables & 1 ? 2 : 0);
+            write_checked_csr(csr, CSRAddr::SCNTEN, enables & 2 ? 2 : 0);
+#ifdef KXEMU_ISA32
+            write_checked_csr(csr, CSRAddr::MENVCFGH, enables & 4 ? word_t{1} << 31 : 0);
+#else
+            write_checked_csr(csr, CSRAddr::MENVCFG, enables & 4 ? word_t{1} << 63 : 0);
+#endif
+            for (auto addr : registers) {
+                CAPTURE(addr);
+                REQUIRE(csr.debug_write_csr(addr, 0x55).has_value());
+                csr.privMode = mode;
+                // scounteren.TM (enables & 2) is irrelevant: U-mode never reaches stimecmp.
+                const bool allowed = mode == PrivMode::MACHINE ||
+                    (mode == PrivMode::SUPERVISOR && (enables & 1) && (enables & 4));
+                bool valid;
+                const auto value = read_csr(csr, addr, valid);
+                REQUIRE_MSG(valid == allowed, "stimecmp read permissions wrong");
+                if (allowed) REQUIRE(value == 0x55);
+                const auto result = write_csr(csr, addr, 0xaa);
+                REQUIRE_MSG(result.valid == allowed, "stimecmp write permissions wrong");
+                REQUIRE(result.effect == (allowed ? RVCSR::WriteEffect::STimer : RVCSR::WriteEffect::None));
+                // Debug access ignores guest checks, and a rejected write changes nothing.
+                REQUIRE(csr.debug_read_csr(addr).value() == (allowed ? 0xaa : 0x55));
+                csr.privMode = PrivMode::MACHINE;
+            }
+        }
+    }
+}
+
+TEST_CASE("csr address privilege level", "[csr]") {
+    using namespace kxemu::cpu;
+    RVCSR csr;
+    csr.init(0, [] { return uint64_t{0}; });
+    csr.reset();
+    // Open every extra gate (counter enables, STCE) so only the address level decides.
+    write_checked_csr(csr, CSRAddr::MCNTEN, 2);
+    write_checked_csr(csr, CSRAddr::SCNTEN, 2);
+#ifdef KXEMU_ISA32
+    write_checked_csr(csr, CSRAddr::MENVCFGH, word_t{1} << 31);
+#else
+    write_checked_csr(csr, CSRAddr::MENVCFG, word_t{1} << 63);
+#endif
+    unsigned implemented = 0;
+    for (unsigned int addr = 0; addr < 0x1000; ++addr) {
+        csr.privMode = PrivMode::MACHINE;
+        const auto old = csr.debug_read_csr(addr);
+        if (!old.has_value()) continue;
+        implemented++;
+        const unsigned int level = (addr >> 8) & 0x3;
+        for (auto mode : {PrivMode::MACHINE, PrivMode::SUPERVISOR, PrivMode::USER}) {
+            CAPTURE(addr, mode);
+            csr.privMode = mode;
+            const bool allowed = unsigned(mode) >= level;
+            bool valid;
+            read_csr(csr, addr, valid);
+            REQUIRE_MSG(valid == allowed, "CSR read ignored the address privilege level");
+            if (!allowed && !csr_read_only(addr)) {
+                const auto result = write_csr(csr, addr, ~*old);
+                REQUIRE_MSG(!result.valid, "CSR write ignored the address privilege level");
+                REQUIRE_MSG(result.effect == RVCSR::WriteEffect::None, "rejected CSR write reported an effect");
+                REQUIRE_MSG(csr.debug_read_csr(addr) == old, "rejected CSR write changed the CSR");
+            }
+        }
+    }
+    REQUIRE(implemented > 0);
+}
+
+TEST_CASE("lower privilege csr access traps", "[csr][trap]") {
+    using namespace kxemu::cpu;
+    Machine machine;
+    auto core = machine.cpu.get_core(0);
+    constexpr word_t handler = entry + 0x100;
+    constexpr word_t lower = entry + 0x400;
+    constexpr unsigned mret = 0x30200073;
+    constexpr unsigned jself = 0x0000006f;
+    // csrrs a0, csr, x0
+    auto csrr = [](unsigned csr) { return (csr << 20) | (2u << 12) | (10u << 7) | 0x73u; };
+
+    const auto mode = GENERATE(PrivMode::SUPERVISOR, PrivMode::USER);
+    CAPTURE(mode);
+    REQUIRE(machine.bus.write(entry, mret, 4));
+    REQUIRE(machine.bus.write(handler, jself, 4));
+    // S-mode may read sstatus but not mstatus; U-mode may read neither.
+    REQUIRE(machine.bus.write(lower, csrr(CSRAddr::SSTATUS), 4));
+    REQUIRE(machine.bus.write(lower + 4, csrr(CSRAddr::MSTATUS), 4));
+    REQUIRE(core->set_register("mtvec", handler));
+    REQUIRE(core->set_register("mepc", lower));
+    REQUIRE(core->set_register("mstatus", word_t(mode) << 11)); // MPP
+    core->set_pc(entry);
+    core->step();
+    REQUIRE(core->get_register("priv").value() == word_t(mode));
+    REQUIRE(core->get_pc() == lower);
+
+    const word_t faulting = mode == PrivMode::SUPERVISOR ? lower + 4 : lower;
+    if (mode == PrivMode::SUPERVISOR) {
+        core->step();
+        REQUIRE_MSG(core->get_pc() == lower + 4, "S-mode sstatus read trapped");
+    }
+    core->step();
+    REQUIRE_MSG(core->get_pc() == handler, "lower privilege CSR access did not trap");
+    REQUIRE(core->get_register("mcause").value() == word_t(TrapCode::ILLEGAL_INST));
+    REQUIRE(core->get_register("mepc").value() == faulting);
+    REQUIRE(core->get_register("priv").value() == word_t(PrivMode::MACHINE));
 }
 
 TEST_CASE("csr derived values and effects", "[csr]") {
@@ -282,15 +410,23 @@ TEST_CASE("guest stimecmp rearms timer", "[csr][timer]") {
     const unsigned csrrw = (unsigned(CSRAddr::STIMECMP) << 20) | (2u << 15) | 0x1073u;
     REQUIRE_MSG(machine.bus.write(pc, csrrw, 4), "stimecmp test instruction write failed");
     REQUIRE_MSG(machine.bus.write(pc + 4, 0x00000013, 4), "stimecmp test instruction write failed");
+#ifdef KXEMU_ISA32
+    REQUIRE_MSG(core->set_register("menvcfgh", word_t{1} << 31), "menvcfgh.STCE write failed");
+#else
+    REQUIRE_MSG(core->set_register("menvcfg", word_t{1} << 63), "menvcfg.STCE write failed");
+#endif
+    // The platform timer is stopped, so time stays at zero.
     core->set_timer_interrupt_s();
-    core->set_gpr(2, 0);
+    core->set_gpr(2, 1);
     core->set_pc(pc);
     core->step();
     REQUIRE_MSG((core->get_register("mip").value() & stip) == 0,
                 "guest stimecmp write did not clear the old timer interrupt");
+    core->set_gpr(2, 0);
+    core->set_pc(pc);
     core->step();
     REQUIRE_MSG((core->get_register("mip").value() & stip) != 0,
-                "guest stimecmp write did not arm the ACLINT timer");
+                "guest stimecmp write of an expired deadline did not assert STIP");
     REQUIRE_MSG(core->set_register("stimecmp", ~word_t{0}), "debug stimecmp write failed");
     REQUIRE_MSG((core->get_register("mip").value() & stip) == 0,
                 "debug stimecmp write did not rearm the timer");
@@ -428,7 +564,6 @@ TEST_CASE("concurrent irq updates", "[irq][concurrency]") {
 }
 
 TEST_CASE("hart isolation", "[irq][stop]") {
-    // Separate machines avoid sharing legacy polled devices between test threads.
     Machine first;
     Machine second;
     auto firstCore = first.cpu.get_core(0);
@@ -443,34 +578,119 @@ TEST_CASE("hart isolation", "[irq][stop]") {
     REQUIRE_MSG(!firstCore->stop_requested(), "stop flag leaked between cores");
 }
 
-TEST_CASE("polled source", "[wfi][irq]") {
-    // A legacy source that publishes only when Bus::update() polls it.
-    struct PolledSource : kxemu::device::MMIODev {
-        using mmio_word_t = kxemu::device::word_t;
-        kxemu::cpu::RVCore *core;
-        std::atomic<bool> pending{false};
-        explicit PolledSource(kxemu::cpu::RVCore *core) : core(core) {}
-        mmio_word_t read(mmio_word_t, mmio_word_t, bool &valid) override {
-            valid = false;
-            return 0;
-        }
-        bool write(mmio_word_t, mmio_word_t, mmio_word_t) override { return false; }
-        void update() override {
-            if (pending.exchange(false)) core->set_timer_interrupt_m();
-        }
-    };
+// An MMIO device whose IRQ line a test drives from another thread.
+struct IrqSource : kxemu::device::MMIODev {
+    using mmio_word_t = kxemu::device::word_t;
+    mmio_word_t read(mmio_word_t, mmio_word_t, bool &valid) override {
+        valid = false;
+        return 0;
+    }
+    bool write(mmio_word_t, mmio_word_t, mmio_word_t) override { return false; }
+    void drive(bool level) { this->set_irq_level(level); }
+};
+
+static double thread_cpu_seconds() {
+    timespec ts;
+    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+    return ts.tv_sec + ts.tv_nsec * 1e-9;
+}
+
+TEST_CASE("device irq wakes wfi through the plic", "[wfi][irq]") {
+    using namespace kxemu::cpu;
+    constexpr word_t meip = word_t{1} << 11;
+    constexpr word_t plic = 0x0c000000;
+    constexpr word_t claim = plic + 0x200004;
 
     Machine machine;
     auto core = machine.cpu.get_core(0);
-    PolledSource source(core);
-    REQUIRE_MSG(machine.bus.add_mmio_map(0x10000000, 4096, &source), "poll source map failed");
-    core->set_register("mie", timer);
-    auto step = std::async(std::launch::async, [&] { core->step(); });
-    REQUIRE_MSG(step.wait_for(20ms) == std::future_status::timeout, "WFI failed to wait for poll source");
-    source.pending.store(true);
-    REQUIRE_MSG(step.wait_for(1s) == std::future_status::ready, "polled source no longer serviced");
-    step.get();
-    REQUIRE_MSG((core->get_register("mip").value() & timer) != 0, "polled IRQ not injected");
+    IrqSource source;
+    REQUIRE_MSG(machine.bus.add_mmio_map(1, 0x10000000, 4096, &source), "source map failed");
+    REQUIRE(machine.bus.write(plic + 4, 1, 4));          // priority[1] = 1
+    REQUIRE(machine.bus.write(plic + 0x2000, 1 << 1, 4)); // context 0 enables source 1
+    core->set_register("mie", meip);
+
+    auto step = std::async(std::launch::async, [&] {
+        const double start = thread_cpu_seconds();
+        core->step();
+        return thread_cpu_seconds() - start;
+    });
+    REQUIRE_MSG(step.wait_for(200ms) == std::future_status::timeout, "WFI did not wait for the device");
+    std::thread([&] { source.drive(true); }).join();
+    REQUIRE_MSG(step.wait_for(1s) == std::future_status::ready, "device IRQ did not wake WFI");
+    const double busy = step.get();
+    CAPTURE(busy);
+    REQUIRE_MSG(busy < 0.05, "WFI spun instead of sleeping");
+    REQUIRE(core->get_pc() == entry + 4);
+    REQUIRE_MSG(core->get_register("mip").value() == meip, "PLIC did not raise MEIP");
+
+    bool valid;
+    REQUIRE(machine.bus.read(claim, 4, valid) == 1);
+    REQUIRE_MSG(core->get_register("mip").value() == 0, "claim did not lower MEIP");
+    REQUIRE(machine.bus.write(claim, 1, 4));
+    REQUIRE_MSG(core->get_register("mip").value() == meip, "a still-asserted source was not re-requested");
+    source.drive(false);
+    REQUIRE_MSG(core->get_register("mip").value() == 0, "deasserting the source did not lower MEIP");
+}
+
+TEST_CASE("run takes an interrupt in a one-instruction enable window", "[irq]") {
+    // xv6's scheduler does intr_on(); intr_off(); and relies on trapping between them.
+    Machine machine;
+    auto core = machine.cpu.get_core(0);
+    constexpr word_t handler = entry + 0x100;
+    constexpr unsigned jself = 0x0000006f;
+    const unsigned csrs = (0x300u << 20) | (2u << 15) | (2u << 12) | 0x73u; // csrrs x0, mstatus, x2
+    const unsigned csrc = (0x300u << 20) | (2u << 15) | (3u << 12) | 0x73u; // csrrc x0, mstatus, x2
+    REQUIRE(machine.bus.write(entry, csrs, 4));
+    REQUIRE(machine.bus.write(entry + 4, csrc, 4));
+    REQUIRE(machine.bus.write(entry + 8, jself, 4));
+    REQUIRE(machine.bus.write(handler, jself, 4));
+    REQUIRE(core->set_register("mtvec", handler));
+    core->set_gpr(2, word_t{1} << 3); // mstatus.MIE
+    core->set_software_interrupt_m(); // Pending and enabled in mie, masked by mstatus.MIE.
+    core->set_pc(entry);
+
+    const word_t breakpoints[] = {handler};
+    auto run = std::async(std::launch::async, [&] { core->run(breakpoints, 1); });
+    const bool trapped = run.wait_for(1s) == std::future_status::ready;
+    if (!trapped) core->request_stop();
+    run.get();
+    REQUIRE_MSG(trapped, "run() missed the interrupt between enabling and disabling MIE");
+    REQUIRE(core->get_pc() == handler);
+    REQUIRE_MSG(core->get_register("mepc").value() == entry + 4, "interrupt not taken right after the enable");
+}
+
+TEST_CASE("bus interrupt controller", "[irq]") {
+    // Records the levels the bus forwards.
+    struct FakeController : kxemu::device::InterruptController {
+        std::vector<std::pair<unsigned, bool>> calls;
+        void set_irq(unsigned int irq, bool level) override { calls.emplace_back(irq, level); }
+    };
+
+    Bus bus;
+    IrqSource source;
+    IrqSource unrouted;
+    REQUIRE(bus.add_mmio_map(3, 0x10000000, 0x1000, &source));
+    REQUIRE(bus.add_mmio_map(0x10001000, 0x1000, &unrouted));
+
+    SECTION("levels are dropped without a controller") {
+        source.drive(true);
+        source.drive(false);
+        FakeController intc;
+        bus.set_interrupt_controller(&intc);
+        REQUIRE(intc.calls.empty());
+        bus.set_interrupt_controller(nullptr);
+    }
+
+    SECTION("asserted sources are replayed to a new controller") {
+        source.drive(true);
+        FakeController intc;
+        bus.set_interrupt_controller(&intc);
+        REQUIRE(intc.calls == std::vector<std::pair<unsigned, bool>>{{3, true}});
+        source.drive(false);
+        unrouted.drive(true); // Source 0 has no IRQ line.
+        REQUIRE(intc.calls == std::vector<std::pair<unsigned, bool>>{{3, true}, {3, false}});
+        bus.set_interrupt_controller(nullptr);
+    }
 }
 
 TEST_CASE("cpu teardown", "[stop]") {
@@ -581,11 +801,11 @@ TEST_CASE("expanded interrupt csrs", "[csr][irq]") {
     constexpr word_t xl = kxemu::cpu::csr::MStatus::XL_VALUE;
     constexpr word_t uxl = xl & kxemu::cpu::csr::MStatus::SSTATUS_MASK;
     REQUIRE_MSG(read_csr(csr, CSRAddr::MSTATUS) == xl, "mstatus reset changed");
-    REQUIRE_MSG(write_csr(csr, CSRAddr::MSTATUS, 0x180a).effect == RVCSR::WriteEffect::None,
-                "mstatus write produced unrelated effect");
+    REQUIRE_MSG(write_csr(csr, CSRAddr::MSTATUS, 0x180a).effect == RVCSR::WriteEffect::Interrupt,
+                "mstatus write did not request an interrupt check");
     REQUIRE_MSG(read_csr(csr, CSRAddr::SSTATUS) == (uxl | 2), "sstatus view missed mstatus write");
-    REQUIRE_MSG(write_csr(csr, CSRAddr::SSTATUS, 0).effect == RVCSR::WriteEffect::None,
-                "sstatus write produced unrelated effect");
+    REQUIRE_MSG(write_csr(csr, CSRAddr::SSTATUS, 0).effect == RVCSR::WriteEffect::Interrupt,
+                "sstatus write did not request an interrupt check");
     REQUIRE_MSG(read_csr(csr, CSRAddr::MSTATUS) == (xl | 0x1808), "sstatus write damaged machine fields");
     write_checked_csr(csr, CSRAddr::SSTATUS, 2);
     REQUIRE_MSG(read_checked_csr(csr, CSRAddr::MSTATUS) == (xl | 0x180a), "supervisor view write failed");

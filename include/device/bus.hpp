@@ -1,12 +1,15 @@
 #ifndef __KXEMU_DEVICE_BUS_HPP__
 #define __KXEMU_DEVICE_BUS_HPP__
 
+#include "device/intc.hpp"
 #include "device/mmio.hpp"
 #include "device/def.hpp"
 
+#include <atomic>
 #include <optional>
 #include <vector>
 #include <iostream>
+#include <mutex>
 #include <cstdint>
 
 namespace kxemu::device {
@@ -54,7 +57,6 @@ public:
 
     word_t read (word_t addr, word_t length, bool &valid) const;
     bool   write(word_t addr, word_t data, word_t length);
-    void update();
 
     std::optional<word_t> do_atomic(word_t addr, word_t data, unsigned int length, AMO amo);
     std::optional<bool> compare_and_swap(word_t addr, void *expected, word_t desired, unsigned int length);
@@ -70,6 +72,23 @@ public:
     void *get_ptr(word_t addr) const;
     void *get_ptr(word_t addr, word_t length) const;
     word_t get_ptr_length(word_t addr) const;
+
+    // The controller that receives device IRQ levels, or nullptr for none.
+    // Set it during setup; currently asserted sources are replayed to it.
+    void set_interrupt_controller(InterruptController *intc);
+    InterruptController *get_interrupt_controller() const {
+        return this->intc.load(std::memory_order_acquire);
+    }
+
+    // Drive source irq (1..63) to level. Thread-safe; forwarded to the controller.
+    void set_irq(unsigned int irq, bool level);
+
+private:
+    // Serializes level changes with each other and with controller replacement.
+    // Order: device lock, then irqMtx, then the controller's lock.
+    std::mutex irqMtx;
+    std::atomic<InterruptController *> intc{nullptr};
+    uint64_t irqLevels = 0; // Last level of each source, for replay; guarded by irqMtx
 };
 
 } // namespace kxemu::device
