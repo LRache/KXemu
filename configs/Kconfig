@@ -193,8 +193,6 @@ config DEBUG_DCACHE
 endmenu
 
 menu "Other"
-config BREAK
-    bool "Break for DEBUG"
 config USE_EXCEPTION
     bool "Use exception to handle traps"
 endmenu

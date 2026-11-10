@@ -43,5 +43,4 @@
 #cmakedefine CONFIG_DEBUG 1
 #cmakedefine CONFIG_DEBUG_DECODER 1
 #cmakedefine CONFIG_DEBUG_DCACHE 1
-#cmakedefine CONFIG_BREAK 1
 #cmakedefine CONFIG_USE_EXCEPTION 1
