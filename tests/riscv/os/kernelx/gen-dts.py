@@ -120,8 +120,10 @@ def main():
     parser.add_argument("--output", required=True, help="output .dts path")
     args = parser.parse_args()
 
-    if not 1 <= args.smp <= 32:
-        parser.error("--smp must be between 1 and 32")
+    # The PLIC has 32 contexts, two per hart (M and S), so KXemu supports at
+    # most 16 harts and PLIC::init() asserts above that.
+    if not 1 <= args.smp <= 16:
+        parser.error("--smp must be between 1 and 16")
 
     text = HEADER.format(smp=args.smp)
     for hart in range(args.smp):

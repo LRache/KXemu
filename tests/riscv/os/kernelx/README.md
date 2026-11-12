@@ -59,7 +59,8 @@ Hello from KernelX userspace on KXemu!
 
 ## 多核
 
-`SMP` 控制 hart 数，默认 4。`gen-dts.py` 会按 `SMP` 生成同样数量的 CPU 节点、
+`SMP` 控制 hart 数，默认 4，范围 1–16（KXemu 的 PLIC 有 32 个 context，每 hart
+占两个 M/S context）。`gen-dts.py` 会按 `SMP` 生成同样数量的 CPU 节点、
 PLIC S-mode context 和 CLINT 中断项，KDB 也会用 `--core $(SMP)` 启动同样数量的
 核心：
 
