@@ -2,6 +2,8 @@
 
 ## NEWS
 
+2026.11.12 **成功在kxemu-system-riscv64上启动KernelX (riscv64, dev分支)**，挂载ext4根文件系统并运行用户态init。
+
 2025.5.29 **成功在kxemu-system-riscv64上启动linux-5.15** ，但是还未尝试挂载init root fs。
 
 ## 关于KXemu About KXEMU
