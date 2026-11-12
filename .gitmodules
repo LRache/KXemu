@@ -22,3 +22,7 @@
 [submodule "utils/readline"]
 	path = utils/readline
 	url = https://git.savannah.gnu.org/git/readline.git
+[submodule "tests/os/KernelX"]
+	path = tests/os/KernelX
+	url = git@github.com:LRache/KernelX.git
+	branch = dev
