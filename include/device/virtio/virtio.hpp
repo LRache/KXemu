@@ -31,7 +31,8 @@ protected:
     uint32_t deviceFeaturesSelect; // 0x010
     uint32_t driverFeaturesSelect; // 0x014
     uint32_t queueSelect; // 0x030
-    static constexpr uint32_t queueNumMax = 12;
+    // The VirtIO spec requires a power of two; 256 matches QEMU's virtio-mmio.
+    static constexpr uint32_t queueNumMax = 256;
     /* 0x010 Device features */
     uint32_t read_device_features();
     void write_driver_features(uint32_t features);
