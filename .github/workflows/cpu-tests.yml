@@ -59,7 +59,6 @@ jobs:
           make -f build.mk \
             CONFIG_ISA=${{ matrix.isa }} \
             CONFIG_CC=clang++-20 \
-            CONFIG_HALT_WHEN_BREAK=y \
             CMAKE_ARGS="-DLLVM_DIR=$(llvm-config --cmakedir)"
 
       - name: Run CPU tests
