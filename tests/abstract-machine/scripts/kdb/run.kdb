@@ -1,2 +1,3 @@
+set halt-on-break on
 run
 exit

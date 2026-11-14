@@ -5,9 +5,10 @@
 # test under ../linux5.15. The root filesystem is an ext4 image served by
 # KXemu's virtio-mmio block device.
 #
-# KXemu halts the hart on every ebreak (CONFIG_HALT_WHEN_BREAK), and OpenSBI's
-# default generic build probes for semihosting by executing an ebreak. This
-# Makefile therefore builds a private OpenSBI with CONFIG_SERIAL_SEMIHOSTING=n.
+# KDB can be told to halt the hart on every ebreak with `set halt-on-break on`,
+# and OpenSBI's default generic build probes for semihosting by executing an
+# ebreak. This Makefile therefore builds a private OpenSBI with
+# CONFIG_SERIAL_SEMIHOSTING=n, so boot works regardless of that setting.
 
 KXEMU_HOME := $(abspath ../../../..)
 KERNELX_HOME := $(abspath ../../../os/KernelX)

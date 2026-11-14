@@ -18,7 +18,6 @@
 #cmakedefine CONFIG_FPU_HOST 1
 #cmakedefine CONFIG_FPU_SOFT 1
 #cmakedefine CONFIG_FPU_NONE 1
-#cmakedefine CONFIG_HALT_WHEN_BREAK 1
 #cmakedefine CONFIG_HALT_WHEN_INVALID 1
 #cmakedefine CONFIG_WFI_AS_NOP 1
 #cmakedefine CONFIG_DIFFTEST 1

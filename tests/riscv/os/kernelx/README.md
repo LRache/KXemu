@@ -78,11 +78,12 @@ KernelX 从设备树读取 hart 数，并通过 SBI HSM 的 `hart_start` 唤醒�
 
 ## 为什么单独构建 OpenSBI
 
-KXemu 当前配置里 `CONFIG_HALT_WHEN_BREAK=y`，任何 `ebreak` 都会让 hart 停机。
-OpenSBI 的 generic 平台默认打开 `CONFIG_SERIAL_SEMIHOSTING`，启动时会执行一条
-`ebreak` 探测 semihosting 是否可用，于是直接触发 KXemu 的停机。本目录的
-Makefile 因此用同一份 OpenSBI 源码单独生成 `.config`，把
-`CONFIG_SERIAL_SEMIHOSTING` 关掉后再编译 `fw_jump.bin`。
+在 KDB 中执行 `set halt-on-break on` 后，任何 `ebreak` 都会让 hart 停机；该
+设置默认关闭。OpenSBI 的 generic 平台默认打开 `CONFIG_SERIAL_SEMIHOSTING`，启动
+时会执行一条 `ebreak` 探测 semihosting 是否可用，一旦开启上述设置就会直接停机。
+本目录的 Makefile 因此用同一份 OpenSBI 源码单独生成 `.config`，把
+`CONFIG_SERIAL_SEMIHOSTING` 关掉后再编译 `fw_jump.bin`，这样无论 KDB 是否开启
+halt-on-break，内核都能正常启动。
 
 ## 文件
 

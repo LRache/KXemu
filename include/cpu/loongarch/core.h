@@ -20,6 +20,8 @@ private:
     };
     std::atomic<state_t> state{IDLE};
     std::atomic<bool> stopping{false};
+    // Halt the host on break instead of reporting an unsupported exception.
+    bool haltOnBreak = false;
     word_t haltPC;
     word_t haltCode;
 
@@ -59,6 +61,14 @@ public:
     /// instructions. This Core currently has no blocking instruction waits.
     void request_stop() override {
         stopping.store(true, std::memory_order_release);
+    }
+
+    void set_halt_on_break(bool halt) override {
+        this->haltOnBreak = halt;
+    }
+
+    bool get_halt_on_break() const override {
+        return this->haltOnBreak;
     }
 
     word_t get_pc() override;
