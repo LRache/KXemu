@@ -1,6 +1,7 @@
 #include "cpu/loongarch/core.h"
 #include "./local-decoder.h"
 #include "cpu/word.h"
+#include "log.h"
 #include "macro.h"
 
 #include <cstdint>
@@ -341,6 +342,15 @@ void LACore::do_st_w() {
 }
 
 void LACore::do_break() {
+    if (!this->haltOnBreak) {
+        // BREAK raises a guest breakpoint exception, which this core does not
+        // implement. Report it instead of silently continuing past the BREAK.
+        this->state = ERROR;
+        this->haltPC = this->pc;
+        WARN("BREAK at pc=" FMT_WORD ", guest exceptions are not supported", this->pc);
+        return;
+    }
+
     this->state = HALT;
     this->haltPC = this->pc;
     this->haltCode = gpr[4];

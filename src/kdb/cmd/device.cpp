@@ -1,7 +1,9 @@
+#include "device/syscon.hpp"
 #include "device/virtio/block.hpp"
 #include "kdb/cmd.hpp"
 #include "kdb/kdb.hpp"
 #include "utils/utils.hpp"
+#include "log.h"
 #include "word.h"
 
 #include <iostream>
@@ -124,6 +126,48 @@ static int device_add_virtio_block(unsigned int id, const cmd::args_t &args) {
     return cmd::Success;
 }
 
+static int device_add_syscon(unsigned int id, const cmd::args_t &args) {
+    // [0]device [1]add [2]id [3]syscon [4]base
+    if (args.size() < 5) {
+        std::cout << "Usage: device add <id> syscon <base>" << std::endl;
+        return cmd::EmptyArgs;
+    }
+
+    auto base = utils::string_to_unsigned(args[4]);
+    if (!base.has_value()) {
+        std::cerr << "Invalid base: " << args[4] << std::endl;
+        return cmd::InvalidArgs;
+    }
+
+    auto *dev = new kxemu::device::Syscon;
+    dev->set_handler([](kxemu::device::Syscon::Action action, unsigned int code) {
+        switch (action) {
+            case kxemu::device::Syscon::Action::Poweroff:
+                std::cout << "Guest requested poweroff, exit code " << code << std::endl;
+                kdb::cmd::request_exit(code);
+                break;
+            case kxemu::device::Syscon::Action::Fail:
+                std::cout << "Guest reported failure, exit code " << (code ? code : 1) << std::endl;
+                kdb::cmd::request_exit(code ? code : 1);
+                break;
+            case kxemu::device::Syscon::Action::Reset:
+                WARN("Guest requested reset, but reset is not supported; ignored");
+                break;
+        }
+    });
+
+    if (!bus->add_mmio_map(id, base.value(), kxemu::device::Syscon::SIZE, dev)) {
+        std::cerr << "Failed to add syscon device." << std::endl;
+        delete dev;
+        return cmd::CmdError;
+    }
+
+    kdb::device::add(dev);
+
+    std::cout << "Add syscon device: id=" << id << ", base=" << FMT_STREAM_WORD(base.value()) << std::endl;
+    return cmd::Success;
+}
+
 static int device_add(const cmd::args_t &args) {
     if (args.size() < 4) {
         std::cout << "Usage: device add <type> <start> <size>" << std::endl;
@@ -153,9 +197,11 @@ static int device_add(const cmd::args_t &args) {
         
         const std::string &type = args[3];
         if (type == "uart") {
-            device_add_uart(id.value(), args);
+            return device_add_uart(id.value(), args);
         } else if (type == "virtio-blk") {
-            device_add_virtio_block(id.value(), args);
+            return device_add_virtio_block(id.value(), args);
+        } else if (type == "syscon") {
+            return device_add_syscon(id.value(), args);
         } else {
             std::cerr << "Unknown device type: " << type << std::endl;
             return cmd::InvalidArgs;

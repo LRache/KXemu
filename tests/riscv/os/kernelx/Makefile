@@ -5,9 +5,8 @@
 # test under ../linux5.15. The root filesystem is an ext4 image served by
 # KXemu's virtio-mmio block device.
 #
-# KXemu halts the hart on every ebreak (CONFIG_HALT_WHEN_BREAK), and OpenSBI's
-# default generic build probes for semihosting by executing an ebreak. This
-# Makefile therefore builds a private OpenSBI with CONFIG_SERIAL_SEMIHOSTING=n.
+# OpenSBI comes from the shared tests/riscv/opensbi submodule and is built with
+# its standard generic configuration, like the other RISC-V tests.
 
 KXEMU_HOME := $(abspath ../../../..)
 KERNELX_HOME := $(abspath ../../../os/KernelX)
@@ -15,14 +14,7 @@ KERNELX_HOME := $(abspath ../../../os/KernelX)
 KXEMU ?= $(KXEMU_HOME)/build/kxemu-system-riscv64
 
 OPENSBI_SRC ?= ../../opensbi/opensbi
-OPENSBI_BUILD := build/opensbi
-OPENSBI_BIN := $(OPENSBI_BUILD)/platform/generic/firmware/fw_jump.bin
-OPENSBI_FLAGS := \
-	PLATFORM=generic \
-	PLATFORM_RISCV_XLEN=64 \
-	FW_DYNAMIC=n \
-	FW_PAYLOAD=n \
-	FW_JUMP=y
+OPENSBI_BIN ?= $(OPENSBI_SRC)/build/platform/generic/firmware/fw_jump.bin
 
 KERNELX_BUILD := $(KERNELX_HOME)/build/riscv64
 KERNEL_IMAGE := $(KERNELX_BUILD)/Image
@@ -50,7 +42,7 @@ KERNELX_FLAGS := \
 	CROSS_COMPILE=$(CROSS_COMPILE) \
 	KERNELX_RELEASE=5.0 \
 	COMPILE_MODE=release \
-	CONFIG_LOG_LEVEL=info \
+	CONFIG_LOG_LEVEL=warn \
 	CONFIG_WARN_UNIMPLEMENTED_SYSCALL=y \
 	CONFIG_VIRTIO_BLOCK_PAGE_CACHE=n \
 	OBJCOPY=$(OBJCOPY)
@@ -72,18 +64,8 @@ kernel:
 
 $(OPENSBI_BIN):
 	$(info + BUILDING OPENSBI)
-	@ mkdir -p $(OPENSBI_BUILD)/platform/generic/kconfig
-	@ cd $(abspath $(OPENSBI_SRC))/scripts/Kconfiglib && \
-		KCONFIG_CONFIG=$(abspath $(OPENSBI_BUILD))/platform/generic/kconfig/.config \
-		OPENSBI_SRC_DIR=$(abspath $(OPENSBI_SRC)) \
-		OPENSBI_PLATFORM=generic \
-		OPENSBI_PLATFORM_SRC_DIR=$(abspath $(OPENSBI_SRC))/platform/generic \
-		python3 defconfig.py --kconfig $(abspath $(OPENSBI_SRC))/Kconfig \
-		$(abspath $(OPENSBI_SRC))/platform/generic/configs/defconfig
-	@ sed -i 's/^CONFIG_SERIAL_SEMIHOSTING=y$$/CONFIG_SERIAL_SEMIHOSTING=n/' \
-		$(OPENSBI_BUILD)/platform/generic/kconfig/.config
-	@ $(MAKE) -C $(OPENSBI_SRC) O=$(abspath $(OPENSBI_BUILD)) $(OPENSBI_FLAGS) \
-		CROSS_COMPILE=$(CROSS_COMPILE)
+	@ $(MAKE) -C $(OPENSBI_SRC) PLATFORM=generic \
+		PLATFORM_RISCV_XLEN=64 CROSS_COMPILE=$(CROSS_COMPILE)
 
 $(DTS): gen-dts.py FORCE
 	$(info + GENERATING DTS)

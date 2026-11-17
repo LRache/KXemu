@@ -69,9 +69,6 @@ endmenu # menu "Core Functions"
 
 menu "Core Options"
 
-config HALT_WHEN_BREAK
-  bool "Halt when touched a break instruction"
-
 config HALT_WHEN_INVALID
   bool "Halt when touched an invalid instruction"
 

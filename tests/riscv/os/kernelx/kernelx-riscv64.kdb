@@ -2,6 +2,7 @@ log off DEBUG
 mem create mem 0x80000000 0x10000000
 device add 10 uart 0x10000000
 device add 1 virtio-blk 0x10001000 raw {rootfs}
+device add 0 syscon 0x100000
 load bin {dtb} 0x82200000
 load bin {openSBI} 0x80000000
 load bin {kernel} 0x80200000

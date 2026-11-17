@@ -26,6 +26,8 @@ private:
     unsigned int coreID;
 
     bool debugMode = false;
+    // Halt the host on ebreak instead of raising the guest breakpoint trap.
+    bool haltOnBreak = false;
 
     enum state_t {
         IDLE,
@@ -290,6 +292,14 @@ public:
 
     void set_debug_mode(bool debug) {
         this->debugMode = debug;
+    }
+
+    void set_halt_on_break(bool halt) override {
+        this->haltOnBreak = halt;
+    }
+
+    bool get_halt_on_break() const override {
+        return this->haltOnBreak;
     }
     
     bool is_error()   override;

@@ -10,6 +10,8 @@
 - 设备树加载到 `0x82200000`（OpenSBI fw_jump 的固定 FDT 地址），经 `a1` 传给内核
 - 根文件系统是 virtio-mmio 块设备 `0x10001000`（PLIC IRQ 1）上的 ext4 镜像
 - 串口是 `0x10000000` 上的 ns16550a（PLIC IRQ 10）
+- 关机设备是 `0x100000` 上的 `syscon`（`sifive,test0`），`syscon-poweroff`
+  向偏移 0 写 `0x5555`
 
 ## 依赖
 
@@ -47,15 +49,22 @@ Hello from KernelX userspace on KXemu!
 [   0.214317] [PANIC] Init process exited with status Normal(0), system will halt.
 ```
 
+panic 之后 KernelX 通过 SBI shutdown 请求关机，OpenSBI 的 syscon reset
+驱动向 `0x100000` 写 `0x5555`，KXemu 随即打印关机信息并以 0 退出，不再挂起。
+
 `make` 会依次完成：
 
 1. 用 `tests/os/KernelX` 构建 `build/riscv64/Image` 和 `vmkernelx`
-2. 构建一份关闭 semihosting 的 OpenSBI `fw_jump`（见下）
+2. 用 `tests/riscv/opensbi/opensbi` 的通用配置构建 OpenSBI `fw_jump`，与
+   `tests/riscv/opensbi` 测试共用同一份构建
 3. 生成 `build/kernelx-riscv64.dtb`
 4. 用 musl 编译 `usertests/init` 和一个 hello 程序，用 `mke2fs -d` 打包成
    `build/rootfs.ext4`
 
 `make clean` 会删除本目录的 `build/`，并清理 KernelX 的构建产物。
+
+注意：OpenSBI 启动时会执行一条 `ebreak` 探测 semihosting，因此请保持 KDB 的
+`set halt-on-break` 为默认的 `off`；开启后探测会直接让 hart 停机。
 
 ## 多核
 
@@ -75,14 +84,6 @@ KernelX 从设备树读取 hart 数，并通过 SBI HSM 的 `hart_start` 唤醒�
 加载到 `0x82200000`（OpenSBI `fw_jump` 的 `FW_JUMP_FDT_OFFSET` 为 `0x2200000`），
 这样无论哪个 hart 中签，内核都能拿到有效设备树。KXemu 的 KDB `set reg a1` 只
 作用于当前 core（core 0），不能依赖它给 boot hart 传 FDT 地址。
-
-## 为什么单独构建 OpenSBI
-
-KXemu 当前配置里 `CONFIG_HALT_WHEN_BREAK=y`，任何 `ebreak` 都会让 hart 停机。
-OpenSBI 的 generic 平台默认打开 `CONFIG_SERIAL_SEMIHOSTING`，启动时会执行一条
-`ebreak` 探测 semihosting 是否可用，于是直接触发 KXemu 的停机。本目录的
-Makefile 因此用同一份 OpenSBI 源码单独生成 `.config`，把
-`CONFIG_SERIAL_SEMIHOSTING` 关掉后再编译 `fw_jump.bin`。
 
 ## 文件
 

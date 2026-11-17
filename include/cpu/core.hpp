@@ -24,6 +24,13 @@ public:
     /// non-blocking with respect to execution completion; does not join the caller's
     /// execution thread. The request remains pending until reset().
     virtual void request_stop() = 0;
+
+    /// Halt this hart on a break instruction (RISC-V ebreak, LoongArch break).
+    /// When disabled, the core falls back to its normal guest behavior.
+    /// Off by default; KDB scripts enable it when a test program signals
+    /// completion with a break instruction.
+    virtual void set_halt_on_break(bool halt) { (void)halt; }
+    virtual bool get_halt_on_break() const { return false; }
     
     virtual word_t get_pc() = 0;
     virtual void   set_pc(word_t pc) = 0;

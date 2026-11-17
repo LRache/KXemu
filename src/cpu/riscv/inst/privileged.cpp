@@ -87,12 +87,12 @@ void RVCore::do_invalid_inst(const DecodeInfo &) {
 }
 
 void RVCore::do_ebreak(const DecodeInfo &) {
-#ifdef CONFIG_HALT_WHEN_BREAK
-    INFO("EBREAK at pc=" FMT_WORD, this->pc);
-    this->state = HALT;
-    this->haltCode = this->gpr[10];
-    this->haltPC = this->pc;
-#endif
+    if (this->haltOnBreak) {
+        INFO("EBREAK at pc=" FMT_WORD, this->pc);
+        this->state = HALT;
+        this->haltCode = this->gpr[10];
+        this->haltPC = this->pc;
+    }
     
     throw TrapException(TrapCode::BREAKPOINT);
 }

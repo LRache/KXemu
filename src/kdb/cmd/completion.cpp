@@ -32,6 +32,10 @@ static const Node *tree = new Node({
     {"info", new Node({
         {"gpr", nullptr}
     })},
+    {"set", new Node({
+        {"reg", nullptr},
+        {"halt-on-break", new Node({{"on", nullptr}, {"off", nullptr}})}
+    })},
     {"load", new Node({
         {"elf", nullptr}
     })},

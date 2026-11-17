@@ -52,6 +52,10 @@ Load commands are used to load files specified in the command-line arguments, su
 
 ### Debug
 
+- `set reg <reg> <value>` 设置当前核心的寄存器。Sets a register of the current core.
+
+- `set halt-on-break [on|off]` 设置 CPU 执行断点指令（RISC-V 的 `ebreak`、LoongArch 的 `break`）时是否让主机停机，对所有核心生效；不带参数时打印当前设置。默认关闭，此时 RISC-V 的 `ebreak` 会作为普通断点异常交给客户机处理。Sets whether the host halts when the CPU executes a break instruction (RISC-V `ebreak`, LoongArch `break`) on all cores. Without an argument it prints the current setting. Defaults to off; when off, RISC-V `ebreak` is delivered to the guest as a regular breakpoint exception.
+
 - `info <name>` 打印名字为`name`的寄存器。Prints the value of the register named name.
 
 - `info gpr` 打印当前核的所有通用寄存器。Prints all general-purpose registers of the current core(or halt).
