@@ -14,6 +14,7 @@
 #include <readline/chardefs.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <atomic>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -54,6 +55,20 @@ static const cmd::cmd_map_t cmdMap = {
 
 static bool cmdRunning = true;
 
+// Set by devices that terminate the machine (e.g. the syscon finisher). Device
+// writes run on a vCPU thread, so both the flag and the requested code are atomic.
+static std::atomic<bool> exitRequested{false};
+static std::atomic<int> exitCode{0};
+
+void cmd::request_exit(int code) {
+    exitCode.store(code, std::memory_order_relaxed);
+    exitRequested.store(true, std::memory_order_release);
+
+    if (kdb::cpu != nullptr) {
+        kdb::cpu->request_stop();
+    }
+}
+
 void cmd::init() {
     if (kdb::cpu == nullptr || kdb::bus == nullptr) {
         PANIC("CPU or memory not initialized");
@@ -73,7 +88,14 @@ static const char *logo = \
 "|_|\\_\\ /_/\\_\\  \\___| |_| |_| |_|  \\__,_|\n";
                                         
 int cmd::mainloop() {
-    if (!cmdRunning) return kdb::returnCode;
+    auto finish = [&]() -> int {
+        if (exitRequested.load(std::memory_order_acquire)) {
+            kdb::returnCode = exitCode.load(std::memory_order_relaxed);
+        }
+        return kdb::returnCode;
+    };
+
+    if (!cmdRunning) return finish();
     
     std::cout << SHELL_BULE << logo << SHELL_RESET << std::endl;
     
@@ -82,7 +104,7 @@ int cmd::mainloop() {
 
     std::string lastCmd;
     char *inputLine;
-    while (cmdRunning) {
+    while (cmdRunning && !exitRequested.load(std::memory_order_acquire)) {
         inputLine = readline(prompt);
         if (inputLine == nullptr) {
             break;
@@ -102,7 +124,7 @@ int cmd::mainloop() {
         lastCmd = cmd;
     }
 
-    return kdb::returnCode;
+    return finish();
 }
 
 int cmd::run_command(const std::string &cmd) {

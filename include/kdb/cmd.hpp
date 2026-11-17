@@ -23,6 +23,10 @@ namespace kxemu::kdb::cmd {
     int run_command(const std::string &command);
     int run_source_file(const std::string &filename);
 
+    // Request a clean emulator exit from any thread (e.g. a device model).
+    // Stops every core and makes mainloop() return code.
+    void request_exit(int code);
+
     using args_t = std::vector<std::string>;
     using func_t = int (*)(const args_t &);
     using cmd_map_t = std::unordered_map<std::string, func_t>;

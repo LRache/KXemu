@@ -109,6 +109,18 @@ SOC = """
 \t\t\treg = <0x00 0x10001000 0x00 0x1000>;
 \t\t\tcompatible = "virtio,mmio";
 \t\t}};
+
+\t\ttest: test@100000 {{
+\t\t\treg = <0x00 0x100000 0x00 0x1000>;
+\t\t\tcompatible = "sifive,test1\\0sifive,test0\\0syscon";
+\t\t}};
+\t}};
+
+\tpoweroff {{
+\t\tcompatible = "syscon-poweroff";
+\t\tregmap = <&test>;
+\t\toffset = <0x00>;
+\t\tvalue = <0x5555>;
 \t}};
 }};
 """
